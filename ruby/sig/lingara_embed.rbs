@@ -1,0 +1,70 @@
+# The public surface of the gem `lingara-embed` (ADR 1.10.26af). The
+# library's own types (Lingara::Client, Lingara::MintedToken,
+# Lingara::Events::Event and its VerificationError) are the `lingara` gem's
+# signatures, so they are untyped here.
+module Lingara
+  module Embed
+    VERSION: String
+    GEM_VERSION: String
+
+    # Any object answering these three is a player directory (D5).
+    interface _Directory
+      def remember: (String player_ref, String subject) -> untyped
+      def player_ref_for: (String subject) -> String?
+      def forget: (String player_ref) -> untyped
+    end
+
+    def self.widget_snippet: (?plan_id: String?, ?token_endpoint: String?, ?surface: String?, ?theme: String?,
+                              ?locale: String?, ?lingara_origin: String?, ?title: String?, ?id: String?,
+                              ?nonce: String?, ?element_src: String?) -> String
+    def self.token_handoff: (untyped minted) -> String
+
+    class Server
+      def initialize: (untyped client, ?directory: _Directory?) -> void
+      def mint_token: (String player_ref, ?scopes: Array[String]?, ?origin: String?) -> untyped
+      def delete_player: (String player_ref) -> nil
+    end
+
+    class PlayerRouter
+      DEFAULT_ON_ERROR: ^(StandardError) -> untyped
+
+      def initialize: (String | Array[String] secrets, directory: _Directory,
+                       ?on_error: ^(StandardError) -> untyped) -> void
+      def route: (String body, Hash[untyped, untyped] headers) -> RoutedEvent
+      def handle: (String body, Hash[untyped, untyped] headers) { (RoutedEvent) -> untyped } -> Integer
+    end
+
+    class RoutedEvent < ::Data
+      attr_reader event: untyped
+      attr_reader player_ref: String?
+      def initialize: (event: untyped, player_ref: String?) -> void
+    end
+
+    class MemoryDirectory
+      def initialize: () -> void
+      def remember: (String player_ref, String subject) -> nil
+      def player_ref_for: (String subject) -> String?
+      def forget: (String player_ref) -> nil
+      def snapshot: () -> Hash[String, String]
+    end
+
+    class SnippetError < ArgumentError
+      attr_reader field: String
+      def initialize: (String field) -> void
+    end
+
+    module WidgetSnippet
+      DEFAULT_ELEMENT_SRC: String
+      def self.render: (?plan_id: String?, ?token_endpoint: String?, ?surface: String?, ?theme: String?,
+                        ?locale: String?, ?lingara_origin: String?, ?title: String?, ?id: String?,
+                        ?nonce: String?, ?element_src: String?) -> String
+    end
+
+    # Internal: integrators call Lingara::Embed.token_handoff.
+    module TokenHandoff
+      def self.from: (untyped minted) -> String
+      def self.body: (String token, String expires_at) -> String
+      def self.rfc3339: (Time | String time) -> String
+    end
+  end
+end

@@ -1,0 +1,22 @@
+[package]
+name = "lingara_demo_token_server"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.87"
+license = "MIT"
+publish = false
+description = "A stand-in for a game's own server, for the demos: mints a player's embed token on loopback (ADR 1.10.26z D11)"
+
+[[bin]]
+name = "lingara-demo-token-server"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8"
+# The client the mint goes through, at the trio's LIBRARY_FLOOR.
+lingara = { version = "0.2.0-alpha.1", default-features = false, features = ["rustls"] }
+lingara-embed = { path = "../../core", features = ["server"] }
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }

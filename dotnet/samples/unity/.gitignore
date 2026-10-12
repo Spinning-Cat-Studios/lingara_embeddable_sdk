@@ -1,0 +1,13 @@
+# What the Unity editor regenerates: R1's membership.exclude names none of it.
+/Library/
+/Temp/
+/Logs/
+/UserSettings/
+/obj/
+/Build/
+/Builds/
+*.csproj
+*.sln
+# NuGetForUnity's restored packages.
+/Assets/Packages/
+/Assets/Packages.meta

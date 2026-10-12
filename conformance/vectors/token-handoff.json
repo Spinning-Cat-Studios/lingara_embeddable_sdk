@@ -1,0 +1,42 @@
+[
+  {
+    "name": "whole seconds in UTC",
+    "input": {
+      "token": "lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3",
+      "expires_at": "2026-10-01T09:27:44Z"
+    },
+    "body": "{\"token\":\"lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3\",\"expires_at\":\"2026-10-01T09:27:44Z\"}"
+  },
+  {
+    "name": "fractional seconds pass through unchanged",
+    "input": {
+      "token": "lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3",
+      "expires_at": "2026-10-01T09:27:44.5Z"
+    },
+    "body": "{\"token\":\"lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3\",\"expires_at\":\"2026-10-01T09:27:44.5Z\"}"
+  },
+  {
+    "name": "nine fractional digits pass through unchanged",
+    "input": {
+      "token": "lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3",
+      "expires_at": "2026-10-01T09:27:44.123456789Z"
+    },
+    "body": "{\"token\":\"lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3\",\"expires_at\":\"2026-10-01T09:27:44.123456789Z\"}"
+  },
+  {
+    "name": "an offset passes through unchanged",
+    "input": {
+      "token": "lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3",
+      "expires_at": "2026-10-01T11:27:44+02:00"
+    },
+    "body": "{\"token\":\"lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3\",\"expires_at\":\"2026-10-01T11:27:44+02:00\"}"
+  },
+  {
+    "name": "a lowercase z passes through unchanged",
+    "input": {
+      "token": "lgr_et_zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+      "expires_at": "2026-10-01t09:27:44z"
+    },
+    "body": "{\"token\":\"lgr_et_zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\",\"expires_at\":\"2026-10-01t09:27:44z\"}"
+  }
+]

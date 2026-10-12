@@ -1,0 +1,20 @@
+id: ek7.refused-ends-session
+behaviours: [EK7]
+tier: ek
+# A refused request makes no plan: the session fails and nothing waits.
+serve:
+  - route: { operation: sendEvent }
+    respond:
+      status: 202
+      json:
+        id: lgr_evt_1
+        type: world.practice_requested
+        created_at: "2026-10-01T12:00:00Z"
+        reaction: { status: refused, code: topic_flagged, error: that topic cannot be practised }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: practice_start, source: { type: request, topic: ordering tea, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: practice, match: { snapshot: { phase: failed, failure: { kind: invalid_input, code: topic_flagged } } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

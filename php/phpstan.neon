@@ -1,0 +1,11 @@
+# PHPStan at level max over the kit, its tests, the ES harness and the
+# server snippets, which this type-checks against the kit (ADR 1.10.26af
+# D13; the app kit's and the library's settings).
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+        - conformance-es
+        - ../snippets/server/php
+    tmpDir: vendor/.phpstan

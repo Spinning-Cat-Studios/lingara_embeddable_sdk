@@ -1,0 +1,16 @@
+<Project Sdk="Godot.NET.Sdk/4.4.1">
+  <!--
+    The Godot sample installs Lingara.Embed as a game does (ADR 1.10.26aa D11): a
+    PackageReference, restored from a local `make dotnet-pack` in dotnet/artifacts/.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>LingaraSample</RootNamespace>
+    <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../../artifacts</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Lingara.Embed" Version="0.0.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+id: ek8.400-invalid-request
+behaviours: [EK8]
+tier: ek
+serve:
+  - route: { operation: sendEvent }
+    respond: { status: 400, json: { code: invalid_request, error: the event does not fit } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: error, match: { error: { kind: invalid_input, retryable: false, status: 400, code: invalid_request } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

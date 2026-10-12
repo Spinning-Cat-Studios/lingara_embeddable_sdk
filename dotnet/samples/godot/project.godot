@@ -1,0 +1,13 @@
+; The Godot 4.4 C# sample for Lingara.Embed (ADR 1.10.26aa D11).
+
+config_version=5
+
+[application]
+
+config/name="Lingara Embed Sample"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.4", "C#", "Forward Plus")
+
+[dotnet]
+
+project/assembly_name="LingaraSample"

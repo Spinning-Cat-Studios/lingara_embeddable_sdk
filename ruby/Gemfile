@@ -1,0 +1,14 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+# The gem itself, whose one runtime dependency is the lingara library.
+gemspec
+
+# Development only, at the app kits' pins: the test runner, the style lint
+# (which brings RuboCop, used for the budgets too) and the RBS validator.
+group :development do
+  gem "minitest", "6.0.6"
+  gem "standard", "1.56.0"
+  gem "rbs", "4.2.0"
+end

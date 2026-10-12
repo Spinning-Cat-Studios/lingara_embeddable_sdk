@@ -1,0 +1,11 @@
+<!-- The kit, and the natives for the platform (lingara-embed-natives-android in an Android module). -->
+<dependency>
+  <groupId>com.getlingara</groupId>
+  <artifactId>lingara-embed-java</artifactId>
+  <version>{{version}}</version>
+</dependency>
+<dependency>
+  <groupId>com.getlingara</groupId>
+  <artifactId>lingara-embed-natives-desktop</artifactId>
+  <version>{{version}}</version>
+</dependency>

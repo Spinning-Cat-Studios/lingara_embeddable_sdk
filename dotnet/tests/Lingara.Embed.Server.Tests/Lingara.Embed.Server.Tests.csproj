@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    xUnit over Lingara.Embed.Server (ADR 1.10.26af AC13, AC21, AC29–AC31). It
+    needs no native host library: the server half is pure managed code. The
+    tests read conformance/vectors/ and the project's own manifest from the
+    repository root, whose path the build stamps into the assembly.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Lingara.Embed.Server/Lingara.Embed.Server.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>RepoRoot</_Parameter1>
+      <_Parameter2>$(RepoRoot)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>

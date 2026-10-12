@@ -1,0 +1,21 @@
+# 1.10.26af AC4
+id: es3.bad-signature-401
+behaviours: [ES3]
+tier: es
+directory: { seed: { lgr_sub_conformance_p1: p1 } }
+deliver:
+  - message: practice.completed
+    body: { created_at: "2026-10-01T09:30:00Z", api_version: "2026-10-golden-remora", subject: "lgr_sub_conformance_p1", data: { plan_id: "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d", items: [ { set_number: 1, question: 0, outcome: correct } ], completed: true } }
+    sign: { secrets: [primary], tamper: true }
+    expect: { status: 401, handler: not_called }
+  - message: practice.completed
+    body: { created_at: "2026-10-01T09:30:00Z", api_version: "2026-10-golden-remora", subject: "lgr_sub_conformance_p1", data: { plan_id: "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d", items: [ { set_number: 1, question: 0, outcome: correct } ], completed: true } }
+    sign: { secrets: [unknown] }
+    expect: { status: 401, handler: not_called }
+  - message: practice.completed
+    body: { created_at: "2026-10-01T09:30:00Z", api_version: "2026-10-golden-remora", subject: "lgr_sub_conformance_p1", data: { plan_id: "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d", items: [ { set_number: 1, question: 0, outcome: correct } ], completed: true } }
+    sign: { secrets: [primary], timestamp_offset_s: -600 }
+    expect: { status: 401, handler: not_called }
+expect:
+  directory: { lgr_sub_conformance_p1: p1 }
+  directory_lookups: 0

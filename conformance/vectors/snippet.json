@@ -1,0 +1,544 @@
+{
+  "description": "ES4 (ADR 1.10.26af D7): widgetSnippet(options) for every server kit. `options` uses the camelCase option names; a kit with snake_case options maps them in its test. `expect.html` is the exact output (three lines, no trailing newline), with {{version}} replaced by the kit's VERSION; `expect.refused` names the first refused option, in the order planId, surface, theme, locale, lingaraOrigin, title, id, tokenEndpoint, nonce, elementSrc.",
+  "cases": [
+    {
+      "name": "defaults",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "every option",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "id": "lingara-1",
+        "surface": "practice",
+        "theme": "dark",
+        "locale": "zh-Hant-TW",
+        "lingaraOrigin": "https://app.getlingara.com",
+        "title": "Practise your Mandarin",
+        "nonce": "r4nd0m+N0nce/==",
+        "elementSrc": "https://cdn.example.com/lingara-embed.min.js"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-1\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\" theme=\"dark\" locale=\"zh-Hant-TW\" lingara-origin=\"https://app.getlingara.com\" title=\"Practise your Mandarin\"></lingara-embed>\n<script type=\"module\" nonce=\"r4nd0m+N0nce/==\" src=\"https://cdn.example.com/lingara-embed.min.js\"></script>\n<script type=\"module\" nonce=\"r4nd0m+N0nce/==\">document.getElementById(\"lingara-1\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "uppercase uuid plan id",
+      "options": {
+        "planId": "7D0C2B1E-4F3A-4C8E-9B21-5E6F7A8B9C0D",
+        "tokenEndpoint": "/lingara/token"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7D0C2B1E-4F3A-4C8E-9B21-5E6F7A8B9C0D\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "nil uuid plan id",
+      "options": {
+        "planId": "00000000-0000-0000-0000-000000000000",
+        "tokenEndpoint": "/lingara/token"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"00000000-0000-0000-0000-000000000000\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "an unlisted surface is written, the element decides",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "surface": "dialogue"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"dialogue\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "theme light",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "theme": "light"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\" theme=\"light\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "theme auto with locale",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "theme": "auto",
+        "locale": "fr"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\" theme=\"auto\" locale=\"fr\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "localhost origin with port",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "lingaraOrigin": "http://localhost:5187"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\" lingara-origin=\"http://localhost:5187\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "loopback origin with trailing slash",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "lingaraOrigin": "http://127.0.0.1/"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\" lingara-origin=\"http://127.0.0.1/\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "https origin with port",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "lingaraOrigin": "https://staging.example:8443"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\" lingara-origin=\"https://staging.example:8443\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "every attribute escape in title",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "title": "Tom & Jerry's \"<b>\" quiz"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\" title=\"Tom &amp; Jerry&#39;s &quot;&lt;b&gt;&quot; quiz\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "every script escape in token endpoint",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/token?a=1&b=<x>\"q\"\\z"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/token?a=1\\u0026b=\\u003cx\\u003e\\\"q\\\"\\\\z\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "a query string passes through unread",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token?session=abc&lang=fr"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token?session=abc\\u0026lang=fr\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "an absolute https endpoint",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "https://api.example.com/lingara/token"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"https://api.example.com/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "a non-ascii endpoint is written as is",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/jetón/émis"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/jetón/émis\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "an endpoint of exactly 2048 bytes",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "an element src query is attribute-escaped",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "elementSrc": "https://cdn.example.com/e.js?a=1&b=2"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.example.com/e.js?a=1&amp;b=2\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "a title of 80 non-bmp scalar values",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\" title=\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "a title with a tab is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "title": "a\tb"
+      },
+      "expect": {
+        "refused": "title"
+      }
+    },
+    {
+      "name": "an id with underscore and hyphen",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "id": "Widget_2-b"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"Widget_2-b\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\"></lingara-embed>\n<script type=\"module\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\">document.getElementById(\"Widget_2-b\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "a nonce on both scripts",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "nonce": "abcdefgh"
+      },
+      "expect": {
+        "html": "<lingara-embed id=\"lingara-embed\" surface=\"practice\" plan-id=\"7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d\"></lingara-embed>\n<script type=\"module\" nonce=\"abcdefgh\" src=\"https://cdn.jsdelivr.net/npm/@lingara/embed@{{version}}/dist/lingara-embed.min.js\"></script>\n<script type=\"module\" nonce=\"abcdefgh\">document.getElementById(\"lingara-embed\").tokenProvider = async () => (await fetch(\"/lingara/token\", { method: \"POST\", credentials: \"same-origin\" })).json();</script>"
+      }
+    },
+    {
+      "name": "a non-uuid plan id is refused",
+      "options": {
+        "planId": "plan-42",
+        "tokenEndpoint": "/lingara/token"
+      },
+      "expect": {
+        "refused": "planId"
+      }
+    },
+    {
+      "name": "a braced uuid is refused",
+      "options": {
+        "planId": "{7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d}",
+        "tokenEndpoint": "/lingara/token"
+      },
+      "expect": {
+        "refused": "planId"
+      }
+    },
+    {
+      "name": "an empty plan id is refused",
+      "options": {
+        "planId": "",
+        "tokenEndpoint": "/lingara/token"
+      },
+      "expect": {
+        "refused": "planId"
+      }
+    },
+    {
+      "name": "an uppercase surface is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "surface": "Practice"
+      },
+      "expect": {
+        "refused": "surface"
+      }
+    },
+    {
+      "name": "a surface with a path is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "surface": "../x"
+      },
+      "expect": {
+        "refused": "surface"
+      }
+    },
+    {
+      "name": "an unknown theme is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "theme": "blue"
+      },
+      "expect": {
+        "refused": "theme"
+      }
+    },
+    {
+      "name": "an underscore locale is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "locale": "fr_FR"
+      },
+      "expect": {
+        "refused": "locale"
+      }
+    },
+    {
+      "name": "a plain http origin is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "lingaraOrigin": "http://example.com"
+      },
+      "expect": {
+        "refused": "lingaraOrigin"
+      }
+    },
+    {
+      "name": "an origin with a path is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "lingaraOrigin": "https://app.example/path"
+      },
+      "expect": {
+        "refused": "lingaraOrigin"
+      }
+    },
+    {
+      "name": "an origin with userinfo is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "lingaraOrigin": "https://u@app.example"
+      },
+      "expect": {
+        "refused": "lingaraOrigin"
+      }
+    },
+    {
+      "name": "a javascript origin is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "lingaraOrigin": "javascript:alert(1)"
+      },
+      "expect": {
+        "refused": "lingaraOrigin"
+      }
+    },
+    {
+      "name": "an empty title is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "title": ""
+      },
+      "expect": {
+        "refused": "title"
+      }
+    },
+    {
+      "name": "a title of 81 scalar values is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      },
+      "expect": {
+        "refused": "title"
+      }
+    },
+    {
+      "name": "a title with a C1 control is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "title": "ab"
+      },
+      "expect": {
+        "refused": "title"
+      }
+    },
+    {
+      "name": "a title with DEL is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "title": "ab"
+      },
+      "expect": {
+        "refused": "title"
+      }
+    },
+    {
+      "name": "an id starting with a digit is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "id": "1widget"
+      },
+      "expect": {
+        "refused": "id"
+      }
+    },
+    {
+      "name": "an id with a quote is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "id": "a\"b"
+      },
+      "expect": {
+        "refused": "id"
+      }
+    },
+    {
+      "name": "a protocol-relative endpoint is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "//evil.example/token"
+      },
+      "expect": {
+        "refused": "tokenEndpoint"
+      }
+    },
+    {
+      "name": "a plain http endpoint is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "http://example.com/token"
+      },
+      "expect": {
+        "refused": "tokenEndpoint"
+      }
+    },
+    {
+      "name": "a relative endpoint without a slash is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "token"
+      },
+      "expect": {
+        "refused": "tokenEndpoint"
+      }
+    },
+    {
+      "name": "an endpoint with a space is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara token"
+      },
+      "expect": {
+        "refused": "tokenEndpoint"
+      }
+    },
+    {
+      "name": "an endpoint with a no-break space is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara token"
+      },
+      "expect": {
+        "refused": "tokenEndpoint"
+      }
+    },
+    {
+      "name": "an endpoint with a line separator is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara token"
+      },
+      "expect": {
+        "refused": "tokenEndpoint"
+      }
+    },
+    {
+      "name": "an endpoint of 2049 bytes is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expect": {
+        "refused": "tokenEndpoint"
+      }
+    },
+    {
+      "name": "an empty endpoint is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": ""
+      },
+      "expect": {
+        "refused": "tokenEndpoint"
+      }
+    },
+    {
+      "name": "a short nonce is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "nonce": "short"
+      },
+      "expect": {
+        "refused": "nonce"
+      }
+    },
+    {
+      "name": "a nonce with markup is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "nonce": "abcdefgh<"
+      },
+      "expect": {
+        "refused": "nonce"
+      }
+    },
+    {
+      "name": "a plain http element src is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "elementSrc": "http://cdn.example.com/e.js"
+      },
+      "expect": {
+        "refused": "elementSrc"
+      }
+    },
+    {
+      "name": "an element src with a space is refused",
+      "options": {
+        "planId": "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d",
+        "tokenEndpoint": "/lingara/token",
+        "elementSrc": "https://cdn.example.com/e .js"
+      },
+      "expect": {
+        "refused": "elementSrc"
+      }
+    }
+  ]
+}

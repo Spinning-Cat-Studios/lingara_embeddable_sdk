@@ -1,0 +1,16 @@
+id: ek1.refuses-a-client-token
+behaviours: [EK1]
+tier: ek
+# A client-credentials token is refused locally and never sent: the call
+# that needed a token is still waiting when the case closes.
+serve: []
+host:
+  - start: { initial_token: none, config: { stream_on_start: false } }
+  - poll_until: { event: token_needed, match: { reason: initial }, within_ms: 2000 }
+  - provide_token: { token: lgr_at_conformance0001, expires_in_secs: 900 }
+  - poll_until: { event: error, match: { error: { kind: invalid_input, retryable: false } }, within_ms: 2000 }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - expect_no_event: { event: world_sent, for_ms: 500 }
+  - close: {}
+expect:
+  requests: { count: 0 }

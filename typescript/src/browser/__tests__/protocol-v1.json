@@ -1,0 +1,46 @@
+{
+  "_comment": "ADR 1.10.26v §4.6 — one valid and one ignored example of every protocol v1 message. K6 (1.10.26ad) carries a byte-identical copy, so both halves are held to one file.",
+  "host": {
+    "init": {
+      "valid": { "protocol": "lingara-embed", "version": 1, "type": "init", "payload": { "token": "lgr_et_abc123", "plan_id": "0b9d4f2e-3c1a-4e8b-9f6d-2a7c5e1b8d40" } },
+      "parsed": { "type": "init", "payload": { "token": "lgr_et_abc123", "plan_id": "0b9d4f2e-3c1a-4e8b-9f6d-2a7c5e1b8d40" } },
+      "ignored": { "protocol": "lingara-embed", "version": 1, "type": "init", "payload": "lgr_et_abc123" }
+    },
+    "token": {
+      "valid": { "protocol": "lingara-embed", "version": 1, "type": "token", "payload": { "token": "lgr_et_def456" } },
+      "parsed": { "type": "token", "payload": { "token": "lgr_et_def456" } },
+      "ignored": { "protocol": "another-widget", "version": 1, "type": "token", "payload": { "token": "lgr_et_def456" } }
+    },
+    "configure": {
+      "valid": { "protocol": "lingara-embed", "version": 1, "type": "configure", "payload": { "theme": "dark", "locale": "fr" } },
+      "parsed": { "type": "configure", "payload": { "theme": "dark", "locale": "fr" } },
+      "ignored": { "version": 1, "type": "configure", "payload": { "theme": "dark" } }
+    }
+  },
+  "frame": {
+    "ready": {
+      "valid": { "protocol": "lingara-embed", "version": 1, "type": "ready", "payload": { "versions": [1], "surfaces": ["practice"] } },
+      "ignored": { "protocol": "lingara-embed", "version": 1, "type": "ready", "payload": null }
+    },
+    "started": {
+      "valid": { "protocol": "lingara-embed", "version": 1, "type": "started", "payload": { "surface": "practice", "plan_id": "0b9d4f2e-3c1a-4e8b-9f6d-2a7c5e1b8d40" } },
+      "ignored": "started"
+    },
+    "token_request": {
+      "valid": { "protocol": "lingara-embed", "version": 1, "type": "token_request", "payload": { "reason": "expired" } },
+      "ignored": { "protocol": "lingara", "version": 1, "type": "token_request", "payload": { "reason": "expired" } }
+    },
+    "resized": {
+      "valid": { "protocol": "lingara-embed", "version": 1, "type": "resized", "payload": { "height": 412 } },
+      "ignored": { "protocol": "lingara-embed", "version": 1, "type": "resize", "payload": { "height": 412 } }
+    },
+    "practice_completed": {
+      "valid": { "protocol": "lingara-embed", "version": 1, "type": "practice_completed", "payload": { "plan_id": "0b9d4f2e-3c1a-4e8b-9f6d-2a7c5e1b8d40", "set_number": 2, "correct": 3, "total": 4, "event_id": "evt_01" } },
+      "ignored": { "protocol": "lingara-embed", "version": 1, "type": "practice_completed", "payload": [] }
+    },
+    "error": {
+      "valid": { "protocol": "lingara-embed", "version": 1, "type": "error", "payload": { "code": "origin_refused", "retryable": false } },
+      "ignored": null
+    }
+  }
+}

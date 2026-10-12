@@ -1,0 +1,32 @@
+id: ek6.long-reply-is-cut
+behaviours: [EK6]
+tier: ek
+# A 600-character reply reaches the host whole, and is stored in the window
+# cut to its first 500 Unicode scalar values (1 500 bytes of CJK here).
+serve:
+  - route: { operation: sendDialogueTurn }
+    respond:
+      sse:
+        - event: delta
+          data:
+            text: "语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思"
+        - { event: done, data: {} }
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      body:
+        line: line B
+        history:
+          - { speaker: player, text: line A }
+          - speaker: npc
+            text: "语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思语言学习真的很有意思"
+    respond: { sse: [{ event: done, data: {} }] }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: dialogue_open, config: { npc: { name: Mei }, source_lang: en, target_lang: zh, level: 2 } }
+  - command: { type: dialogue_say, dialogue: $last, line: line A }
+  - poll_until: { event: npc_turn, match: { update: { type: finished } }, within_ms: 2000 }
+  - command: { type: dialogue_say, dialogue: $last, line: line B }
+  - poll_until: { event: npc_turn, match: { update: { type: finished, text: "" } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 2 }

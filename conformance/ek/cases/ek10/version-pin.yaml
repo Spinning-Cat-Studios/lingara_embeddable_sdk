@@ -1,0 +1,14 @@
+id: ek10.version-pin
+behaviours: [EK10]
+tier: ek
+serve:
+  - route: { operation: sendEvent }
+    expect_request: { headers: { lingara-version: 2026-10-golden-remora } }
+    respond: { status: 202, json: { id: lgr_evt_1, type: world.context_changed, created_at: "2026-10-01T12:00:00Z" } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false, api_version: 2026-10-golden-remora } }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: world_sent, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

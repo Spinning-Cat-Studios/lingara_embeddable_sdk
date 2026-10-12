@@ -1,0 +1,91 @@
+# The native matrix and what each package must hold (ADR 1.10.26ag D3).
+#
+# The one place it is written down: release.yml's natives job and
+# check-package.sh both read it through release-toml.sh, so nothing restates
+# it. The JVM rows and [jna_prefix] are K7's (1.10.26ae D5), [ue_platform] is
+# K5's (1.10.26ac D3), the ffi rows K3's and the godot rows K4's.
+
+# roadmap D5's five platforms
+[[platform]]
+rid = "win-x64"
+runner = "windows-2022"
+
+[[platform]]
+rid = "osx"                      # aarch64 + x86_64, MACOSX_DEPLOYMENT_TARGET=11.0: ffi and godot lipo one
+                                 # universal library; jvm-desktop writes two thin ones (K7 D5)
+runner = "macos-14"
+
+[[platform]]
+rid = "linux-x64"
+runner = "ubuntu-22.04"
+container = "quay.io/pypa/manylinux_2_28_x86_64"   # glibc 2.28 floor
+
+[[platform]]
+rid = "android-arm64"            # cargo-ndk, NDK r27 LTS, API 23 (K1 D11, K3, K7)
+runner = "ubuntu-22.04"
+
+[[platform]]
+rid = "ios-arm64"                # device only: no simulator slice in v1 (D10)
+runner = "macos-14"
+
+# the per-rid directory names packages use (K5 D3, K7 D5)
+[ue_platform]
+win-x64 = "Win64"
+osx = "Mac"
+linux-x64 = "Linux"
+android-arm64 = "Android/arm64-v8a"
+ios-arm64 = "IOS"
+
+[jna_prefix]
+win-x64 = ["win32-x86-64"]
+osx = ["darwin-aarch64", "darwin-x86-64"]
+linux-x64 = ["linux-x86-64"]
+
+# one per native build: `make <make>` writes `out` (`make` defaults to `<name>-dist RID={rid}`);
+# `rids` absent = every platform
+[[native]]
+name = "ffi"                     # K3
+out = "dist/ffi/{rid}/"
+
+[[native]]
+name = "godot"                   # K4: `make godot-dist RID=<rid>`
+out = "godot/addon/addons/lingara/bin/{rid}/"
+
+[[native]]
+name = "jvm-desktop"             # K7: `make natives-desktop RID=<rid>`
+make = "natives-desktop RID={rid}"
+out = "dist/jvm/{rid}/"
+rids = ["win-x64", "osx", "linux-x64"]
+
+[[native]]
+name = "jvm-android"             # K7: `make natives-android`
+make = "natives-android"
+out = "dist/jvm/android-arm64/"
+rids = ["android-arm64"]
+
+# what each packed artefact must hold, per rid; `rids` follows the native's
+[[package]]
+id = "dotnet"
+native = "ffi"
+path = "runtimes/{rid}/native/"
+
+[[package]]
+id = "godot"
+native = "godot"
+path = "addons/lingara/bin/{rid}/"
+
+[[package]]
+id = "unreal"
+native = "ffi"
+path = "Source/ThirdParty/LingaraEmbedLibrary/lib/{ue_platform}/"
+per_engine_zip = true
+
+[[package]]
+id = "nativesdesktop"            # JNA's resource layout; osx yields both darwin directories, one thin library each
+native = "jvm-desktop"
+path = "{jna_prefix}/"           # win32-x86-64 · darwin-aarch64 + darwin-x86-64 · linux-x86-64
+
+[[package]]
+id = "nativesandroid"
+native = "jvm-android"
+path = "jni/arm64-v8a/"

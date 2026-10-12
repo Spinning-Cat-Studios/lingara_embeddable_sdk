@@ -1,0 +1,11 @@
+[configuration]
+entry_symbol = "gdext_rust_init"
+compatibility_minimum = "4.5"
+reloadable = false
+
+[libraries]
+windows.x86_64 = "res://addons/lingara/bin/win-x64/lingara_godot.dll"
+macos = "res://addons/lingara/bin/osx/liblingara_godot.framework"
+linux.x86_64 = "res://addons/lingara/bin/linux-x64/liblingara_godot.so"
+android.arm64 = "res://addons/lingara/bin/android-arm64/liblingara_godot.so"
+ios = "res://addons/lingara/bin/ios-arm64/lingara_godot.xcframework"

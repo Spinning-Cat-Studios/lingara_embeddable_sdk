@@ -1,0 +1,13 @@
+id: ek8.500-server-error
+behaviours: [EK8]
+tier: ek
+serve:
+  - route: { operation: sendEvent }
+    respond: { status: 500, json: { code: internal_error, error: something broke } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: error, match: { error: { kind: unavailable, retryable: true, status: 500, code: internal_error } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

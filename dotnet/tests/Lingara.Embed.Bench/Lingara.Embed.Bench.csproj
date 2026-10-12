@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A micro-benchmark, not a gate (ADR 1.10.26aa D12): the JSON cost D2 traded for a layout-proof ABI. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Lingara.Embed/Lingara.Embed.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,16 @@
+id: ek8.in-stream-error
+behaviours: [EK8]
+tier: ek
+# An `error` frame in a 200 stream: Unavailable, status 200, never re-sent.
+serve:
+  - route: { operation: sendDialogueTurn }
+    respond: { sse: [{ event: delta, data: { text: Ni } }, { event: error, data: { code: stream_interrupted, message: the provider stopped } }] }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: dialogue_open, config: { npc: { name: Mei }, source_lang: en, target_lang: zh, level: 2 } }
+  - command: { type: dialogue_say, dialogue: $last, line: ni hao }
+  - poll_until: { event: error, match: { error: { kind: unavailable, retryable: true, status: 200, code: stream_interrupted } }, within_ms: 2000 }
+  - expect_no_event: { event: npc_turn, match: { update: { type: finished } }, for_ms: 300 }
+  - close: {}
+expect:
+  requests: { count: 1 }

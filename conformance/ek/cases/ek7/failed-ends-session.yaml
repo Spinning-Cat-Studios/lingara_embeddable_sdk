@@ -1,0 +1,32 @@
+id: ek7.failed-ends-session
+behaviours: [EK7]
+tier: ek
+serve:
+  - route: { operation: sendEvent }
+    respond:
+      status: 202
+      json:
+        id: lgr_evt_1
+        type: world.practice_requested
+        created_at: "2026-10-01T12:00:00Z"
+        reaction: { status: started, plan_id: 8f0e2c1a-0000-4000-8000-000000000001, plan_status: generating }
+  - route: { operation: streamEvents }
+    respond:
+      sse:
+        - id: f1
+          event: event
+          data:
+            id: f1
+            type: lesson_plan.failed
+            created_at: "2026-10-01T12:00:01Z"
+            api_version: 2026-10-golden-remora
+            subject: lgr_sub_conformance
+            data: { plan_id: 8f0e2c1a-0000-4000-8000-000000000001, reason: generation_failed }
+      fault: { heartbeat_gap_s: 10 }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: practice_start, source: { type: request, topic: ordering tea, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: practice, match: { snapshot: { phase: failed, failure: { kind: unavailable } } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 2 }

@@ -1,0 +1,34 @@
+; The GDScript snippets the docs show (ADR 1.10.26ab D12). CI imports this
+; project and runs `godot --headless --check-only` over lingara_snippet.gd,
+; so a renamed method or signal fails a PR rather than a reader. Its
+; addons/lingara/ is a copy `make godot-demo-addon` puts there.
+
+config_version=5
+
+[application]
+
+config/name="Lingara GDScript snippets"
+config/features=PackedStringArray("4.5")
+
+[autoload]
+
+Lingara="*res://addons/lingara/lingara_autoload.tscn"
+
+[debug]
+
+; A call to a method or property the type lacks is an error, not a warning,
+; so --check-only fails on a renamed LingaraEmbed method or signal.
+gdscript/warnings/unsafe_method_access=2
+gdscript/warnings/unsafe_property_access=2
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/lingara/plugin.cfg")
+
+[lingara]
+
+base_url="https://api.getlingara.com"
+token_url=""
+api_version=""
+autostart=false
+stream_on_start=true

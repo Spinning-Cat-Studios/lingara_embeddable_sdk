@@ -1,0 +1,11 @@
+# Lingara.Embed.Server's answers to the few Recommended rules that argue with
+# ADR 1.10.26af D10's shapes, each with its reason. dotnet/.editorconfig above
+# still applies; this file only adds.
+
+[*.cs]
+# The four exceptions carry contract K3's fields and are built only by the
+# transport; the parameterless / message-only constructors would build one
+# with no status or code.
+dotnet_diagnostic.CA1032.severity = none
+# Wire names (`expires_at`, `webhook-id`) are ASCII and compared ordinally.
+dotnet_diagnostic.CA1308.severity = none

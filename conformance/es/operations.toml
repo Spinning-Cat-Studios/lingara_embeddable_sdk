@@ -1,0 +1,10 @@
+# The operations a server kit calls, and the message it routes. The
+# client-credentials grant is not an operation: a case addresses it as
+# `route: { token_grant: {} }`.
+operations = [
+  "createEmbedToken",
+  "deleteEmbedPlayer",
+]
+messages = [
+  "practice.completed",
+]

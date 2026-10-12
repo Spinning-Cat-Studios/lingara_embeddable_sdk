@@ -1,0 +1,48 @@
+id: ek5.one-report-on-completion
+behaviours: [EK5]
+tier: ek
+# One set, numbered 2: the report names the plan's own number and a 0-based
+# question, every pair once, and completed: true.
+serve:
+  - route: { operation: getLessonPlan }
+    respond:
+      json:
+        id: 8f0e2c1a-0000-4000-8000-000000000001
+        status: complete
+        level: 2
+        source_lang: en
+        target_lang: zh
+        ai_generated: true
+        created_at: "2026-10-01T12:00:00Z"
+        title: At the market
+        content:
+          learning_objectives: []
+          vocabulary: [{ word: 你好, translation: hello }]
+          sets:
+            - number: 2
+              questions:
+                - { type: translation, prompt: hello, answer: ni hao, explanation: a greeting }
+                - { type: multiple_choice, prompt: thank you, options: [zai jian, xie xie], answer: xie xie, explanation: thanks }
+  - route: { operation: sendEvent }
+    expect_request:
+      body:
+        type: world.practice_completed
+        data:
+          plan_id: 8f0e2c1a-0000-4000-8000-000000000001
+          completed: true
+          items: [{ set_number: 2, question: 0, outcome: revealed }, { set_number: 2, question: 1, outcome: correct }]
+    respond: { status: 202, json: { id: lgr_evt_1, type: world.practice_completed, created_at: "2026-10-01T12:00:00Z" } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: practice_start, source: { type: plan, plan_id: 8f0e2c1a-0000-4000-8000-000000000001, report: true } }
+  - poll_until: { event: practice, match: { snapshot: { phase: unanswered } }, within_ms: 2000 }
+  - command: { type: practice_reveal, session: $last }
+  - command: { type: practice_next, session: $last }
+  - command: { type: practice_choose, session: $last, option: 1 }
+  - command: { type: practice_next, session: $last }
+  - command: { type: practice_next, session: $last }
+  - poll_until: { event: practice, match: { snapshot: { phase: reported } }, within_ms: 2000 }
+  - expect_no_event: { event: practice, for_ms: 300 }
+  - close: {}
+expect:
+  requests: { count: 2 }

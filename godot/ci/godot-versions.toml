@@ -1,0 +1,18 @@
+# The official Linux Godot binaries CI tests the addon against (ADR
+# 1.10.26ab D10): the floor and the newest stable patch, downloaded and
+# hashed on 2026-10-10, each zip also checked against that release's own
+# SHA512-SUMS.txt. D1's re-pin rule moves the second row.
+
+[[godot]]
+version = "4.5.2"
+url = "https://github.com/godotengine/godot/releases/download/4.5.2-stable/Godot_v4.5.2-stable_linux.x86_64.zip"
+bytes = 70517423
+sha256 = "87f6e6be292929e363d15ed9052f277b2ba4e95ed994e1e099048097be2dfd03"
+binary = "Godot_v4.5.2-stable_linux.x86_64"
+
+[[godot]]
+version = "4.7.2"
+url = "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip"
+bytes = 77860424
+sha256 = "cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4"
+binary = "Godot_v4.7.2-stable_linux.x86_64"

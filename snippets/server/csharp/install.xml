@@ -1,0 +1,1 @@
+<PackageReference Include="Lingara.Embed.Server" Version="{{version}}" />

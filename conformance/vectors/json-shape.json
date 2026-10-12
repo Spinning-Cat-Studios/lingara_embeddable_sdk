@@ -1,0 +1,90 @@
+{
+  "description": "One example of every public variant of lingara-embed's types, in their JSON shape: an internal `type` tag on every enum whose variants carry data, a snake_case string for every fieldless enum. Every binding's JSON, dictionaries and mirrors are held to it. Secret-bearing values are written raw here and serialise as [REDACTED].",
+  "redacted": "[REDACTED]",
+  "tagged": {
+    "Command": [
+      { "type": "provide_token", "token": "lgr_et_example", "expires_at": "2026-10-01T12:15:00Z" },
+      { "type": "provide_token_for", "token": "lgr_et_example", "expires_in_secs": 900 },
+      { "type": "token_unavailable", "reason": "offline" },
+      { "type": "set_token_endpoint", "url": "https://game.example/lingara/token", "headers": [{ "name": "cookie", "value": "session=abc" }] },
+      { "type": "stream_pause" },
+      { "type": "stream_resume" },
+      { "type": "send_context", "context": { "scene": "the night market", "source_lang": "en", "target_lang": "zh", "level": 2, "npc": { "name": "Mei", "persona": "a tea seller" }, "tags": ["market"], "generate": false } },
+      { "type": "practice_start", "source": { "type": "plan", "plan_id": "8f0e2c1a-0000-4000-8000-000000000001", "report": false } },
+      { "type": "practice_snapshot", "session": 3 },
+      { "type": "practice_answer", "session": 3, "answer": "ni hao" },
+      { "type": "practice_choose", "session": 3, "option": 1 },
+      { "type": "practice_reveal", "session": 3 },
+      { "type": "practice_self_grade", "session": 3, "correct": true },
+      { "type": "practice_next", "session": 3 },
+      { "type": "practice_finish", "session": 3 },
+      { "type": "dialogue_open", "config": { "npc": { "name": "Mei", "persona": null }, "scene": "a tea house", "source_lang": "en", "target_lang": "zh", "level": 2, "window": [{ "speaker": "player", "text": "hi" }] } },
+      { "type": "dialogue_say", "dialogue": 4, "line": "how are you?" },
+      { "type": "dialogue_set_level", "dialogue": 4, "level": 3 },
+      { "type": "dialogue_set_scene", "dialogue": 4, "scene": "the market" },
+      { "type": "dialogue_cancel", "dialogue": 4 },
+      { "type": "dialogue_close", "dialogue": 4 },
+      { "type": "dialogue_snapshot", "dialogue": 4 }
+    ],
+    "CommandOutcome": [
+      { "type": "done" },
+      { "type": "id", "id": 7 },
+      { "type": "practice", "snapshot": null },
+      { "type": "dialogue", "snapshot": { "phase": "idle", "npc": { "name": "Mei", "persona": null }, "scene": null, "level": 2, "window": [] } }
+    ],
+    "EmbedEvent": [
+      { "type": "token_needed", "request": 1, "reason": "initial" },
+      { "type": "stream", "state": { "type": "live" }, "cursor": "lgr_evt_1" },
+      { "type": "lingara", "event": { "id": "lgr_evt_1", "event_type": "game.custom", "created_at": "2026-10-01T12:00:00Z", "data_json": "{\"n\":1}", "detail": { "type": "other" } } },
+      { "type": "world_sent", "request": 2, "event_id": "lgr_evt_2", "reaction": { "status": "started", "plan_id": "8f0e2c1a-0000-4000-8000-000000000001", "plan_status": "generating", "code": null, "error": null } },
+      { "type": "practice", "session": 3, "snapshot": {
+        "phase": "unanswered",
+        "plan": { "id": "8f0e2c1a-0000-4000-8000-000000000001", "title": "At the market", "level": 2, "source_lang": "en", "target_lang": "zh", "vocabulary": [{ "word": "你好", "translation": "hello", "pronunciation": "nǐ hǎo" }] },
+        "set_index": 0, "set_count": 2, "question_index": 0, "question_count": 3,
+        "question": { "kind": "multiple_choice", "prompt": "Hello is…", "options": ["再见", "你好"], "hint": null, "self_graded": false },
+        "last_result": { "outcome": "correct", "expected": "你好", "explanation": "a greeting" },
+        "failure": null } },
+      { "type": "npc_turn", "dialogue": 4, "request": 5, "update": { "type": "fragment", "text": "Ni" } },
+      { "type": "error", "error": { "kind": "rate_limited", "message": "slow down", "status": 429, "code": "rate_limited", "retry_after_ms": 30000, "retryable": true, "request": 5 } },
+      { "type": "log", "level": "warn", "target": "lingara_embed::token", "message": "a token lifetime was clamped" },
+      { "type": "closed", "reason": "requested" }
+    ],
+    "StreamState": [
+      { "type": "connecting" },
+      { "type": "live" },
+      { "type": "paused" },
+      { "type": "down", "error": { "kind": "network", "message": "transport failure: reset", "status": null, "code": null, "retry_after_ms": null, "retryable": true, "request": null }, "retry_in_ms": 60000 }
+    ],
+    "NpcTurnUpdate": [
+      { "type": "opened" },
+      { "type": "fragment", "text": "Ni" },
+      { "type": "notice", "code": "truncated", "message": "the reply was cut" },
+      { "type": "finished", "text": "Ni hao" },
+      { "type": "cancelled" }
+    ],
+    "PracticeSource": [
+      { "type": "request", "topic": "ordering tea", "source_lang": "en", "target_lang": "zh", "level": 2, "tags": ["tea"] },
+      { "type": "create", "context": "a tea house", "source_lang": "en", "target_lang": "zh", "level": 2 },
+      { "type": "plan", "plan_id": "8f0e2c1a-0000-4000-8000-000000000001", "report": true }
+    ],
+    "TokenSourceConfig": [
+      { "type": "poll" },
+      { "type": "http", "url": "https://game.example/lingara/token", "headers": [{ "name": "authorization", "value": "Bearer game-session" }] }
+    ],
+    "LingaraEventDetail": [
+      { "type": "lesson_plan_ready", "plan_id": "8f0e2c1a-0000-4000-8000-000000000001", "title": "At the market", "level": 2, "source_lang": "en", "target_lang": "zh", "complete": true },
+      { "type": "lesson_plan_failed", "plan_id": "8f0e2c1a-0000-4000-8000-000000000001", "reason": "generation_failed" },
+      { "type": "other" }
+    ]
+  },
+  "words": {
+    "TokenReason": ["initial", "expiring", "rejected"],
+    "ErrorKind": ["config", "invalid_input", "token_unavailable", "token_rejected", "forbidden", "billing", "not_found", "rate_limited", "unavailable", "network", "busy", "invalid_state", "unknown_id", "closed", "internal"],
+    "LogLevel": ["error", "warn", "info", "debug", "trace"],
+    "CloseReason": ["requested", "internal"],
+    "PracticePhase": ["requesting", "generating", "creating", "loading", "unanswered", "awaiting_self_grade", "reviewed", "set_complete", "reporting", "reported", "report_failed", "failed", "ended"],
+    "PracticeOutcome": ["correct", "incorrect", "revealed", "self_correct", "self_incorrect", "skipped"],
+    "DialoguePhase": ["idle", "sending", "streaming"],
+    "Speaker": ["player", "npc"]
+  }
+}

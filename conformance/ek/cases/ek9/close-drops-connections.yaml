@@ -1,0 +1,18 @@
+id: ek9.close-drops-connections
+behaviours: [EK9]
+tier: ek
+# The server holds the stream open; after close it must see the connection
+# drop within 2 s of the harness's finish, whatever the harness. A
+# close-capable harness also sees one Closed and nothing after it.
+serve:
+  - route: { operation: streamEvents }
+    respond:
+      sse:
+        - { id: e1, event: event, data: { id: e1, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+      fault: { heartbeat_gap_s: 10 }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: true } }
+  - poll_until: { event: stream, match: { state: { type: live } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

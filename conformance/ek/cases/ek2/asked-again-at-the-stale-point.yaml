@@ -1,0 +1,14 @@
+id: ek2.asked-again-at-the-stale-point
+behaviours: [EK2]
+tier: ek
+# A 2 s lifetime goes stale at 2 − min(60, 2 / 2) = 1 s.
+serve: []
+host:
+  - start: { initial_token: none, config: { stream_on_start: false } }
+  - poll_until: { event: token_needed, match: { reason: initial }, within_ms: 2000 }
+  - provide_token: { token: lgr_et_conformance0001, expires_in_secs: 2 }
+  - expect_no_event: { event: token_needed, for_ms: 700 }
+  - poll_until: { event: token_needed, match: { reason: expiring }, within_ms: 1000 }
+  - close: {}
+expect:
+  requests: { count: 0 }

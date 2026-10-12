@@ -1,0 +1,19 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "",
+	"Category": "",
+	"Description": "The smallest host project the engine smoke packages LingaraEmbed's sample in (ADR 1.10.26ac D8). A kit test, not a showcase.",
+	"Modules": [
+		{
+			"Name": "LingaraSmoke",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "LingaraEmbed",
+			"Enabled": true
+		}
+	]
+}

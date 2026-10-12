@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    NuGet Lingara.Embed: the player half of C# (ADR 1.10.26aa D8). No
+    PackageReference at all, no reflection, no runtime codegen, so Unity's
+    IL2CPP and .NET's NativeAOT compile it unchanged. The five natives are
+    packed from dist/ffi/<rid>/ (make ffi-dist), and a pack with any of them
+    missing is refused (AC29).
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.1;net8.0</TargetFrameworks>
+    <AssemblyName>Lingara.Embed</AssemblyName>
+    <RootNamespace>Lingara.Embed</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageId>Lingara.Embed</PackageId>
+    <Description>Lingara inside a Unity or Godot C# game: the player half of the embed kits, over the lingara-embed C ABI. Practice, NPC dialogue and the world event stream, polled from the game loop.</Description>
+    <PackageTags>lingara;language-learning;unity;godot;gamedev</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <FfiDist Condition="'$(FfiDist)' == ''">$(RepoRoot)/dist/ffi</FfiDist>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lingara.Embed.Tests" />
+    <InternalsVisibleTo Include="Lingara.Embed.Bench" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <LingaraNative Include="$(FfiDist)/win-x64/lingara_embed.dll" Rid="win-x64" />
+    <LingaraNative Include="$(FfiDist)/osx/liblingara_embed.dylib" Rid="osx" />
+    <LingaraNative Include="$(FfiDist)/linux-x64/liblingara_embed.so" Rid="linux-x64" />
+    <LingaraNative Include="$(FfiDist)/android-arm64/liblingara_embed.so" Rid="android-arm64" />
+    <LingaraNative Include="$(FfiDist)/ios-arm64/liblingara_embed.a" Rid="ios-arm64" />
+  </ItemGroup>
+
+  <!-- A nupkg can't ship with a platform absent: refuse the pack, naming each missing RID. -->
+  <Target Name="LingaraRequireNatives" BeforeTargets="_GetPackageFiles;GenerateNuspec">
+    <Error Condition="!Exists('%(LingaraNative.FullPath)')" Text="Lingara.Embed: missing the %(LingaraNative.Rid) native at %(LingaraNative.FullPath). Run `make ffi-dist RID=%(LingaraNative.Rid)` before `make dotnet-pack`." />
+    <ItemGroup>
+      <None Include="@(LingaraNative)" Pack="true" PackagePath="runtimes/%(LingaraNative.Rid)/native/" />
+    </ItemGroup>
+  </Target>
+</Project>

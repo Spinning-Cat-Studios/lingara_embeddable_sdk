@@ -1,0 +1,13 @@
+id: es2.delete-encodes-ref
+behaviours: [ES2]
+tier: es
+serve:
+  - route: { token_grant: {} }
+    respond: { json: { access_token: "lgr_at_conformance0001", token_type: "Bearer", expires_in: 3600, scope: "embed:mint" } }
+  - route: { operation: deleteEmbedPlayer }
+    expect_request: { path: "/v1/embed/players/guild%2F42%20%28%C3%A9%29%2A" }
+    respond: { status: 204 }
+kit:
+  - delete: { player_ref: "guild/42 (é)*" }
+expect:
+  requests: { count: 2 }

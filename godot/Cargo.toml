@@ -1,0 +1,24 @@
+[package]
+name = "lingara_godot"
+# The trio's one VERSION (roadmap D10). The addon ships this crate as a
+# binary, never to crates.io (ADR 1.10.26ab D1).
+version = "0.1.0-alpha.5"
+edition = "2024"
+# gdext 0.5's own MSRV.
+rust-version = "1.94"
+license = "MIT"
+description = "Lingara inside a Godot game: the GDExtension behind addons/lingara, over lingara-embed."
+repository = "https://github.com/Spinning-Cat-Studios/lingara_embeddable_sdk"
+publish = false
+
+[lib]
+name = "lingara_godot"
+crate-type = ["cdylib"]
+
+# gdext tracks the 4.5 API: one binary serves 4.5 and every later 4.x
+# (D1). No `experimental-threads`: K1's thread never touches a Godot object.
+[dependencies]
+godot = { version = "0.5", features = ["api-4-5"] }
+lingara-embed = { path = "../core", version = "=0.1.0-alpha.5" }
+serde = "1"
+serde_json = "1"

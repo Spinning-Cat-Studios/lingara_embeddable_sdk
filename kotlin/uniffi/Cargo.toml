@@ -1,0 +1,26 @@
+[package]
+name = "lingara-embed-uniffi"
+# The trio's one VERSION (roadmap D10); the release tooling writes it here as
+# it does core/Cargo.toml. NativeLoader compares it, through
+# `lingara_embed_uniffi_version`, with the version the Kotlin was built at.
+version = "0.1.0-alpha.5"
+edition = "2024"
+rust-version = "1.87"
+license = "MIT"
+description = "The UniFFI wrapper the JVM kit loads: K1's handle and mirrors of its types, for Kotlin and Java (ADR 1.10.26ae)."
+repository = "https://github.com/Spinning-Cat-Studios/lingara_embeddable_sdk"
+# The library reaches users inside the natives artefacts, never through
+# crates.io (D1).
+publish = false
+
+[lib]
+name = "lingara_embed_uniffi"
+crate-type = ["cdylib", "lib"]
+
+# UniFFI 0.31: the version this studio has proven through R8, iOS and the
+# checksum trap (D2). A move is its own ADR.
+[dependencies]
+lingara-embed = { path = "../../core", version = "=0.1.0-alpha.5" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uniffi = "=0.31.1"

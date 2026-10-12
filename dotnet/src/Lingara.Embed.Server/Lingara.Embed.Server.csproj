@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    NuGet Lingara.Embed.Server: the server half of C# (ADR 1.10.26af D10). It
+    has no `lingara` library beneath it, so it carries the smallest HTTP
+    transport and Standard Webhooks verifier the four jobs need, all from the
+    BCL: no PackageReference at all (PackageShapeTests pins it), net8.0 only,
+    and nothing from the player half Lingara.Embed (K3 D9).
+
+    dotnet/Directory.Build.props adds no PackageReference, and its native copy
+    step runs only under LingaraCopyHostNative, which this project never sets.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Directory.Build.props pins C# 9 for Unity's netstandard2.1; net8.0's own is 12. -->
+    <LangVersion>12</LangVersion>
+    <AssemblyName>Lingara.Embed.Server</AssemblyName>
+    <RootNamespace>Lingara.Embed.Server</RootNamespace>
+    <PackageId>Lingara.Embed.Server</PackageId>
+    <Description>Lingara for your game's or site's server: mint a player's embed token, render the widget snippet, route a verified webhook to its player, and delete a player. Self-contained: no package dependency.</Description>
+    <PackageTags>lingara;language-learning;embed;webhooks;server</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsTrimmable>true</IsTrimmable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lingara.Embed.Server.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>

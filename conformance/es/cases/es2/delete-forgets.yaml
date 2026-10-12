@@ -1,0 +1,15 @@
+id: es2.delete-forgets
+behaviours: [ES2]
+tier: es
+directory: { seed: { lgr_sub_conformance_p0: p0, lgr_sub_conformance_p1: p1, lgr_sub_conformance_p1_linked: p1 } }
+serve:
+  - route: { token_grant: {} }
+    respond: { json: { access_token: "lgr_at_conformance0001", token_type: "Bearer", expires_in: 3600, scope: "embed:mint" } }
+  - route: { operation: deleteEmbedPlayer }
+    expect_request: { path: "/v1/embed/players/p1" }
+    respond: { status: 204 }
+kit:
+  - delete: { player_ref: p1 }
+expect:
+  directory: { lgr_sub_conformance_p0: p0 }
+  requests: { count: 2 }

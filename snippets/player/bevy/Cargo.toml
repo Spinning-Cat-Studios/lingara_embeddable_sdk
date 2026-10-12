@@ -1,0 +1,17 @@
+[package]
+name = "bevy-lingara-snippets"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.97.1"
+license = "MIT"
+publish = false
+description = "The Bevy snippets the docs show (ADR 1.10.26z D13), built and region-checked in make test-bevy"
+
+[[bin]]
+name = "bevy-lingara-snippets"
+path = "src/main.rs"
+
+# Bevy as a game adds it, default features and all.
+[dependencies]
+bevy = "0.20"
+bevy_lingara = { path = "../../../bevy" }

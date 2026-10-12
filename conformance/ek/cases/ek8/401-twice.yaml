@@ -1,0 +1,19 @@
+id: ek8.401-twice
+behaviours: [EK8]
+tier: ek
+# The one retry after a fresh token is refused too: TokenRejected, no third try.
+serve:
+  - route: { operation: sendEvent }
+    respond: { status: 401, json: { code: unauthorized, error: the token was rejected } }
+  - route: { operation: sendEvent }
+    expect_request: { headers: { authorization: "Bearer lgr_et_conformance0002" } }
+    respond: { status: 401, json: { code: unauthorized, error: the token was rejected } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: token_needed, match: { reason: rejected }, within_ms: 2000 }
+  - provide_token: { token: lgr_et_conformance0002, expires_in_secs: 900 }
+  - poll_until: { event: error, match: { error: { kind: token_rejected, retryable: false, status: 401 } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 2 }

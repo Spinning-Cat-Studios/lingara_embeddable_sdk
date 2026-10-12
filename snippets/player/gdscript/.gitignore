@@ -1,0 +1,4 @@
+# The addon copy `make godot-demo-addon` puts here, and the .uid files
+# Godot writes on import (every reference here is by path).
+addons/
+*.gd.uid

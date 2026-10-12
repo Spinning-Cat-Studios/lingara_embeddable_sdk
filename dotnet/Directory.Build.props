@@ -1,0 +1,50 @@
+<Project>
+  <!--
+    Shared by every project under dotnet/ (ADR 1.10.26aa D8). There is no global
+    TargetFramework: each project names its own, because Lingara.Embed is
+    netstandard2.1;net8.0 and V1's server project is net8.0 only.
+  -->
+  <PropertyGroup>
+    <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</RepoRoot>
+    <!-- The trio's one VERSION, so no .csproj is ever stamped at release. -->
+    <Version>$([System.IO.File]::ReadAllText('$(RepoRoot)/VERSION').Trim())</Version>
+    <LangVersion>9</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <!-- The placeholder's metadata (lingara_embed_dotnet). -->
+    <Authors>Spinning Cat Studios</Authors>
+    <Company>Spinning Cat Studios</Company>
+    <Copyright>Copyright (c) Spinning Cat Studios</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://getlingara.com</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Spinning-Cat-Studios/lingara_embeddable_sdk</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts/</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- CA1502's threshold lives here, not in .editorconfig (D12). -->
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)CodeMetricsConfig.txt" />
+    <!--
+      The root LICENSE at the package root, beside PackageLicenseExpression:
+      tools/release/check-package.sh refuses a package without it (ADR
+      1.10.26ag D1). Only a pack reads Pack items.
+    -->
+    <None Include="$(RepoRoot)/LICENSE" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <!--
+    A project that runs against the real host library sets
+    LingaraCopyHostNative: `make ffi-host` builds it debug under target/debug/,
+    and it is copied beside the assembly so the default probe finds it.
+  -->
+  <ItemGroup Condition="'$(LingaraCopyHostNative)' == 'true'">
+    <None Include="$(RepoRoot)/target/debug/liblingara_embed.dylib" Condition="Exists('$(RepoRoot)/target/debug/liblingara_embed.dylib')" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Include="$(RepoRoot)/target/debug/liblingara_embed.so" Condition="Exists('$(RepoRoot)/target/debug/liblingara_embed.so')" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Include="$(RepoRoot)/target/debug/lingara_embed.dll" Condition="Exists('$(RepoRoot)/target/debug/lingara_embed.dll')" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+</Project>

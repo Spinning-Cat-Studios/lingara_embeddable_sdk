@@ -1,0 +1,14 @@
+id: ek8.404-not-found
+behaviours: [EK8]
+tier: ek
+# Embedding switched off for the integrator answers 404.
+serve:
+  - route: { operation: sendEvent }
+    respond: { status: 404, json: { code: not_found, error: not found } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: error, match: { error: { kind: not_found, retryable: false, status: 404 } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

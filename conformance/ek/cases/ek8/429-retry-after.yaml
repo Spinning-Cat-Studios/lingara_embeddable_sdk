@@ -1,0 +1,14 @@
+id: ek8.429-retry-after
+behaviours: [EK8]
+tier: ek
+# A Retry-After above the library's 60 s cap is raised at once, carried.
+serve:
+  - route: { operation: sendEvent }
+    respond: { status: 429, headers: { retry-after: "120" }, json: { code: rate_limited, error: the player's inbound cells are spent } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: error, match: { error: { kind: rate_limited, retryable: true, status: 429, retry_after_ms: 120000 } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

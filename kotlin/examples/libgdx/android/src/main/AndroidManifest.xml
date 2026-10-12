@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- INTERNET merges in from lingara-embed-natives-android. The demo token server
+         is loopback HTTP, reached through `adb reverse tcp:8787 tcp:8787`. -->
+    <application
+        android:label="Lingara libGDX example"
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name=".AndroidLauncher"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

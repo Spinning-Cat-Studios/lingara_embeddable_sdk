@@ -1,0 +1,16 @@
+[package]
+name = "lingara-embed-server-snippets"
+version = "0.0.0"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "The Rust server examples the docs show (ADR 1.10.26af D13), compiled in make test-core"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+axum = "0.8"
+lingara = { version = "0.2.0-alpha.1", default-features = false, features = ["rustls"] }
+lingara-embed = { path = "../../../core", features = ["server"] }
+tokio = { version = "1", features = ["sync"] }

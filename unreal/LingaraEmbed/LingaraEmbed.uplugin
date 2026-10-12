@@ -1,0 +1,22 @@
+{
+	"FileVersion": 3,
+	"Version": 0,
+	"VersionName": "0.0.0-dev",
+	"FriendlyName": "Lingara Embed",
+	"Description": "Lingara inside your game: language practice and NPC conversation over Lingara's embed core, from Blueprints or C++.",
+	"Category": "Education",
+	"CreatedBy": "Spinning Cat Studios",
+	"CreatedByURL": "https://getlingara.com",
+	"DocsURL": "https://getlingara.com/docs/embed/unreal/",
+	"SupportURL": "https://getlingara.com/support",
+	"CanContainContent": true,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "LingaraEmbed",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": ["Win64", "Mac", "Linux", "Android", "IOS"]
+		}
+	]
+}

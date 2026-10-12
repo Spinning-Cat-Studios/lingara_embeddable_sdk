@@ -1,0 +1,15 @@
+id: ek8.422-safety-flagged
+behaviours: [EK8]
+tier: ek
+# The NPC turn's input gate: say something else.
+serve:
+  - route: { operation: sendDialogueTurn }
+    respond: { status: 422, json: { code: safety_input_flagged, error: that line cannot be answered } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: dialogue_open, config: { npc: { name: Mei }, source_lang: en, target_lang: zh, level: 2 } }
+  - command: { type: dialogue_say, dialogue: $last, line: ni hao }
+  - poll_until: { event: error, match: { error: { kind: invalid_input, retryable: false, status: 422, code: safety_input_flagged } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

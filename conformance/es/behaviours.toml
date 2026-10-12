@@ -1,0 +1,32 @@
+# ES's closed behaviour list (ADR 1.10.26af D11). check-coverage reads it:
+# each behaviour needs a case under cases/, or a `vectors` file that parses.
+
+[[behaviour]]
+id = "ES1"
+title = "Mint: one POST per call, no cache; remember after success only"
+
+[[behaviour]]
+id = "ES2"
+title = "Delete: one encoded segment; forget after a 2xx only"
+
+[[behaviour]]
+id = "ES3"
+title = "Verify the raw body, then route to the player; handle's status table"
+
+[[behaviour]]
+id = "ES4"
+title = "The widget snippet"
+vectors = "snippet.json"
+
+[[behaviour]]
+id = "ES5"
+title = "No secret surfaces in a rendering, an error or a log line"
+
+[[behaviour]]
+id = "ES6"
+title = "The handoff body: exactly {token, expires_at}"
+vectors = "token-handoff.json"
+
+[[behaviour]]
+id = "ES7"
+title = "The transport under the kit: the library's errors and retries, once"

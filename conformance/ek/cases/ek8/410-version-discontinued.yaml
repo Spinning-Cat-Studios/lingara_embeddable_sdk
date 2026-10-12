@@ -1,0 +1,13 @@
+id: ek8.410-version-discontinued
+behaviours: [EK8]
+tier: ek
+serve:
+  - route: { operation: sendEvent }
+    respond: { status: 410, json: { code: api_version_discontinued, error: the pinned version is gone } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false, api_version: 2026-09-affable-cat } }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: error, match: { error: { kind: config, retryable: false, status: 410, code: api_version_discontinued } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

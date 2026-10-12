@@ -1,0 +1,18 @@
+id: ek8.dropped-connection
+behaviours: [EK8]
+tier: ek
+# A turn's connection drops mid-reply: Network, and the turn is not re-sent.
+serve:
+  - route: { operation: sendDialogueTurn }
+    respond:
+      sse: [{ event: delta, data: { text: Ni } }]
+      fault: { drop_after_events: 1 }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: dialogue_open, config: { npc: { name: Mei }, source_lang: en, target_lang: zh, level: 2 } }
+  - command: { type: dialogue_say, dialogue: $last, line: ni hao }
+  - poll_until: { event: error, match: { error: { kind: network, retryable: true } }, within_ms: 2000 }
+  - expect_no_event: { event: npc_turn, match: { update: { type: finished } }, for_ms: 500 }
+  - close: {}
+expect:
+  requests: { count: 1 }

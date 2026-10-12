@@ -1,0 +1,1778 @@
+{
+  "$defs": {
+    "AnswerResult": {
+      "description": "The last answer's result. `outcome` is `None` while a self-graded\nquestion waits for the learner's grade.",
+      "properties": {
+        "expected": {
+          "type": "string"
+        },
+        "explanation": {
+          "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PracticeOutcome"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "expected",
+        "explanation"
+      ],
+      "type": "object"
+    },
+    "CloseReason": {
+      "enum": [
+        "requested",
+        "internal"
+      ],
+      "type": "string"
+    },
+    "Command": {
+      "description": "Every command, as one serialisable enum (`execute`). The flat methods\non `Embed` are thin wrappers over it.",
+      "oneOf": [
+        {
+          "properties": {
+            "expires_at": {
+              "type": "string"
+            },
+            "token": {
+              "type": "string"
+            },
+            "type": {
+              "const": "provide_token",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "token",
+            "expires_at"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "expires_in_secs": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "token": {
+              "type": "string"
+            },
+            "type": {
+              "const": "provide_token_for",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "token",
+            "expires_in_secs"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "reason": {
+              "type": "string"
+            },
+            "type": {
+              "const": "token_unavailable",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "headers": {
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/Header"
+              },
+              "type": "array"
+            },
+            "type": {
+              "const": "set_token_endpoint",
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "stream_pause",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "stream_resume",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "context": {
+              "$ref": "#/$defs/WorldContext"
+            },
+            "type": {
+              "const": "send_context",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "context"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "source": {
+              "$ref": "#/$defs/PracticeSource"
+            },
+            "type": {
+              "const": "practice_start",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "source"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "session": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "practice_snapshot",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "session"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "answer": {
+              "type": "string"
+            },
+            "session": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "practice_answer",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "session",
+            "answer"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "option": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "session": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "practice_choose",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "session",
+            "option"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "session": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "practice_reveal",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "session"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "correct": {
+              "type": "boolean"
+            },
+            "session": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "practice_self_grade",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "session",
+            "correct"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "session": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "practice_next",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "session"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "session": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "practice_finish",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "session"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "config": {
+              "$ref": "#/$defs/DialogueConfig"
+            },
+            "type": {
+              "const": "dialogue_open",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "config"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "line": {
+              "type": "string"
+            },
+            "type": {
+              "const": "dialogue_say",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue",
+            "line"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "level": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "dialogue_set_level",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue",
+            "level"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "scene": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "dialogue_set_scene",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "dialogue_cancel",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "dialogue_close",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "dialogue_snapshot",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "CommandOutcome": {
+      "description": "What `execute` answers. `Id` carries a `RequestId`, `SessionId` or `DialogueId`.",
+      "oneOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "done",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "id": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "id"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "snapshot": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PracticeSnapshot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "const": "practice",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "snapshot": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/DialogueSnapshot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "const": "dialogue",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "DialogueConfig": {
+      "description": "B3's request, held between turns (D8).",
+      "properties": {
+        "level": {
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "npc": {
+          "$ref": "#/$defs/Npc"
+        },
+        "scene": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_lang": {
+          "type": "string"
+        },
+        "target_lang": {
+          "type": "string"
+        },
+        "window": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/WindowEntry"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "npc",
+        "source_lang",
+        "target_lang",
+        "level"
+      ],
+      "type": "object"
+    },
+    "DialoguePhase": {
+      "enum": [
+        "idle",
+        "sending",
+        "streaming"
+      ],
+      "type": "string"
+    },
+    "DialogueSnapshot": {
+      "properties": {
+        "level": {
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "npc": {
+          "$ref": "#/$defs/Npc"
+        },
+        "phase": {
+          "$ref": "#/$defs/DialoguePhase"
+        },
+        "scene": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "window": {
+          "items": {
+            "$ref": "#/$defs/WindowEntry"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "phase",
+        "npc",
+        "level",
+        "window"
+      ],
+      "type": "object"
+    },
+    "EmbedConfig": {
+      "properties": {
+        "api_version": {
+          "default": null,
+          "description": "The `Lingara-Version` pin.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "base_url": {
+          "default": "https://api.getlingara.com",
+          "type": "string"
+        },
+        "event_types": {
+          "default": [],
+          "description": "The tail's `types`; empty is every type.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "log_level": {
+          "$ref": "#/$defs/LogLevel",
+          "default": "warn"
+        },
+        "queue_capacity": {
+          "default": 1024,
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "resume_cursor": {
+          "default": null,
+          "description": "A cursor saved from `status()` or a `Stream` event.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stream_idle_timeout_ms": {
+          "default": 45000,
+          "description": "A heartbeat gap this long reconnects the stream (at least 1 000).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "stream_on_start": {
+          "default": true,
+          "description": "`false` starts paused: a game that never listens pays nothing.",
+          "type": "boolean"
+        },
+        "token_source": {
+          "$ref": "#/$defs/TokenSourceConfig",
+          "default": {
+            "type": "poll"
+          }
+        },
+        "token_wait_timeout_ms": {
+          "default": 30000,
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "user_agent_suffix": {
+          "default": null,
+          "description": "Appended after `lingara-embed/<version>`, e.g. `my-game/1.4`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "EmbedError": {
+      "description": "Every failure the core reports. `message` is English, for logs, never\nshown to a learner, and never holds a token.",
+      "properties": {
+        "code": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/ErrorKind"
+        },
+        "message": {
+          "type": "string"
+        },
+        "request": {
+          "default": null,
+          "description": "The command this failure answers, when it answers one.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "retry_after_ms": {
+          "default": null,
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "status": {
+          "default": null,
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "message",
+        "retryable"
+      ],
+      "type": "object"
+    },
+    "EmbedEvent": {
+      "description": "What the engine polls. `TokenNeeded` is served ahead of the queue.",
+      "oneOf": [
+        {
+          "properties": {
+            "reason": {
+              "$ref": "#/$defs/TokenReason"
+            },
+            "request": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "token_needed",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "request",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "cursor": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "state": {
+              "$ref": "#/$defs/StreamState"
+            },
+            "type": {
+              "const": "stream",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "state"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "event": {
+              "$ref": "#/$defs/LingaraEvent"
+            },
+            "type": {
+              "const": "lingara",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "event"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "event_id": {
+              "type": "string"
+            },
+            "reaction": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Reaction"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "request": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "world_sent",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "request",
+            "event_id"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "session": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "snapshot": {
+              "$ref": "#/$defs/PracticeSnapshot"
+            },
+            "type": {
+              "const": "practice",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "session",
+            "snapshot"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "request": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "npc_turn",
+              "type": "string"
+            },
+            "update": {
+              "$ref": "#/$defs/NpcTurnUpdate"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue",
+            "request",
+            "update"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "error": {
+              "$ref": "#/$defs/EmbedError"
+            },
+            "type": {
+              "const": "error",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "error"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "level": {
+              "$ref": "#/$defs/LogLevel"
+            },
+            "message": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "type": {
+              "const": "log",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "level",
+            "target",
+            "message"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "reason": {
+              "$ref": "#/$defs/CloseReason"
+            },
+            "type": {
+              "const": "closed",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "EmbedStatus": {
+      "properties": {
+        "closed": {
+          "type": "boolean"
+        },
+        "cursor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "needs_token": {
+          "type": "boolean"
+        },
+        "stream": {
+          "$ref": "#/$defs/StreamState"
+        }
+      },
+      "required": [
+        "stream",
+        "needs_token",
+        "closed"
+      ],
+      "type": "object"
+    },
+    "ErrorKind": {
+      "description": "The closed code K2–K7 surface. `retryable` is a function of the kind\nalone, so every binding agrees on it.",
+      "enum": [
+        "config",
+        "invalid_input",
+        "token_unavailable",
+        "token_rejected",
+        "forbidden",
+        "billing",
+        "not_found",
+        "rate_limited",
+        "unavailable",
+        "network",
+        "busy",
+        "invalid_state",
+        "unknown_id",
+        "closed",
+        "internal"
+      ],
+      "type": "string"
+    },
+    "Header": {
+      "description": "One header the Http token source sends. The value is a secret: a game\nsession is a credential too.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "type": "object"
+    },
+    "LingaraEvent": {
+      "description": "One event off the stream (D5). `data_json` is the event's raw `data`.",
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "data_json": {
+          "type": "string"
+        },
+        "detail": {
+          "$ref": "#/$defs/LingaraEventDetail"
+        },
+        "event_type": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "event_type",
+        "created_at",
+        "data_json",
+        "detail"
+      ],
+      "type": "object"
+    },
+    "LingaraEventDetail": {
+      "oneOf": [
+        {
+          "properties": {
+            "complete": {
+              "type": "boolean"
+            },
+            "level": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "plan_id": {
+              "type": "string"
+            },
+            "source_lang": {
+              "type": "string"
+            },
+            "target_lang": {
+              "type": "string"
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "lesson_plan_ready",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "plan_id",
+            "level",
+            "source_lang",
+            "target_lang",
+            "complete"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "plan_id": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "type": {
+              "const": "lesson_plan_failed",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "plan_id",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Every other type, newer ones included: read `data_json`.",
+          "properties": {
+            "type": {
+              "const": "other",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "LogLevel": {
+      "enum": [
+        "error",
+        "warn",
+        "info",
+        "debug",
+        "trace"
+      ],
+      "type": "string"
+    },
+    "Npc": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "persona": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "NpcTurnUpdate": {
+      "oneOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "opened",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "const": "fragment",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "type": {
+              "const": "notice",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The full reply, uncut.",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "const": "finished",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "cancelled",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "PlanSummary": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "level": {
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "source_lang": {
+          "type": "string"
+        },
+        "target_lang": {
+          "type": "string"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vocabulary": {
+          "items": {
+            "$ref": "#/$defs/PlanWord"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "level",
+        "source_lang",
+        "target_lang",
+        "vocabulary"
+      ],
+      "type": "object"
+    },
+    "PlanWord": {
+      "properties": {
+        "pronunciation": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "translation": {
+          "type": "string"
+        },
+        "word": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "word",
+        "translation"
+      ],
+      "type": "object"
+    },
+    "PracticeOutcome": {
+      "description": "B2's six outcomes.",
+      "enum": [
+        "correct",
+        "incorrect",
+        "revealed",
+        "self_correct",
+        "self_incorrect",
+        "skipped"
+      ],
+      "type": "string"
+    },
+    "PracticePhase": {
+      "enum": [
+        "requesting",
+        "generating",
+        "creating",
+        "loading",
+        "unanswered",
+        "awaiting_self_grade",
+        "reviewed",
+        "set_complete",
+        "reporting",
+        "reported",
+        "report_failed",
+        "failed",
+        "ended"
+      ],
+      "type": "string"
+    },
+    "PracticeQuestion": {
+      "properties": {
+        "hint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "description": "The plan's free `type` string.",
+          "type": "string"
+        },
+        "options": {
+          "description": "Present on a multiple-choice question: answer with `practice_choose`.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "self_graded": {
+          "description": "Graded by the learner after seeing the model answer (D7).",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "prompt",
+        "self_graded"
+      ],
+      "type": "object"
+    },
+    "PracticeSnapshot": {
+      "properties": {
+        "failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EmbedError"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnswerResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phase": {
+          "$ref": "#/$defs/PracticePhase"
+        },
+        "plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlanSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "question": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PracticeQuestion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "question_count": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "question_index": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "set_count": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "set_index": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "phase",
+        "set_index",
+        "set_count",
+        "question_index",
+        "question_count"
+      ],
+      "type": "object"
+    },
+    "PracticeSource": {
+      "description": "Where a practice session's plan comes from (D7).",
+      "oneOf": [
+        {
+          "properties": {
+            "level": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "source_lang": {
+              "type": "string"
+            },
+            "tags": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "target_lang": {
+              "type": "string"
+            },
+            "topic": {
+              "type": "string"
+            },
+            "type": {
+              "const": "request",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "topic",
+            "source_lang",
+            "target_lang",
+            "level"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "context": {
+              "type": "string"
+            },
+            "level": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "source_lang": {
+              "type": "string"
+            },
+            "target_lang": {
+              "type": "string"
+            },
+            "type": {
+              "const": "create",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "context",
+            "source_lang",
+            "target_lang",
+            "level"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A plan the game holds. A demo plan must be started with `report: false`.",
+          "properties": {
+            "plan_id": {
+              "type": "string"
+            },
+            "report": {
+              "default": true,
+              "type": "boolean"
+            },
+            "type": {
+              "const": "plan",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "plan_id"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Reaction": {
+      "description": "The `202`'s `reaction` (D6).",
+      "properties": {
+        "code": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "error": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "plan_id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "plan_status": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "type": "object"
+    },
+    "Speaker": {
+      "enum": [
+        "player",
+        "npc"
+      ],
+      "type": "string"
+    },
+    "StreamState": {
+      "description": "The stream's state (D5). `Live` means an event has arrived since the\ntail was created; a quiet open stream reads `Connecting`.",
+      "oneOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "connecting",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "live",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "paused",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "error": {
+              "$ref": "#/$defs/EmbedError"
+            },
+            "retry_in_ms": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "down",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "error",
+            "retry_in_ms"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "TokenReason": {
+      "enum": [
+        "initial",
+        "expiring",
+        "rejected"
+      ],
+      "type": "string"
+    },
+    "TokenSourceConfig": {
+      "description": "Where tokens come from (D4). `Poll` raises `TokenNeeded` and waits for\n`provide_token`; `Http` POSTs `{}` to the integrator's URL.",
+      "oneOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "poll",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "headers": {
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/Header"
+              },
+              "type": "array"
+            },
+            "type": {
+              "const": "http",
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "WindowEntry": {
+      "properties": {
+        "speaker": {
+          "$ref": "#/$defs/Speaker"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "speaker",
+        "text"
+      ],
+      "type": "object"
+    },
+    "WorldContext": {
+      "description": "`world.context_changed` (D6), bounded as the inbound door is.",
+      "properties": {
+        "generate": {
+          "default": false,
+          "type": "boolean"
+        },
+        "level": {
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "npc": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Npc"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "scene": {
+          "type": "string"
+        },
+        "source_lang": {
+          "type": "string"
+        },
+        "tags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "target_lang": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "scene",
+        "source_lang",
+        "target_lang",
+        "level"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The JSON lingara_embed.h moves (ADR 1.10.26aa D2): K1's own types, generated by `make ffi-schema`. Do not edit.",
+  "messages": {
+    "Command": {
+      "$ref": "#/$defs/Command"
+    },
+    "CommandOutcome": {
+      "$ref": "#/$defs/CommandOutcome"
+    },
+    "EmbedConfig": {
+      "$ref": "#/$defs/EmbedConfig"
+    },
+    "EmbedError": {
+      "$ref": "#/$defs/EmbedError"
+    },
+    "EmbedEvent": {
+      "$ref": "#/$defs/EmbedEvent"
+    },
+    "EmbedStatus": {
+      "$ref": "#/$defs/EmbedStatus"
+    }
+  },
+  "title": "lingara-embed messages"
+}

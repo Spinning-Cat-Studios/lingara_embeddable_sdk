@@ -1,0 +1,70 @@
+id: ek6.window-trims-to-twelve
+behaviours: [EK6]
+tier: ek
+# A full window of 12; after one finished turn the two oldest entries go.
+serve:
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      body:
+        line: line A
+        history:
+          - { speaker: player, text: p0 }
+          - { speaker: npc, text: n0 }
+          - { speaker: player, text: p1 }
+          - { speaker: npc, text: n1 }
+          - { speaker: player, text: p2 }
+          - { speaker: npc, text: n2 }
+          - { speaker: player, text: p3 }
+          - { speaker: npc, text: n3 }
+          - { speaker: player, text: p4 }
+          - { speaker: npc, text: n4 }
+          - { speaker: player, text: p5 }
+          - { speaker: npc, text: n5 }
+    respond: { sse: [{ event: delta, data: { text: reply A } }, { event: done, data: {} }] }
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      body:
+        line: line B
+        history:
+          - { speaker: player, text: p1 }
+          - { speaker: npc, text: n1 }
+          - { speaker: player, text: p2 }
+          - { speaker: npc, text: n2 }
+          - { speaker: player, text: p3 }
+          - { speaker: npc, text: n3 }
+          - { speaker: player, text: p4 }
+          - { speaker: npc, text: n4 }
+          - { speaker: player, text: p5 }
+          - { speaker: npc, text: n5 }
+          - { speaker: player, text: line A }
+          - { speaker: npc, text: reply A }
+    respond: { sse: [{ event: delta, data: { text: reply B } }, { event: done, data: {} }] }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command:
+      type: dialogue_open
+      config:
+        npc: { name: Mei }
+        source_lang: en
+        target_lang: zh
+        level: 2
+        window:
+          - { speaker: player, text: p0 }
+          - { speaker: npc, text: n0 }
+          - { speaker: player, text: p1 }
+          - { speaker: npc, text: n1 }
+          - { speaker: player, text: p2 }
+          - { speaker: npc, text: n2 }
+          - { speaker: player, text: p3 }
+          - { speaker: npc, text: n3 }
+          - { speaker: player, text: p4 }
+          - { speaker: npc, text: n4 }
+          - { speaker: player, text: p5 }
+          - { speaker: npc, text: n5 }
+  - command: { type: dialogue_say, dialogue: $last, line: line A }
+  - poll_until: { event: npc_turn, match: { update: { type: finished, text: reply A } }, within_ms: 2000 }
+  - command: { type: dialogue_say, dialogue: $last, line: line B }
+  - poll_until: { event: npc_turn, match: { update: { type: finished, text: reply B } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 2 }

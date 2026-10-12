@@ -1,0 +1,42 @@
+# EK's closed behaviour list (ADR 1.10.26y D12). check-coverage reads it,
+# and fails a behaviour no case covers. CONTRACT.md says what each means.
+
+[[behaviour]]
+id = "EK1"
+title = "Only an embed token crosses: every request carries Bearer lgr_et_…, and any other token is refused locally and never sent"
+
+[[behaviour]]
+id = "EK2"
+title = "The token is asked for before it goes stale, at lifetime − min(60 s, lifetime / 2), and once more after a 401, with one retry"
+
+[[behaviour]]
+id = "EK3"
+title = "The stream resumes: Last-Event-ID after a drop, a heartbeat gap counts as a drop, and each event id reaches the host once"
+
+[[behaviour]]
+id = "EK4"
+title = "An inbound send is one event: one Idempotency-Key across every retry"
+
+[[behaviour]]
+id = "EK5"
+title = "A practice session reports once: one world.practice_completed with B2's body under one key, and none with report: false"
+
+[[behaviour]]
+id = "EK6"
+title = "A dialogue turn sends a bounded window and maps four frames: history ≤ 12, an NPC reply stored cut to 500, delta · notice · done · error in order"
+
+[[behaviour]]
+id = "EK7"
+title = "A plan being made is waited for: generating waits for lesson_plan.ready, failed and refused end the session, a pool-served plan is read at once, Create reads to its result"
+
+[[behaviour]]
+id = "EK8"
+title = "Errors map to one closed code: each refusal, in-stream error and dropped connection surfaces as its kind and retryable"
+
+[[behaviour]]
+id = "EK9"
+title = "Close and backpressure: after close every connection drops within 2 s and the host sees one Closed; a host that stops polling loses no event"
+
+[[behaviour]]
+id = "EK10"
+title = "The kit names itself: the User-Agent chain ends lingara-embed/<version> [<kit>/<version>] <suffix>, and Lingara-Version is sent when pinned"

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Assets/packages.config, after installing NuGetForUnity: it restores Lingara.Embed and places each platform's native library. -->
+<packages>
+  <package id="Lingara.Embed" version="{{version}}" manuallyInstalled="true" />
+</packages>

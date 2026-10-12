@@ -1,0 +1,20 @@
+[package]
+name = "lingara-embed-es-harness"
+version = "0.0.0"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "The ES conformance harness on lingara-embed's server feature: drives every ES case through EmbedServer, PlayerRouter and a MemoryPlayerDirectory"
+
+[[bin]]
+name = "lingara-embed-es-harness"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8"
+lingara = { version = "0.2.0-alpha.1", default-features = false, features = ["rustls"] }
+lingara-embed = { path = "..", features = ["server"] }
+log = { version = "0.4", features = ["std"] }
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }

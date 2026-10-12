@@ -1,0 +1,17 @@
+# The Kotlin UniFFI writes for the JVM kit (ADR 1.10.26ae D2).
+#
+# - One package for the generated file and the hand-written layer, so every
+#   `when` names the generated subclasses (`EmbedEvent.Practice`) directly.
+# - SecretString crosses as a String and is lifted into the hand-written
+#   `com.getlingara.embed.Secret`, whose toString() redacts. The two names
+#   differ on purpose: UniFFI writes `typealias SecretString = Secret`, which
+#   a class of the same name in the same package would redeclare.
+
+[bindings.kotlin]
+package_name = "com.getlingara.embed"
+cdylib_name = "lingara_embed_uniffi"
+
+[bindings.kotlin.custom_types.SecretString]
+type_name = "Secret"
+lift = "Secret({})"
+lower = "{}.exposeSecret()"

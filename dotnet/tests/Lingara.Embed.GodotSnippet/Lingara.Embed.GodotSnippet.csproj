@@ -1,0 +1,22 @@
+<Project Sdk="Godot.NET.Sdk/4.4.1">
+  <!--
+    The Godot C# snippet compiles in CI (ADR 1.10.26aa D11, AC25): Godot's source
+    generators produce its [Signal] plumbing, so a renamed client method breaks a
+    PR rather than a reader. It builds the snippet file itself, not a copy.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- A snippet reads like a game's own code, not this repo's analysers. -->
+    <AnalysisMode>Default</AnalysisMode>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)/snippets/player/godot-csharp/LingaraEmbedNode.cs" Link="LingaraEmbedNode.cs" />
+    <ProjectReference Include="../../src/Lingara.Embed/Lingara.Embed.csproj" />
+  </ItemGroup>
+</Project>

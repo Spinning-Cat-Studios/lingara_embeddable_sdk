@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The C# server snippets compile in CI (ADR 1.10.26af D13, AC33): it builds
+    snippets/server/csharp/ itself, not a copy, against the server project and
+    ASP.NET Core, so a renamed method breaks a PR rather than a reader.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <IsPackable>false</IsPackable>
+    <!-- A snippet reads like an integrator's own code, not this repo's analysers. -->
+    <AnalysisMode>Default</AnalysisMode>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)/snippets/server/csharp/*.cs" LinkBase="snippets" />
+    <None Include="$(RepoRoot)/snippets/server/csharp/install.xml" LinkBase="snippets" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../../src/Lingara.Embed.Server/Lingara.Embed.Server.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,33 @@
+[package]
+name = "lingara-embed-conformance-server"
+version = "0.0.0"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "Plays Lingara for the embed kits' two conformance tiers: answers player kits, and mints for and delivers to server kits"
+
+[[bin]]
+name = "conformance-server"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8"
+base64 = "0.22"
+bytes = "1"
+clap = { version = "4", features = ["derive"] }
+hmac = "0.12"
+jsonschema = { version = "0.33", default-features = false }
+# Deliveries go to a harness on loopback: plain HTTP, no TLS stack.
+reqwest = { version = "0.12", default-features = false }
+serde = { version = "1", features = ["derive"] }
+# preserve_order: a case served as JSON keeps the key order of its YAML.
+serde_json = { version = "1", features = ["preserve_order"] }
+# The maintained fork of the archived serde_yaml, under the same name.
+serde_yaml = { package = "serde_yaml_ng", version = "0.10" }
+sha2 = "0.10"
+tokio = { version = "1", features = ["io-util", "macros", "net", "process", "rt-multi-thread", "sync", "time"] }
+tokio-stream = "0.1"
+toml = "0.8"
+
+[dev-dependencies]
+tempfile = "3"

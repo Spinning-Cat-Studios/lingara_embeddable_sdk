@@ -1,0 +1,31 @@
+{
+  "_comment": "Every expires_at shape a token endpoint may hand the element, and the answers it refuses. 1790856000000 is 2026-10-01T12:00:00Z.",
+  "cases": [
+    { "name": "whole-second Z", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00Z" }, "expect": { "expiresAtMs": 1790856000000 } },
+    { "name": "one fraction digit", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00.5Z" }, "expect": { "expiresAtMs": 1790856000500 } },
+    { "name": "two fraction digits", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00.12Z" }, "expect": { "expiresAtMs": 1790856000120 } },
+    { "name": "three fraction digits", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00.123Z" }, "expect": { "expiresAtMs": 1790856000123 } },
+    { "name": "six fraction digits", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00.123456Z" }, "expect": { "expiresAtMs": 1790856000123 } },
+    { "name": "nine fraction digits, truncated", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00.999999999Z" }, "expect": { "expiresAtMs": 1790856000999 } },
+    { "name": "lowercase t and z", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01t12:00:00z" }, "expect": { "expiresAtMs": 1790856000000 } },
+    { "name": "a positive offset", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T14:00:00+02:00" }, "expect": { "expiresAtMs": 1790856000000 } },
+    { "name": "a negative half-hour offset", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T07:30:00-04:30" }, "expect": { "expiresAtMs": 1790856000000 } },
+    { "name": "an offset with a fraction", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00.250+00:00" }, "expect": { "expiresAtMs": 1790856000250 } },
+    { "name": "an extra key beside the two, ignored", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00Z", "expires_in": 900, "subject": "p_1" }, "expect": { "expiresAtMs": 1790856000000 } },
+    { "name": "a token without the prefix", "answer": { "token": "et_a", "expires_at": "2026-10-01T12:00:00Z" }, "expect": { "invalid": true } },
+    { "name": "a non-string token", "answer": { "token": 42, "expires_at": "2026-10-01T12:00:00Z" }, "expect": { "invalid": true } },
+    { "name": "no expires_at", "answer": { "token": "lgr_et_a" }, "expect": { "invalid": true } },
+    { "name": "not an object", "answer": "lgr_et_a", "expect": { "invalid": true } },
+    { "name": "null", "answer": null, "expect": { "invalid": true } },
+    { "name": "a date without a time", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01" }, "expect": { "invalid": true } },
+    { "name": "a Date.parse-only form", "answer": { "token": "lgr_et_a", "expires_at": "Oct 1 2026" }, "expect": { "invalid": true } },
+    { "name": "no zone", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00" }, "expect": { "invalid": true } },
+    { "name": "ten fraction digits", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00.1234567890Z" }, "expect": { "invalid": true } },
+    { "name": "month 13", "answer": { "token": "lgr_et_a", "expires_at": "2026-13-01T00:00:00Z" }, "expect": { "invalid": true } },
+    { "name": "February 30th", "answer": { "token": "lgr_et_a", "expires_at": "2026-02-30T00:00:00Z" }, "expect": { "invalid": true } },
+    { "name": "February 29th outside a leap year", "answer": { "token": "lgr_et_a", "expires_at": "2026-02-29T00:00:00Z" }, "expect": { "invalid": true } },
+    { "name": "hour 24", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T24:00:00Z" }, "expect": { "invalid": true } },
+    { "name": "offset minutes 60", "answer": { "token": "lgr_et_a", "expires_at": "2026-10-01T12:00:00+05:60" }, "expect": { "invalid": true } },
+    { "name": "a leap second", "answer": { "token": "lgr_et_a", "expires_at": "2026-12-31T23:59:60Z" }, "expect": { "invalid": true } }
+  ]
+}

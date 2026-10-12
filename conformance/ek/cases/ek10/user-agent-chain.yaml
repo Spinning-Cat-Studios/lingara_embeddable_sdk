@@ -1,0 +1,16 @@
+id: ek10.user-agent-chain
+behaviours: [EK10]
+tier: ek
+# The library's token, then lingara-embed/<version>, then at most one kit
+# token (a binding's own), then the case's suffix.
+serve:
+  - route: { operation: sendEvent }
+    expect_request: { user_agent_tail: conformance/1.0 }
+    respond: { status: 202, json: { id: lgr_evt_1, type: world.context_changed, created_at: "2026-10-01T12:00:00Z" } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false, user_agent_suffix: conformance/1.0 } }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: world_sent, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

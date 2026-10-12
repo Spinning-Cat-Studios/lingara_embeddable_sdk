@@ -1,0 +1,41 @@
+id: ek9.full-queue-loses-nothing
+behaviours: [EK9]
+tier: ek
+# Three queue-fulls arrive while the host is not polling: the stream stops
+# reading rather than dropping, and every event then arrives once, in order,
+# on the one connection.
+serve:
+  - route: { operation: streamEvents }
+    respond:
+      sse:
+        - { id: e1, event: event, data: { id: e1, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e2, event: event, data: { id: e2, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e3, event: event, data: { id: e3, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e4, event: event, data: { id: e4, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e5, event: event, data: { id: e5, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e6, event: event, data: { id: e6, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e7, event: event, data: { id: e7, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e8, event: event, data: { id: e8, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e9, event: event, data: { id: e9, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e10, event: event, data: { id: e10, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e11, event: event, data: { id: e11, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e12, event: event, data: { id: e12, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+      fault: { heartbeat_gap_s: 10 }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: true, queue_capacity: 4 } }
+  - stop_polling: { for_ms: 1000 }
+  - poll_until: { event: lingara, match: { event: { id: e1 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e2 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e3 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e4 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e5 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e6 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e7 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e8 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e9 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e10 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e11 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e12 } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

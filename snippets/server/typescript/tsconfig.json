@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "moduleDetection": "force",
+    "typeRoots": ["../../../typescript/node_modules/@types"],
+    "types": ["node"],
+    "paths": {
+      "@lingara/embed/server": ["../../../typescript/dist/server/index.d.ts"],
+      "@lingara/api": ["../../../typescript/node_modules/@lingara/api/dist/index.d.ts"]
+    }
+  },
+  "include": ["*.ts"]
+}

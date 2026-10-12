@@ -1,0 +1,39 @@
+# The virtual workspace (ADR 1.10.26x D1). Each kit that lands a Rust crate
+# adds its path to the list below; the two vendored tools build through their
+# own manifests and are excluded. (scs-snapshot reads the list's key by its
+# first appearance in this file, so no comment above it may spell that key.)
+[workspace]
+resolver = "3"
+members = ["bevy", "bevy/conformance", "bevy/demo", "conformance/server", "core", "core/conformance", "core/conformance-es", "ffi", "godot", "kotlin/uniffi", "kotlin/uniffi/bindgen", "snippets/player/bevy", "snippets/server/rust", "tools/demo-token-server"]
+exclude = ["tools/scs-snapshot", "tools/code-health"]
+
+# The native libraries `make ffi-dist` ships (ADR 1.10.26aa D1). Named, so
+# core/ and bevy/ builds never pay for fat LTO; here, because Cargo ignores a
+# profile in a workspace member. Unwinding stays on: every FFI entry point
+# catches a panic.
+[profile.ffi-release]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+panic = "unwind"
+
+# The GDExtension `make godot-dist` ships (ADR 1.10.26ab D1). Unwinding stays
+# on, so gdext turns a panic inside a `#[func]` into a Godot error rather
+# than killing the game.
+[profile.release-godot]
+inherits = "release"
+lto = "thin"
+strip = true
+panic = "unwind"
+
+# The JVM kit's native library (ADR 1.10.26ae D2), here for the same reason.
+# Thin LTO keeps a cross-compile of reqwest, rustls and tokio bearable.
+# Unwinding stays on: UniFFI catches a panic at the boundary and raises it
+# as an exception, the backstop behind K1's no-panic promise.
+[profile.release-jvm]
+inherits = "release"
+lto = "thin"
+codegen-units = 1
+strip = true
+panic = "unwind"

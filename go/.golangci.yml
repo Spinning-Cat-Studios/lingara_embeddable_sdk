@@ -1,0 +1,32 @@
+# The Go server kit's lint and code budgets (ADR 1.10.26af D13), run by
+# `make lint-go`. The budgets are the Go library's and the app kit's (S2,
+# 30.9.26am D9): at most 5 parameters, 50 lines per function, cyclomatic
+# complexity 10 and 600 lines per file. The generated version_gen.go
+# (`Code generated ... DO NOT EDIT.`) is excluded.
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - revive
+  settings:
+    revive:
+      severity: error
+      confidence: 0.8
+      rules:
+        - name: argument-limit
+          arguments: [5]
+        - name: function-length
+          # [statements, lines]; 0 leaves statements unbounded.
+          arguments: [0, 50]
+        - name: cyclomatic
+          arguments: [10]
+        - name: file-length-limit
+          arguments:
+            - max: 600
+  exclusions:
+    generated: strict
+
+formatters:
+  enable:
+    - gofmt

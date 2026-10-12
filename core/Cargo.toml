@@ -1,0 +1,55 @@
+[package]
+name = "lingara-embed"
+# The trio's one VERSION (roadmap D10); the release tooling writes both.
+version = "0.1.0-alpha.5"
+edition = "2024"
+# The `lingara` library's floor, which a dependent cannot go below.
+rust-version = "1.87"
+license = "MIT"
+description = "Lingara inside a game: the player-side core every engine kit wraps. One I/O thread, a polled event queue, practice and NPC dialogue."
+repository = "https://github.com/Spinning-Cat-Studios/lingara_embeddable_sdk"
+homepage = "https://getlingara.com"
+readme = "README.md"
+keywords = ["lingara", "language-learning", "gamedev", "embed"]
+categories = ["game-development", "api-bindings"]
+include = ["src/**", "README.md", "LICENSE"]
+
+[lib]
+name = "lingara_embed"
+
+[features]
+default = ["rustls"]
+rustls = ["lingara/rustls", "reqwest/rustls-tls"]
+native-tls = ["lingara/native-tls", "reqwest/native-tls"]
+# Derives `schemars::JsonSchema` on every public type, for a binding's
+# committed message schema.
+schema = ["dep:schemars"]
+# The server tier (ADR 1.10.26af): mint, handoff, widget snippet, webhook
+# routing. It adds no dependency: `lingara` is already the core's.
+server = []
+
+[dependencies]
+log = "0.4"
+schemars = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["rt", "sync", "time", "macros"] }
+
+# Native-only: on wasm32 getrandom and rustls fail to compile before this
+# crate does, hiding lib.rs's own refusal (make check-bevy-wasm-fails). Gated
+# here, wasm32 meets that refusal and nothing else.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+getrandom = "0.4"
+# LIBRARY_FLOOR: the first release carrying world.practice_completed and
+# send_dialogue_turn. tools/library-floor/check.sh holds the two equal.
+lingara = { version = "0.2.0-alpha.1", default-features = false }
+# The Http token source only, at the library's major.
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+
+[dev-dependencies]
+axum = "0.8"
+bytes = "1"
+tokio = { version = "1", features = ["net", "rt-multi-thread", "test-util"] }
+tokio-stream = "0.1"
+toml = "0.8"

@@ -1,0 +1,15 @@
+id: ek8.403-embed-needs-metered
+behaviours: [EK8]
+tier: ek
+# An NPC turn whose payer is not a metered client: no retry helps.
+serve:
+  - route: { operation: sendDialogueTurn }
+    respond: { status: 403, json: { code: embed_needs_metered, error: NPC turns need a metered client } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: dialogue_open, config: { npc: { name: Mei }, source_lang: en, target_lang: zh, level: 2 } }
+  - command: { type: dialogue_say, dialogue: $last, line: ni hao }
+  - poll_until: { event: error, match: { error: { kind: forbidden, retryable: false, status: 403, code: embed_needs_metered } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

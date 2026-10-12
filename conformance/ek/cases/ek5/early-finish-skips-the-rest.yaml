@@ -1,0 +1,40 @@
+id: ek5.early-finish-skips-the-rest
+behaviours: [EK5]
+tier: ek
+serve:
+  - route: { operation: getLessonPlan }
+    respond:
+      json:
+        id: 8f0e2c1a-0000-4000-8000-000000000001
+        status: complete
+        level: 2
+        source_lang: en
+        target_lang: zh
+        ai_generated: true
+        created_at: "2026-10-01T12:00:00Z"
+        content:
+          learning_objectives: []
+          vocabulary: []
+          sets:
+            - number: 1
+              questions: [{ type: translation, prompt: hello, answer: ni hao, explanation: a greeting }]
+            - number: 2
+              questions: [{ type: free_response, prompt: how are you?, answer: wo hen hao, explanation: fine }]
+  - route: { operation: sendEvent }
+    expect_request:
+      body:
+        type: world.practice_completed
+        data:
+          completed: false
+          items: [{ set_number: 1, question: 0, outcome: incorrect }, { set_number: 2, question: 0, outcome: skipped }]
+    respond: { status: 202, json: { id: lgr_evt_1, type: world.practice_completed, created_at: "2026-10-01T12:00:00Z" } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: practice_start, source: { type: plan, plan_id: 8f0e2c1a-0000-4000-8000-000000000001 } }
+  - poll_until: { event: practice, match: { snapshot: { phase: unanswered } }, within_ms: 2000 }
+  - command: { type: practice_answer, session: $last, answer: zai jian }
+  - command: { type: practice_finish, session: $last }
+  - poll_until: { event: practice, match: { snapshot: { phase: reported } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 2 }

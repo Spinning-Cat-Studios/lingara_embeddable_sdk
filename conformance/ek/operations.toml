@@ -1,0 +1,15 @@
+# The operations a player kit calls, as operationIds in the frozen current.
+# The feed (listEvents) is left out: no player kit reads it, because a
+# resumed tail replays from its cursor. sendEvent carries the world door and
+# world.practice_completed; streamLessonPlan is the reopen after a create
+# stream drops. Confirmed against the X1 release by ADR 1.10.26y, which adds
+# nothing: every entry has an EK case.
+operations = [
+  "streamEvents",
+  "sendEvent",
+  "createLessonPlan",
+  "getLessonPlan",
+  "streamLessonPlan",
+  "sendDialogueTurn",
+]
+messages = []

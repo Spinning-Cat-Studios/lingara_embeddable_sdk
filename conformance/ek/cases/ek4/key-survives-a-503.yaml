@@ -1,0 +1,18 @@
+id: ek4.key-survives-a-503
+behaviours: [EK4]
+tier: ek
+serve:
+  - route: { operation: sendEvent }
+    respond: { status: 503, headers: { retry-after: "1" }, json: { code: unavailable, error: try again } }
+  - route: { operation: sendEvent }
+    expect_request:
+      repeat: [idempotency-key]
+      body: { type: world.context_changed, data: { scene: the night market, level: 2 } }
+    respond: { status: 202, json: { id: lgr_evt_1, type: world.context_changed, created_at: "2026-10-01T12:00:00Z" } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: world_sent, match: { event_id: lgr_evt_1 }, within_ms: 4000 }
+  - close: {}
+expect:
+  requests: { count: 2 }

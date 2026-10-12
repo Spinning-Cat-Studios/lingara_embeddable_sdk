@@ -1,0 +1,11 @@
+# gdlint (gdtoolkit 4) over the addon's, the demo's and the snippet's
+# GDScript (ADR 1.10.26ab D10). File length is the trio's 300; the other
+# limits are gdtoolkit's own, tightened where the trio has a number (five
+# parameters). gdtoolkit has no function-length check, so that budget is
+# held by review.
+max-file-lines: 300
+max-line-length: 140
+function-arguments-number: 5
+max-public-methods: 20
+max-returns: 6
+disable: []

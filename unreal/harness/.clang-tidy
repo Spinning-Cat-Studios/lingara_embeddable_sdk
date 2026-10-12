@@ -1,0 +1,16 @@
+# The size and complexity budgets K3 holds C# to (ADR 1.10.26ac D10): 50
+# lines and 5 parameters per function, cognitive complexity 10. The harness
+# runs this over the wrapper and itself on every PR; `make unreal-smoke`
+# runs it over the Runtime module, where only the engine can parse it.
+Checks: '-*,readability-function-size,readability-function-cognitive-complexity'
+WarningsAsErrors: '*'
+HeaderFilterRegex: 'lingara_embed\.hpp$|harness_support\.hpp$|host_run\.hpp$|Lingara[A-Za-z]*\.h$'
+CheckOptions:
+  - key: readability-function-size.LineThreshold
+    value: 50
+  - key: readability-function-size.ParameterThreshold
+    value: 5
+  - key: readability-function-cognitive-complexity.Threshold
+    value: 10
+  - key: readability-function-cognitive-complexity.IgnoreMacros
+    value: true

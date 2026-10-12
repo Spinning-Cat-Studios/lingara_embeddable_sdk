@@ -1,0 +1,6 @@
+<Project>
+  <!--
+    Stops dotnet/Directory.Build.props at the samples: they are built the way a
+    game builds them, with the engine's own defaults, not this repo's analysers.
+  -->
+</Project>

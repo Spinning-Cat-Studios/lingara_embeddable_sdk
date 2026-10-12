@@ -1,0 +1,4 @@
+# Editor state (ADR 1.10.26ac D2). Binaries/ and Intermediate/ are already
+# ignored at the root, and dropped by the snapshot's membership.exclude.
+Saved/
+DerivedDataCache/

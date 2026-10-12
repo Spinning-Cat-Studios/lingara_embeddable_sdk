@@ -1,0 +1,28 @@
+PATH
+  remote: ..
+  specs:
+    lingara-embed (0.1.0.pre.alpha.5)
+      lingara (>= 0.2.0.pre.alpha.1, < 0.3)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    lingara (0.2.0.pre.alpha.1)
+    rack (3.2.7)
+    rackup (2.3.1)
+      rack (>= 3)
+    webrick (1.9.2)
+
+PLATFORMS
+  arm64-darwin-23
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  lingara-embed!
+  rack (= 3.2.7)
+  rackup (= 2.3.1)
+  webrick (= 1.9.2)
+
+BUNDLED WITH
+   2.7.2

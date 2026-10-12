@@ -1,0 +1,25 @@
+id: ek6.notice-passes-through
+behaviours: [EK6]
+tier: ek
+# Four frames, no `started`: Opened when the headers are in, the fragments
+# in order, a notice that does not end the turn, then the whole reply.
+serve:
+  - route: { operation: sendDialogueTurn }
+    respond:
+      sse:
+        - { event: delta, data: { text: Ni } }
+        - { event: notice, data: { code: truncated, message: the reply was shortened } }
+        - { event: delta, data: { text: " hao" } }
+        - { event: done, data: {} }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: dialogue_open, config: { npc: { name: Mei, persona: a tea seller }, scene: a tea house, source_lang: en, target_lang: zh, level: 2 } }
+  - command: { type: dialogue_say, dialogue: $last, line: ni hao }
+  - poll_until: { event: npc_turn, match: { update: { type: opened } }, within_ms: 2000 }
+  - poll_until: { event: npc_turn, match: { update: { type: fragment, text: Ni } }, within_ms: 2000 }
+  - poll_until: { event: npc_turn, match: { update: { type: notice, code: truncated } }, within_ms: 2000 }
+  - poll_until: { event: npc_turn, match: { update: { type: fragment, text: " hao" } }, within_ms: 2000 }
+  - poll_until: { event: npc_turn, match: { update: { type: finished, text: Ni hao } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

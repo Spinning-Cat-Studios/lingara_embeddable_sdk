@@ -1,0 +1,118 @@
+# docs/api/versions.toml — the /v1 version registry (ADR 24.9.26p).
+# Written only by tools/api-version (`make api-version-*`). Do not hand-edit:
+# the boot path and `shipped_registry_is_valid` refuse an invalid file, and
+# the next write undoes a valid one.
+# Entries are in mint order. Timestamps are RFC 3339, UTC, whole seconds.
+# A mint freezes the wire contract. It is refused when the contract has not
+# changed since the last frozen version. Mint at most once per release, after
+# the release's last /v1 contract change has merged (ADR 30.9.26a).
+
+[[version]]
+id = "2026-09-commending-possum"
+minted_at = "2026-09-24T10:45:00Z"
+state = "supported"
+spec_sha256 = "26e306c3aec9c04ec1405d5aafcc3c45ae7848845601634fbc48f97b40956491"
+
+[[version.history]]
+state = "development"
+at = "2026-09-24T10:45:00Z"
+
+[[version.history]]
+state = "supported"
+at = "2026-09-24T10:46:07Z"
+
+[[version]]
+id = "2026-09-affable-cat"
+minted_at = "2026-09-24T10:46:07Z"
+state = "supported"
+spec_sha256 = "a23aac0fcbad540e42c7b3acc7c23c6b378642d43dae96db93199ed2087faf49"
+
+[[version.history]]
+state = "development"
+at = "2026-09-24T10:46:07Z"
+
+[[version.history]]
+state = "supported"
+at = "2026-09-28T12:07:59Z"
+
+[[version]]
+id = "2026-09-knowing-tenpounder"
+minted_at = "2026-09-28T12:07:59Z"
+state = "supported"
+spec_sha256 = "1a92ebe5d42445c85ebf6d4dfd36bbfc56f2e53dbebcaaaf219e3ef643c65c67"
+
+[[version.history]]
+state = "development"
+at = "2026-09-28T12:07:59Z"
+
+[[version.history]]
+state = "supported"
+at = "2026-09-29T02:47:10Z"
+
+[[version]]
+id = "2026-09-glowing-hoatzin"
+minted_at = "2026-09-29T02:47:10Z"
+state = "supported"
+spec_sha256 = "db7642e1a518c5dff6286e92f470bb39500ab8740d599138fe673caf0dd302c1"
+
+[[version.history]]
+state = "development"
+at = "2026-09-29T02:47:10Z"
+
+[[version.history]]
+state = "supported"
+at = "2026-09-29T21:23:50Z"
+
+[[version]]
+id = "2026-09-equipped-boxfish"
+minted_at = "2026-09-29T21:23:50Z"
+state = "supported"
+spec_sha256 = "c9288b3a78b29e5eb4fec70e85183dfaff2f67bd7e63a8ed09b139abb17a531c"
+asyncapi_sha256 = "a822959b8e640e9700d1b495ab7516b46bc58702633bb4e3104974b35313261a"
+
+[[version.history]]
+state = "development"
+at = "2026-09-29T21:23:50Z"
+
+[[version.history]]
+state = "supported"
+at = "2026-10-01T06:48:23Z"
+
+[[version]]
+id = "2026-10-affable-towhee"
+minted_at = "2026-10-01T06:48:23Z"
+state = "supported"
+spec_sha256 = "3477b22599cfab3070e6044660f7e635dbedb45bfead2c1f7eb1d0323701402b"
+asyncapi_sha256 = "479e8a2e5504551b049bff3887a022d07864bacb900d0a003d913e9a1c2de4d3"
+
+[[version.history]]
+state = "development"
+at = "2026-10-01T06:48:23Z"
+
+[[version.history]]
+state = "supported"
+at = "2026-10-01T21:39:12Z"
+
+[[version]]
+id = "2026-10-golden-remora"
+minted_at = "2026-10-01T21:39:12Z"
+state = "supported"
+spec_sha256 = "3d64189ec0b565b8ffa1e6579c4599ae976cdee981164eb052d2432b549863e4"
+asyncapi_sha256 = "13fbba359e9683c44e105f96a4f3310dd9e096b448ecf5b2fba139d44289d1d0"
+
+[[version.history]]
+state = "development"
+at = "2026-10-01T21:39:12Z"
+
+[[version.history]]
+state = "supported"
+at = "2026-10-08T20:12:18Z"
+
+[[version]]
+id = "2026-10-virile-dragon"
+minted_at = "2026-10-08T20:12:18Z"
+state = "development"
+
+[[version.history]]
+state = "development"
+at = "2026-10-08T20:12:18Z"

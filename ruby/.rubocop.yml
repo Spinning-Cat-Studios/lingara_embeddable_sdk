@@ -1,0 +1,40 @@
+# One RuboCop pass for the kit's Ruby: standard's style (its base config, at
+# the app kits' standard pin), then the size and complexity budgets at the
+# library's numbers (lingara_api_clients' .rubocop-budgets.yml, the app kits'
+# ruby/.rubocop.yml), which standard turns off. version.rb is generated from
+# VERSION by `make codegen-ruby`.
+inherit_gem:
+  standard: config/base.yml
+
+AllCops:
+  NewCops: disable
+  SuggestExtensions: false
+  TargetRubyVersion: 3.3
+  # Setting Exclude replaces RuboCop's defaults, vendor/** among them.
+  Exclude:
+    - "vendor/**/*"
+    - "conformance-es/vendor/**/*"
+    - "lib/lingara/embed/version.rb"
+
+# Keyword options are Ruby's spelling of functional options, so a keyword
+# list is not a parameter list.
+Metrics/ParameterLists:
+  Enabled: true
+  Max: 5
+  CountKeywordArgs: false
+
+Metrics/MethodLength:
+  Enabled: true
+  Max: 50
+
+Metrics/CyclomaticComplexity:
+  Enabled: true
+  Max: 10
+
+Metrics/ClassLength:
+  Enabled: true
+  Max: 600
+
+Metrics/ModuleLength:
+  Enabled: true
+  Max: 600

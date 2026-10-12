@@ -1,0 +1,22 @@
+id: es5.no-token-in-renderings
+behaviours: [ES5]
+tier: es
+directory: { seed: { lgr_sub_conformance_p1: p1 } }
+serve:
+  - route: { token_grant: {} }
+    respond: { json: { access_token: "lgr_at_conformance0001", token_type: "Bearer", expires_in: 3600, scope: "embed:mint" } }
+  - route: { operation: createEmbedToken }
+    respond:
+      headers: { cache-control: no-store }
+      json: { token: "lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3", expires_at: "2026-10-01T09:27:44Z", expires_in: 900, subject: "lgr_sub_conformance_p1", scopes: [events:read, events:write, embed:play], account_linked: false }
+kit:
+  - mint: { player_ref: p1 }
+  - render: {}
+deliver:
+  - message: practice.completed
+    body: { created_at: "2026-10-01T09:30:00Z", api_version: "2026-10-golden-remora", subject: "lgr_sub_conformance_p1", data: { plan_id: "7d0c2b1e-4f3a-4c8e-9b21-5e6f7a8b9c0d", items: [ { set_number: 1, question: 0, outcome: correct } ], completed: true } }
+    sign: { secrets: [primary] }
+    handler: raise
+    expect: { status: 500, handler: { player_ref: p1 } }
+expect:
+  requests: { count: 2 }

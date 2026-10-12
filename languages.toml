@@ -1,0 +1,190 @@
+# languages.toml — what an embed SDK release publishes (ADR 1.10.26ag D1).
+#
+# One [[language]] per package a release ships. A package joins in the commit
+# that lands it, with `since = "next"`; `make bump-version` writes the version.
+# `release-manifest check` holds every entry to the tree, and `check-publish`
+# to publish/. release-manifest is the clients' tool, installed at the tag
+# make/release.mk pins, never copied (D2).
+#
+# Write each `id` on its own line, `id = "<id>"`, with nothing after it: that
+# makes this list readable with grep -E '^id = "[a-z]+"$' as well as a TOML
+# parser, and `check` refuses any other spelling. Ids are lowercase letters
+# only, so `dir` carries a hyphenated or shared directory (W2) and `snippets`
+# the directory holding the one install.* the release proves (W3).
+#
+# The Unreal plugin has no entry yet: it joins once K5's first engine smoke is
+# recorded (D1), with its changelog bullet and the README's install line.
+# `fab` is admitted below all the same, since admitting requires nothing.
+
+registries = ["crates.io", "npm", "nuget", "rubygems", "maven-central", "go", "packagist", "godot-assetlib", "fab"]
+
+# The C ABI's per-platform zips (K3), written by `make release-ffi-zip` on each
+# natives leg: release assets with no entry of their own (W7).
+extra_assets = [
+  "lingara-embed-ffi-{version}-win-x64.zip", "lingara-embed-ffi-{version}-osx.zip",
+  "lingara-embed-ffi-{version}-linux-x64.zip", "lingara-embed-ffi-{version}-android-arm64.zip",
+  "lingara-embed-ffi-{version}-ios-arm64.zip",
+]
+
+# The core crate. The two unpublished native crates report the version too
+# (K3's lingara_embed_version, K7's lingara_embed_uniffi_version), so their
+# Cargo.toml files are version files here, and K7's exact pin of the core
+# carries W6's `=` prefix.
+[[language]]
+id = "core"
+registry = "crates.io"
+package = "lingara-embed"
+snippets = "snippets/server/rust"
+version_files = [
+  { path = "core/Cargo.toml", kind = "toml", keys = ["package.version"] },
+  { path = "ffi/Cargo.toml", kind = "toml", keys = ["package.version"] },
+  { path = "ffi/Cargo.toml", kind = "toml", keys = ["dependencies.core_embed.version", "dev-dependencies.core_embed.version"], prefix = "=" },
+  { path = "kotlin/uniffi/Cargo.toml", kind = "toml", keys = ["package.version"] },
+  { path = "kotlin/uniffi/Cargo.toml", kind = "toml", keys = ["dependencies.lingara-embed.version"], prefix = "=" },
+]
+artefact = { built = "target/package/lingara-embed-{semver}.crate", uploaded = "lingara-embed-core-{version}.crate" }
+since = "0.1.0-alpha.1"
+
+# The Bevy plugin, with its exact pin of the core (K2 D1).
+[[language]]
+id = "bevy"
+registry = "crates.io"
+package = "bevy_lingara"
+snippets = "snippets/player/bevy"
+version_files = [
+  { path = "bevy/Cargo.toml", kind = "toml", keys = ["package.version"] },
+  { path = "bevy/Cargo.toml", kind = "toml", keys = ["dependencies.lingara-embed.version"], prefix = "=" },
+]
+artefact = { built = "target/package/bevy_lingara-{semver}.crate", uploaded = "lingara-embed-bevy-{version}.crate" }
+since = "0.1.0-alpha.1"
+
+# The two NuGet packages share dotnet/'s one solution. Directory.Build.props
+# reads VERSION, so no version_files; NuGet has no scs-snapshot manifest kind,
+# so no [[manifest]] (W5).
+[[language]]
+id = "dotnet"
+dir = "dotnet"
+registry = "nuget"
+package = "Lingara.Embed"
+snippets = "snippets/player/godot-csharp"
+artefact = { built = "dotnet/artifacts/Lingara.Embed.{semver}.nupkg", uploaded = "lingara-embed-dotnet-{version}.nupkg" }
+since = "0.1.0-alpha.1"
+
+[[language]]
+id = "dotnetserver"
+dir = "dotnet"
+registry = "nuget"
+package = "Lingara.Embed.Server"
+snippets = "snippets/server/csharp"
+artefact = { built = "dotnet/artifacts/Lingara.Embed.Server.{semver}.nupkg", uploaded = "lingara-embed-dotnetserver-{version}.nupkg" }
+since = "0.1.0-alpha.1"
+
+# The element and its `/server` subpath, one npm package.
+[[language]]
+id = "typescript"
+registry = "npm"
+package = "@lingara/embed"
+snippets = "snippets/server/typescript"
+version_files = [
+  { path = "typescript/package.json", kind = "json", keys = ["/version"] },
+  { path = "typescript/package-lock.json", kind = "json", keys = ["/version", "/packages//version"] },
+]
+artefact = { built = "typescript/lingara-embed-{semver}.tgz", uploaded = "lingara-embed-typescript-{version}.tgz" }
+since = "0.1.0-alpha.1"
+
+# Six Maven Central coordinates from the one root Gradle build, versioned from
+# VERSION, so no version_files; Central serves the signed bundles, so no
+# artefact. `manifest` names the root settings file publish/snapshot.toml reads.
+[[language]]
+id = "kotlin"
+registry = "maven-central"
+package = "com.getlingara:lingara-embed-kotlin"
+manifest = "settings.gradle.kts"
+snippets = "snippets/player/kotlin"
+since = "0.1.0-alpha.1"
+
+[[language]]
+id = "java"
+registry = "maven-central"
+package = "com.getlingara:lingara-embed-java"
+manifest = "settings.gradle.kts"
+snippets = "snippets/player/java"
+since = "0.1.0-alpha.1"
+
+# The natives share the Kotlin kit's install line, which names the kit and its
+# natives; prove-install.sh proves each by its own coordinate (D7).
+[[language]]
+id = "nativesdesktop"
+dir = "natives-desktop"
+registry = "maven-central"
+package = "com.getlingara:lingara-embed-natives-desktop"
+manifest = "settings.gradle.kts"
+snippets = "snippets/player/kotlin"
+since = "0.1.0-alpha.1"
+
+[[language]]
+id = "nativesandroid"
+dir = "natives-android"
+registry = "maven-central"
+package = "com.getlingara:lingara-embed-natives-android"
+manifest = "settings.gradle.kts"
+snippets = "snippets/player/kotlin"
+since = "0.1.0-alpha.1"
+
+[[language]]
+id = "kotlinserver"
+dir = "kotlin-server"
+registry = "maven-central"
+package = "com.getlingara:lingara-embed-server-kotlin"
+manifest = "settings.gradle.kts"
+snippets = "snippets/server/kotlin"
+since = "0.1.0-alpha.1"
+
+[[language]]
+id = "javaserver"
+dir = "java-server"
+registry = "maven-central"
+package = "com.getlingara:lingara-embed-server-java"
+manifest = "settings.gradle.kts"
+snippets = "snippets/server/java"
+since = "0.1.0-alpha.1"
+
+# Versioned by tag alone: go/vX.Y.Z beside vX.Y.Z.
+[[language]]
+id = "go"
+registry = "go"
+package = "github.com/Spinning-Cat-Studios/lingara_embeddable_sdk/go"
+snippets = "snippets/server/go"
+since = "0.1.0-alpha.1"
+
+# version.rb is generated from VERSION by make codegen-ruby, so no version_files.
+[[language]]
+id = "ruby"
+registry = "rubygems"
+package = "lingara-embed"
+snippets = "snippets/server/ruby"
+since = "0.1.0-alpha.1"
+
+# Packagist reads git, through the lingara-embed-php split mirror of php/.
+[[language]]
+id = "php"
+registry = "packagist"
+package = "spinningcatstudios/lingara-embed"
+snippets = "snippets/server/php"
+since = "0.1.0-alpha.1"
+
+# The GDScript addon: a store with no publish API (W4), so no install line;
+# publish-godot-assetlib writes the listing's values for a person. Godot's
+# ConfigFile text in plugin.cfg is valid TOML.
+[[language]]
+id = "godot"
+registry = "godot-assetlib"
+package = "addons/lingara"
+snippets = "snippets/player/gdscript"
+version_files = [
+  { path = "godot/addon/addons/lingara/plugin.cfg", kind = "toml", keys = ["plugin.version"] },
+  { path = "godot/Cargo.toml", kind = "toml", keys = ["package.version"] },
+  { path = "godot/Cargo.toml", kind = "toml", keys = ["dependencies.lingara-embed.version"], prefix = "=" },
+]
+artefact = { built = "godot/addon/dist/lingara-godot-addon-{semver}.zip", uploaded = "lingara-embed-godot-{version}.zip" }
+since = "0.1.0-alpha.1"

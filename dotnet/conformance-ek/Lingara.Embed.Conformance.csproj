@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The EK harness over the public C# API (ADR 1.10.26aa D12). R1's
+    `make conformance-ek-dotnet` starts it under `conformance-server run`, from
+    the repo root, with the real host library copied beside it.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <LingaraCopyHostNative>true</LingaraCopyHostNative>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../src/Lingara.Embed/Lingara.Embed.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,48 @@
+# C# style and analyser severities for dotnet/ (ADR 1.10.26aa D12).
+# The analysers run at AnalysisMode=Recommended with TreatWarningsAsErrors;
+# the lines below enable the budget rules and answer the few Recommended
+# rules that argue with the ABI's own design, each with its reason.
+root = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+# The budget: cyclomatic complexity at 10 (CodeMetricsConfig.txt), as the web's lint.
+dotnet_diagnostic.CA1502.severity = warning
+
+# K1's wire names are snake_case strings compared ordinally: no culture applies.
+dotnet_diagnostic.CA1307.severity = none
+dotnet_diagnostic.CA1309.severity = none
+dotnet_diagnostic.CA1310.severity = none
+# P/Invoke names are the C ABI's own (lingara_embed_*).
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1401.severity = none
+# The ABI's types are blittable by construction (D8); no marshalling to declare.
+dotnet_diagnostic.CA2101.severity = none
+dotnet_diagnostic.SYSLIB1054.severity = none
+# Nested event classes are the public shape V1 already cites (EmbedEvent.TokenNeeded).
+dotnet_diagnostic.CA1034.severity = none
+# Messages are English diagnostics for logs, never shown to a learner (K1 D9).
+dotnet_diagnostic.CA1303.severity = none
+# Collections on the mirrored types are K1's lists, set once at decode.
+dotnet_diagnostic.CA1002.severity = none
+dotnet_diagnostic.CA2227.severity = none
+# Public enums mirror K1's words, including their first member.
+dotnet_diagnostic.CA1008.severity = none
+dotnet_diagnostic.CA1028.severity = none
+# xUnit test classes and methods are named for the acceptance criteria.
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA1062.severity = none
+
+[tests/**.cs]
+# Tests assert on literal strings and build throwaway values.
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.CA1031.severity = none
+dotnet_diagnostic.CA5394.severity = none
+dotnet_diagnostic.CA1849.severity = none

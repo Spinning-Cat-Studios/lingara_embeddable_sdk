@@ -1,0 +1,31 @@
+[package]
+name = "bevy_lingara"
+# The trio's one VERSION (roadmap D10); the release tooling writes it here,
+# and the `lingara-embed` pin below with its `=` prefix.
+version = "0.1.0-alpha.5"
+edition = "2024"
+# Bevy's own MSRV: no Bevy game builds below it anyway (ADR 1.10.26z D1).
+rust-version = "1.97.1"
+license = "MIT"
+description = "Lingara inside a Bevy game: a plugin over lingara-embed. NPC dialogue and practice sessions as components, the event queue drained once per frame."
+repository = "https://github.com/Spinning-Cat-Studios/lingara_embeddable_sdk"
+homepage = "https://getlingara.com"
+readme = "README.md"
+keywords = ["lingara", "bevy", "language-learning", "gamedev", "plugin"]
+categories = ["game-development", "api-bindings"]
+include = ["src/**", "README.md", "LICENSE"]
+
+[lib]
+name = "bevy_lingara"
+
+# Exactly two (D1, AC12). `bevy` without its default features: the plugin
+# uses only bevy_app and bevy_ecs, so it adds no renderer, window or audio
+# to a game's build, and the umbrella crate resolves to the game's own copy.
+# The one place the Bevy minor is named (D2).
+[dependencies]
+bevy = { version = "0.20", default-features = false }
+lingara-embed = { path = "../core", version = "=0.1.0-alpha.5" }
+
+[dev-dependencies]
+serde_json = "1"
+toml = "0.8"

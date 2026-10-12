@@ -1,0 +1,12 @@
+# frozen_string_literal: true
+
+# The ES harness's webhook receiver (ADR 1.10.26af D13): conformance only,
+# never in the gem's manifest. Ruby has had no standard-library server since
+# 3.0, so the receiver runs on WEBrick through Rack; since Rack 3 the WEBrick
+# handler lives in `rackup`.
+source "https://rubygems.org"
+
+gem "lingara-embed", path: ".."
+gem "rack", "3.2.7"
+gem "rackup", "2.3.1"
+gem "webrick", "1.9.2"

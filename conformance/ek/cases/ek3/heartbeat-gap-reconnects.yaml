@@ -1,0 +1,23 @@
+id: ek3.heartbeat-gap-reconnects
+behaviours: [EK3]
+tier: ek
+# 1 000 ms without a byte is a drop; the first stream then stays silent 3 s.
+serve:
+  - route: { operation: streamEvents }
+    respond:
+      sse:
+        - { id: e1, event: event, data: { id: e1, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+      fault: { heartbeat_gap_s: 3 }
+  - route: { operation: streamEvents }
+    expect_request: { headers: { last-event-id: e1 } }
+    respond:
+      sse:
+        - { id: e2, event: event, data: { id: e2, type: game.custom, created_at: "2026-10-01T12:00:01Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+      fault: { heartbeat_gap_s: 10 }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: true, stream_idle_timeout_ms: 1000 } }
+  - poll_until: { event: lingara, match: { event: { id: e1 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e2 } }, within_ms: 4000 }
+  - close: {}
+expect:
+  requests: { count: 2 }

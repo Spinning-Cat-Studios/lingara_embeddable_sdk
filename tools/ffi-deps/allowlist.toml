@@ -1,0 +1,24 @@
+# The dynamic imports each lingara-embed-ffi artefact may carry (ADR
+# 1.10.26aa D7). The transport is rustls with bundled roots, so nothing here
+# is a TLS or OpenSSL library: an import outside its platform's list fails
+# `make ffi-deps-check`. Names are matched exactly, case-insensitively on
+# Windows. check.sh reads one `allow` line per table; keep each on one line.
+
+# linux-x64 only: no GLIBC_ symbol version above this.
+glibc_max = "2.28"
+
+[win-x64]
+allow = ["kernel32.dll", "ntdll.dll", "advapi32.dll", "bcrypt.dll", "bcryptprimitives.dll", "userenv.dll", "ws2_32.dll", "api-ms-win-core-synch-l1-2-0.dll", "secur32.dll", "crypt32.dll", "ole32.dll", "oleaut32.dll", "shell32.dll", "iphlpapi.dll"]
+
+[osx]
+allow = ["@rpath/liblingara_embed.dylib", "/usr/lib/libSystem.B.dylib", "/usr/lib/libiconv.2.dylib", "/usr/lib/libresolv.9.dylib", "/usr/lib/libobjc.A.dylib", "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation", "/System/Library/Frameworks/Security.framework/Versions/A/Security", "/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration"]
+
+[linux-x64]
+allow = ["libc.so.6", "libm.so.6", "libgcc_s.so.1", "libpthread.so.0", "libdl.so.2", "librt.so.1", "ld-linux-x86-64.so.2"]
+
+[android-arm64]
+allow = ["libc.so", "libm.so", "libdl.so", "liblog.so"]
+
+# A static archive has no dynamic imports; check.sh only confirms it is one.
+[ios-arm64]
+allow = []

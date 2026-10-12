@@ -1,0 +1,51 @@
+id: ek7.generating-waits-for-ready
+behaviours: [EK7]
+tier: ek
+# The stream answers lesson_plan.ready only once the tail's request is in,
+# so the case stays inside 2 s; the plan is read after it, never before.
+serve:
+  - route: { operation: sendEvent }
+    expect_request: { body: { type: world.practice_requested, data: { topic: ordering tea, generate: true } } }
+    respond:
+      status: 202
+      json:
+        id: lgr_evt_1
+        type: world.practice_requested
+        created_at: "2026-10-01T12:00:00Z"
+        reaction: { status: started, plan_id: 8f0e2c1a-0000-4000-8000-000000000001, plan_status: generating }
+  - route: { operation: streamEvents }
+    respond:
+      sse:
+        - id: r1
+          event: event
+          data:
+            id: r1
+            type: lesson_plan.ready
+            created_at: "2026-10-01T12:00:01Z"
+            api_version: 2026-10-golden-remora
+            subject: lgr_sub_conformance
+            data: { plan_id: 8f0e2c1a-0000-4000-8000-000000000001, title: At the market, level: 2, source_lang: en, target_lang: zh, status: complete }
+      fault: { heartbeat_gap_s: 10 }
+  - route: { operation: getLessonPlan }
+    respond:
+      json:
+        id: 8f0e2c1a-0000-4000-8000-000000000001
+        status: complete
+        level: 2
+        source_lang: en
+        target_lang: zh
+        ai_generated: true
+        created_at: "2026-10-01T12:00:00Z"
+        content:
+          learning_objectives: []
+          vocabulary: []
+          sets: [{ number: 1, questions: [{ type: translation, prompt: tea, answer: cha, explanation: tea }] }]
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: practice_start, source: { type: request, topic: ordering tea, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: practice, match: { snapshot: { phase: generating } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { detail: { type: lesson_plan_ready, complete: true } } }, within_ms: 2000 }
+  - poll_until: { event: practice, match: { snapshot: { phase: unanswered, plan: { id: 8f0e2c1a-0000-4000-8000-000000000001 } } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 3 }

@@ -1,0 +1,666 @@
+name: CI
+
+# Ships with the public repository, so it invokes only make targets the
+# shipped make files define, checks out no submodule, and reads no secret
+# (ADR 1.10.26x D7). Each kit adds its own job when it lands.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Publishable, conformance server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # A Bevy debug build fills ubuntu-latest's ~14 GB free, so drop the
+      # preinstalled SDKs this job never touches (~25 GB).
+      - name: Free the runner's disk
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Vectors, conformance coverage, codegen
+        run: make check-publishable
+
+      # The workspace holds the Bevy demo (ADR 1.10.26z), which draws.
+      - name: Bevy's Linux libraries
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+
+      # Not the demo's headless test: it needs two prebuilt binaries, which
+      # the bevy lane's `make bevy-demo-headless` builds before running it.
+      - name: The conformance server's tests
+        run: cargo test --workspace --exclude bevy_lingara_demo
+
+  # lingara-embed (ADR 1.10.26y): clippy, both TLS features, schema, the
+  # doctests, MSRV on the packaged crate, the package list, every EK case.
+  core:
+    name: core (lingara-embed)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: dtolnay/rust-toolchain@1.87
+      - run: rustup default stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: clippy, tests, doctests
+        run: make test-core
+
+      - name: MSRV 1.87 on the packaged crate, lock removed
+        run: make check-msrv-core
+
+      - name: The package list
+        run: make check-package-core
+
+      - name: Every EK case through the Rust surface
+        run: make conformance-ek-core
+
+      - name: Every ES case through the server feature (ADR 1.10.26af)
+        run: make conformance-es-core
+
+  # bevy_lingara (ADR 1.10.26z): the plugin's tests on the three desktop
+  # targets; on Linux also every EK case through the plugin, the headless
+  # demo, the snippets, the wasm32 refusal and the package list. Bevy's MSRV
+  # is above the workspace's, so every lane names BEVY_TOOLCHAIN.
+  bevy:
+    name: bevy (bevy_lingara) on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.98.1"
+          components: clippy
+          targets: wasm32-unknown-unknown
+      # A Bevy debug build fills ubuntu-latest's ~14 GB free, so drop the
+      # preinstalled SDKs this job never touches (~25 GB).
+      - name: Free the runner's disk
+        if: runner.os == 'Linux'
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - run: rustup default stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: bevy
+
+      - name: Bevy's Linux libraries (the demo draws)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+
+      - name: The plugin, the token server and the snippets
+        run: make test-bevy
+
+      - name: clippy
+        if: runner.os == 'Linux'
+        run: make clippy-bevy
+
+      - name: Every EK case through the plugin
+        if: runner.os == 'Linux'
+        run: make conformance-ek-bevy
+
+      - name: The demo, headless
+        if: runner.os == 'Linux'
+        run: make bevy-demo-headless
+
+      - name: wasm32 is refused
+        if: runner.os == 'Linux'
+        run: make check-bevy-wasm-fails
+
+      - name: The package list
+        if: runner.os == 'Linux'
+        run: make check-package-bevy
+
+  # The Godot addon (ADR 1.10.26ab D10): the crate's tests, gdlint, the
+  # snippet, every EK case through LingaraEmbed and the headless demo, under
+  # the floor and the newest pinned Godot. GODOT resolves itself: make fetches
+  # the official Linux binary and checks its pinned SHA-256.
+  godot:
+    name: godot (lingara_godot) on Godot ${{ matrix.godot }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        godot: ["4.5.2", "4.7.2"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.98.1"
+          targets: x86_64-unknown-linux-gnu
+      - run: rustup default stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: godot
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "gdtoolkit==4.*"
+
+      - name: The crate, gdlint, the snippet; every EK case; the headless demo
+        env:
+          GODOT_VERSION: ${{ matrix.godot }}
+        run: make test-godot conformance-ek-godot godot-headless
+
+      - name: The addon zip's two rules
+        if: matrix.godot == '4.5.2'
+        run: make check-godot-addon-zip
+
+  # D7's builds that CI cannot run: the two mobile rids and the universal
+  # macOS framework, each checked for its architecture. Running on a device is
+  # AC10's manual walk.
+  godot-dist:
+    name: godot-dist ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    env:
+      RID: ${{ matrix.rid }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: android-arm64, os: ubuntu-latest, targets: aarch64-linux-android, ndk: true }
+          - { rid: ios-arm64, os: macos-14, targets: aarch64-apple-ios }
+          - { rid: osx, os: macos-14, targets: "aarch64-apple-darwin,x86_64-apple-darwin" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.98.1"
+          targets: ${{ matrix.targets }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: godot-${{ matrix.rid }}
+      - run: cargo install cargo-ndk --locked
+        if: matrix.ndk
+      - run: make godot-dist
+      - run: make check-godot-dist
+
+  # D9's two mobile targets, checked the way core builds them.
+  bevy-mobile:
+    name: bevy on ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: aarch64-linux-android, os: ubuntu-latest, android: true }
+          - { target: aarch64-apple-ios, os: macos-14 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.98.1"
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: bevy-${{ matrix.target }}
+
+      - name: Android arm64, API 23
+        if: matrix.android
+        run: |
+          cargo install cargo-ndk --locked
+          # Bevy leaves the activity to the game and compiles without one on
+          # Android only once it is chosen: check under Bevy's default.
+          cargo +1.98.1 ndk -t arm64-v8a --platform 23 check -p bevy_lingara --features bevy/android-game-activity
+
+      - name: iOS arm64, 13.0
+        if: ${{ !matrix.android }}
+        env:
+          IPHONEOS_DEPLOYMENT_TARGET: "13.0"
+        run: cargo +1.98.1 check -p bevy_lingara --target aarch64-apple-ios
+
+  # Advisory (D2): the plugin against the newest Bevy release candidate, when
+  # one is newer than the pin. Its failures are the next upgrade's to-do list;
+  # it never blocks a merge.
+  bevy-next:
+    name: bevy_lingara on the next Bevy (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: The newest release candidate, if it is ahead of the pin
+        id: next
+        run: |
+          rc=$(curl -sf -H 'User-Agent: lingara-embed-ci' https://crates.io/api/v1/crates/bevy/versions | jq -r '[.versions[] | select(.yanked | not) | .num | select(test("-rc"))][0] // empty')
+          pinned=$(sed -nE 's/^bevy = \{ version = "([0-9]+\.[0-9]+)".*/\1/p' bevy/Cargo.toml)
+          case "$rc" in "$pinned".*|"") echo "no release candidate ahead of $pinned"; exit 0;; esac
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+      - name: Test against it
+        if: steps.next.outputs.rc != ''
+        run: |
+          sed -i -E 's/^bevy = \{ version = "[^"]+"/bevy = { version = "=${{ steps.next.outputs.rc }}"/' bevy/Cargo.toml
+          cargo test -p bevy_lingara
+
+  # D11's five platforms: the crate builds at each floor, with rustls only.
+  core-targets:
+    name: core on ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    env:
+      TARGET: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, test: true }
+          - { target: aarch64-apple-darwin, os: macos-14, test: true }
+          - { target: x86_64-apple-darwin, os: macos-14 }
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest, test: true }
+          - { target: aarch64-linux-android, os: ubuntu-latest, android: true }
+          - { target: aarch64-apple-ios, os: macos-14, ios: true }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Test on the runner's own target
+        if: matrix.test
+        run: cargo test -p lingara-embed
+
+      - name: Build (desktop)
+        if: ${{ !matrix.android && !matrix.ios }}
+        run: make build-core-targets
+
+      - name: Build (Android arm64, API 23)
+        if: matrix.android
+        run: |
+          cargo install cargo-ndk --locked
+          cargo ndk -t arm64-v8a --platform 23 build -p lingara-embed --release
+
+      - name: Build (iOS arm64, 13.0)
+        if: matrix.ios
+        env:
+          IPHONEOS_DEPLOYMENT_TARGET: "13.0"
+        run: make build-core-targets
+
+      - name: No OpenSSL or platform TLS linked
+        shell: bash
+        run: |
+          if cargo tree -p lingara-embed --target ${{ matrix.target }} -e normal | grep -E 'openssl|native-tls|security-framework|schannel'; then
+            echo "a platform TLS crate is linked"; exit 1
+          fi
+
+  # @lingara/embed's browser half: lint budgets, the web snippets, and the
+  # tests, each lane over a fresh build of the package.
+  typescript:
+    name: typescript (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: make check-typescript test-typescript
+      # The /server subpath's ES cases (ADR 1.10.26af): @lingara/api needs Node 22.
+      - uses: dtolnay/rust-toolchain@stable
+        if: matrix.node == 22
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.node == 22
+      - run: make conformance-es-typescript
+        if: matrix.node == 22
+
+  # glibc 2.28, the floor the FFI bindings ship at.
+  core-glibc:
+    name: core on glibc 2.28
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+      - run: cargo install cargo-zigbuild --locked
+      - run: cargo zigbuild -p lingara-embed --release --target x86_64-unknown-linux-gnu.2.28
+
+  # lingara-embed-ffi (ADR 1.10.26aa): the ABI's tests, the committed header
+  # and schema, and the C smoke over the header alone, on each desktop host.
+  ffi:
+    name: ffi on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      # bash puts Git's /usr/bin first, whose coreutils `link` shadows
+      # MSVC's link.exe for rustc and cl alike.
+      - name: MSVC's link.exe, not Git's
+        if: runner.os == 'Windows'
+        shell: bash
+        run: rm -f /usr/bin/link.exe
+      - name: clippy, the crate's tests, the C smoke
+        shell: bash
+        run: make test-ffi
+
+  # D7's five platforms, built (never run: AC26 is the device smoke), each
+  # artefact checked against its dynamic-import allowlist.
+  ffi-dist:
+    name: ffi-dist ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    env:
+      RID: ${{ matrix.rid }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: win-x64, os: windows-latest, targets: x86_64-pc-windows-msvc }
+          - { rid: osx, os: macos-14, targets: "aarch64-apple-darwin,x86_64-apple-darwin" }
+          - { rid: linux-x64, os: ubuntu-latest, targets: x86_64-unknown-linux-gnu, zig: true }
+          - { rid: android-arm64, os: ubuntu-latest, targets: aarch64-linux-android, ndk: true }
+          - { rid: ios-arm64, os: macos-14, targets: aarch64-apple-ios }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.targets }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ffi-${{ matrix.rid }}
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      # bash puts Git's /usr/bin first, whose coreutils `link` shadows
+      # MSVC's link.exe for rustc and cl alike.
+      - name: MSVC's link.exe, not Git's
+        if: runner.os == 'Windows'
+        shell: bash
+        run: rm -f /usr/bin/link.exe
+      - uses: mlugg/setup-zig@v2
+        if: matrix.zig
+        with:
+          version: 0.15.2
+      - run: cargo install cargo-zigbuild --locked
+        if: matrix.zig
+      - run: cargo install cargo-ndk --locked
+        if: matrix.ndk
+      - name: Build
+        shell: bash
+        run: make ffi-dist
+      - name: Dynamic imports against the allowlist
+        shell: bash
+        run: make ffi-deps-check
+
+  # Lingara.Embed (ADR 1.10.26aa): xUnit over each host's own library, the pack
+  # refusal and the shape pack, and NativeAOT with zero trim or AOT warnings.
+  dotnet:
+    name: dotnet on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      # bash puts Git's /usr/bin first, whose coreutils `link` shadows
+      # MSVC's link.exe for rustc and cl alike.
+      - name: MSVC's link.exe, not Git's
+        if: runner.os == 'Windows'
+        shell: bash
+        run: rm -f /usr/bin/link.exe
+      - name: Tests, pack refusal, shape pack
+        shell: bash
+        run: make test-dotnet
+      - name: NativeAOT smoke
+        shell: bash
+        run: make dotnet-aot-smoke
+
+  # The snippets and samples: the Godot snippet against Godot.NET.Sdk, the
+  # samples' byte-identical copies, every EK case through the C# harness, and
+  # the drain figure (recorded, never gated).
+  dotnet-surfaces:
+    name: dotnet snippets, samples, EK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: make dotnet-godot-snippet
+      - run: make check-dotnet-samples
+      - run: make conformance-ek-dotnet
+      - run: make dotnet-bench
+
+  # The Unreal plugin's engine-free half (ADR 1.10.26ac D10): the wrapper
+  # suites at C++17 and C++20 against each host's own library (with ASan and
+  # UBSan on Linux and macOS), the header, plugin and coverage checks and the
+  # tools' tests. On Linux also clang-tidy and every EK case through the C++
+  # fixture. The engine itself never runs here: that is `make unreal-smoke`.
+  unreal:
+    name: unreal (engine-free) on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: unreal
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      # bash puts Git's /usr/bin first, whose coreutils `link` shadows
+      # MSVC's link.exe for rustc and cl alike.
+      - name: MSVC's link.exe, not Git's
+        if: runner.os == 'Windows'
+        shell: bash
+        run: rm -f /usr/bin/link.exe
+
+      - name: The harness, the checks and their tests
+        shell: bash
+        run: make test-unreal
+
+      - name: The committed header is ffi's
+        if: runner.os == 'Linux'
+        run: make check-codegen-unreal
+
+      - name: clang-tidy
+        if: runner.os == 'Linux'
+        run: make unreal-tidy
+
+      - name: Every EK case through the C++ fixture
+        if: runner.os == 'Linux'
+        run: make conformance-ek-unreal
+
+  # The server kits (ADR 1.10.26af): one job per toolchain, each running its
+  # kit's unit tests, linters and snippets, then every ES case through its
+  # harness against the conformance server (which needs Rust).
+  go-server:
+    name: go server kit
+    runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+      - run: make check-codegen-go test-go
+      - run: make conformance-es-go
+
+  ruby-server:
+    name: ruby server kit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: make check-codegen-ruby test-ruby
+      - run: make conformance-es-ruby
+
+  php-server:
+    name: php server kit (nyholm and guzzle)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: make check-codegen-php test-php
+      - run: make conformance-es-php
+
+  jvm-server:
+    name: java and kotlin server kits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: make test-java-server test-kotlin-server
+      - run: make conformance-es-java-server conformance-es-kotlin-server
+
+  # The JVM player kit's natives (ADR 1.10.26ae D5): the make targets K8's
+  # release matrix runs, one rid per leg, uploaded for the jvm job below.
+  jvm-natives:
+    name: jvm-natives ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    env:
+      RID: ${{ matrix.rid }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: win-x64, os: windows-latest, targets: x86_64-pc-windows-msvc }
+          - { rid: osx, os: macos-14, targets: "aarch64-apple-darwin,x86_64-apple-darwin" }
+          - { rid: linux-x64, os: ubuntu-latest, targets: x86_64-unknown-linux-gnu, zig: true }
+          - { rid: android-arm64, os: ubuntu-latest, targets: aarch64-linux-android, ndk: true }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.targets }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: jvm-${{ matrix.rid }}
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      # bash puts Git's /usr/bin first, whose coreutils `link` shadows
+      # MSVC's link.exe for rustc and cl alike.
+      - name: MSVC's link.exe, not Git's
+        if: runner.os == 'Windows'
+        shell: bash
+        run: rm -f /usr/bin/link.exe
+      - uses: mlugg/setup-zig@v2
+        if: matrix.zig
+        with:
+          version: 0.15.2
+      - run: cargo install cargo-zigbuild --locked
+        if: matrix.zig
+      - run: cargo install cargo-ndk --locked
+        if: matrix.ndk
+      # Two steps, not one shell `if`: the leak scan reads every word after
+      # `make` in a shipped workflow as a target name (ADR 1.10.26ag D4).
+      - name: Build (desktop)
+        if: matrix.rid != 'android-arm64'
+        shell: bash
+        run: make natives-desktop
+      - name: Build (Android)
+        if: matrix.rid == 'android-arm64'
+        run: make natives-android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.rid }}
+          path: dist/jvm/${{ matrix.rid }}
+          if-no-files-found: error
+
+  # lingara-embed-kotlin, -java and both natives (ADR 1.10.26ae D10): the
+  # bindings against a fresh regen, both suites, the four artefacts' shape,
+  # every EK case through both surfaces, the snippets, the libGDX example,
+  # and its desktop launcher for 10 s against the conformance server.
+  jvm:
+    name: kotlin and java player kits
+    needs: jvm-natives
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/jvm
+      - run: make check-codegen-kotlin
+      - name: Both suites, the harnesses and the snippets compile
+        run: make test-kotlin test-java
+      - name: The four artefacts as a game downloads them
+        run: make check-jvm-shape
+      - run: make conformance-ek-kotlin conformance-ek-java
+      - name: The libGDX example's three modules
+        run: make jvm-example
+      - name: The desktop launcher for 10 s, against the conformance server
+        run: |
+          sudo apt-get update && sudo apt-get install -y xvfb
+          cargo build -q -p lingara_demo_token_server -p lingara-embed-conformance-server
+          target/debug/lingara-demo-token-server --fake &
+          target/debug/conformance-server serve --cases conformance/ek/cases --port 0 > serve.log &
+          for _ in $(seq 50); do grep -q listening serve.log && break; sleep 0.2; done
+          export LINGARA_EMBED_BASE_URL="http://127.0.0.1:$(awk '/listening/ {print $2}' serve.log)"
+          LINGARA_DEMO_EXIT_AFTER_SECS=10 xvfb-run -a ./gradlew --console=plain -p kotlin/examples/libgdx :lwjgl3:run | tee run.log
+          grep -q "lingara-libgdx-example: token taken" run.log
+
+  dotnet-server:
+    name: Lingara.Embed.Server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: make test-dotnet-server
+      - run: make conformance-es-dotnet

@@ -1,0 +1,29 @@
+; The Godot demo (ADR 1.10.26ab D9): a Godot 4.5 GDScript project, no C#.
+; Its addons/lingara/ is a copy `make godot-demo-addon` puts there. The core
+; starts from main.gd, after the demo's configuration is in place, so
+; autostart and stream_on_start are off here, and any --script run of this
+; project leaves the autoload idle.
+
+config_version=5
+
+[application]
+
+config/name="Lingara Godot demo"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.5")
+
+[autoload]
+
+Lingara="*res://addons/lingara/lingara_autoload.tscn"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/lingara/plugin.cfg")
+
+[lingara]
+
+base_url="https://api.getlingara.com"
+token_url=""
+api_version=""
+autostart=false
+stream_on_start=false

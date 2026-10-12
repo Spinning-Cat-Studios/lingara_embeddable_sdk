@@ -1,0 +1,170 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://main.gd" id="1_main"]
+[ext_resource type="Script" path="res://addons/lingara/lingara_npc.gd" id="2_npc"]
+[ext_resource type="Script" path="res://token_client.gd" id="3_token"]
+[ext_resource type="Script" path="res://practice_panel.gd" id="4_panel"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="TokenClient" type="Node" parent="."]
+script = ExtResource("3_token")
+
+[node name="Mei" type="Node" parent="."]
+script = ExtResource("2_npc")
+npc_name = "Mei"
+persona = "a market seller who sells tea and dumplings"
+target_lang = "zh"
+source_lang = "en"
+level = 2
+scene = "a night market"
+
+[node name="Tanaka" type="Node" parent="."]
+script = ExtResource("2_npc")
+npc_name = "Professor Tanaka"
+persona = "a retired literature professor who keeps a bookstall"
+target_lang = "ja"
+source_lang = "en"
+level = 6
+scene = "a night market"
+
+[node name="UI" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="UI"]
+layout_mode = 2
+text = "The night market"
+
+[node name="Stalls" type="HBoxContainer" parent="UI"]
+layout_mode = 2
+
+[node name="Mei" type="Button" parent="UI/Stalls"]
+layout_mode = 2
+flat = true
+text = "Mei's stall"
+
+[node name="Tanaka" type="Button" parent="UI/Stalls"]
+layout_mode = 2
+flat = true
+text = "Professor Tanaka's stall"
+
+[node name="Selected" type="Label" parent="UI"]
+layout_mode = 2
+
+[node name="Bubbles" type="HBoxContainer" parent="UI"]
+layout_mode = 2
+
+[node name="Mei" type="Label" parent="UI/Bubbles"]
+custom_minimum_size = Vector2(320, 64)
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Tanaka" type="Label" parent="UI/Bubbles"]
+custom_minimum_size = Vector2(320, 64)
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Talk" type="HBoxContainer" parent="UI"]
+layout_mode = 2
+
+[node name="Line" type="LineEdit" parent="UI/Talk"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+placeholder_text = "Say something…"
+max_length = 500
+
+[node name="Send" type="Button" parent="UI/Talk"]
+layout_mode = 2
+text = "Say"
+
+[node name="Presets" type="HBoxContainer" parent="UI"]
+layout_mode = 2
+
+[node name="Preset0" type="Button" parent="UI/Presets"]
+layout_mode = 2
+
+[node name="Preset1" type="Button" parent="UI/Presets"]
+layout_mode = 2
+
+[node name="Preset2" type="Button" parent="UI/Presets"]
+layout_mode = 2
+
+[node name="Level" type="HBoxContainer" parent="UI"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="UI/Level"]
+layout_mode = 2
+text = "Level"
+
+[node name="Slider" type="HSlider" parent="UI/Level"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+min_value = 1.0
+max_value = 9.0
+value = 2.0
+tick_count = 9
+ticks_on_borders = true
+
+[node name="Walk" type="Button" parent="UI"]
+layout_mode = 2
+text = "Walk to the other stall"
+
+[node name="Practice" type="Button" parent="UI"]
+layout_mode = 2
+text = "Practice"
+
+[node name="PracticePanel" type="VBoxContainer" parent="UI"]
+layout_mode = 2
+script = ExtResource("4_panel")
+
+[node name="Prompt" type="Label" parent="UI/PracticePanel"]
+layout_mode = 2
+
+[node name="Options" type="HBoxContainer" parent="UI/PracticePanel"]
+layout_mode = 2
+
+[node name="Answer" type="LineEdit" parent="UI/PracticePanel"]
+layout_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="UI/PracticePanel"]
+layout_mode = 2
+
+[node name="Submit" type="Button" parent="UI/PracticePanel/Buttons"]
+layout_mode = 2
+text = "Answer"
+
+[node name="Reveal" type="Button" parent="UI/PracticePanel/Buttons"]
+layout_mode = 2
+text = "Reveal"
+
+[node name="Correct" type="Button" parent="UI/PracticePanel/Buttons"]
+layout_mode = 2
+text = "I got it"
+
+[node name="Incorrect" type="Button" parent="UI/PracticePanel/Buttons"]
+layout_mode = 2
+text = "I missed it"
+
+[node name="Next" type="Button" parent="UI/PracticePanel/Buttons"]
+layout_mode = 2
+text = "Next"
+
+[node name="Result" type="Label" parent="UI/PracticePanel"]
+layout_mode = 2
+autowrap_mode = 3

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android packaging of K3's library (ADR 1.10.26ac D3): copy
+  liblingara_embed.so into the APK's libs/arm64-v8a/, where the loader
+  resolves it as a dependency of the game's own library.
+-->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+	<init>
+		<log text="LingaraEmbed: packaging liblingara_embed.so"/>
+	</init>
+	<resourceCopies>
+		<isArch arch="arm64-v8a">
+			<copyFile src="$S(PluginDir)/../ThirdParty/LingaraEmbedLibrary/lib/Android/arm64-v8a/liblingara_embed.so"
+			          dst="$S(BuildDir)/libs/arm64-v8a/liblingara_embed.so"/>
+		</isArch>
+	</resourceCopies>
+</root>

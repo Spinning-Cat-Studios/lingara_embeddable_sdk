@@ -1,0 +1,79 @@
+{
+  "name": "@lingara/embed",
+  "version": "0.1.0-alpha.5",
+  "description": "Lingara practice inside a website: the <lingara-embed> element. No runtime dependencies.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Spinning-Cat-Studios/lingara_embeddable_sdk.git",
+    "directory": "typescript"
+  },
+  "homepage": "https://getlingara.com",
+  "keywords": [
+    "lingara",
+    "language-learning",
+    "web-component",
+    "custom-element",
+    "embed"
+  ],
+  "type": "module",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "./dist/browser/define.js",
+    "./dist/lingara-embed.min.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
+    },
+    "./define": {
+      "types": "./dist/browser/define.d.ts",
+      "import": "./dist/browser/define.js"
+    },
+    "./server": {
+      "import": {
+        "types": "./dist/server/index.d.ts",
+        "default": "./dist/server/index.js"
+      },
+      "require": {
+        "types": "./dist/server/index.d.cts",
+        "default": "./dist/server/index.cjs"
+      }
+    }
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "@lingara/api": "^0.2.0-alpha.1"
+  },
+  "peerDependenciesMeta": {
+    "@lingara/api": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@lingara/api": "0.2.0-alpha.1",
+    "@types/node": "^22.20.4",
+    "esbuild": "^0.27.7",
+    "eslint": "^10.11.0",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^3.2.7"
+  },
+  "scripts": {
+    "build:browser": "node scripts/build-browser.mjs",
+    "test:browser": "vitest run src/browser",
+    "lint": "eslint .",
+    "build": "npm run build:browser && npm run build:server --if-present",
+    "pretest": "npm run build",
+    "test": "npm run test:browser && npm run test:server --if-present",
+    "build:server": "node scripts/build-server.mjs",
+    "test:server": "vitest run src/server"
+  }
+}

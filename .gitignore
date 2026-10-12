@@ -1,0 +1,17 @@
+target/
+node_modules/
+.gradle/
+.kotlin/
+build/
+dist/
+vendor/
+bin/
+obj/
+.godot/
+Binaries/
+Intermediate/
+.DS_Store
+# Lingara.Embed nupkgs from `make dotnet-pack` (ADR 1.10.26aa D8).
+dotnet/artifacts/
+# The pinned release-manifest, installed by make/release.mk (ADR 1.10.26ag D2).
+.tools/

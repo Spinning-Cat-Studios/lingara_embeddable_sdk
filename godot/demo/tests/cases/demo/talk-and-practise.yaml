@@ -1,0 +1,69 @@
+id: demo.talk-and-practise
+behaviours: [EK5, EK6, EK7]
+tier: ek
+# The Godot demo's headless walk (ADR 1.10.26ab D10), served by
+# `conformance-server serve`, never counted by check-coverage. Three turns
+# (Mei at 2, Tanaka at 6, Mei at 3 with her two-entry window), then a
+# practice over a pool-served plan and its one report. No stream: the demo
+# starts with stream_on_start false. Any request not scripted here is a
+# mismatch, so a pass means exactly one world.practice_completed was sent.
+# The first turn also carries the token token_client.gd fetched from the
+# --fake token server: the signal round trip worked.
+serve:
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      headers: { authorization: "Bearer lgr_et_FAKE_demo_token_not_valid" }
+      body: { npc: { name: Mei }, target_lang: zh, level: 2, line: 你好！ }
+    respond: { sse: [{ event: delta, data: { text: 你好！ } }, { event: delta, data: { text: 欢迎光临。 } }, { event: done, data: {} }] }
+  - route: { operation: sendDialogueTurn }
+    expect_request: { body: { npc: { name: Professor Tanaka }, target_lang: ja, level: 6, line: こんにちは、先生。 } }
+    respond: { sse: [{ event: notice, data: { code: history_trimmed, message: the window was trimmed } }, { event: delta, data: { text: こんにちは。今日はいい天気ですね。 } }, { event: done, data: {} }] }
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      body:
+        npc: { name: Mei }
+        level: 3
+        line: 饺子多少钱？
+        history: [{ speaker: player, text: 你好！ }, { speaker: npc, text: 你好！欢迎光临。 }]
+    respond: { sse: [{ event: delta, data: { text: 十块钱一盘。 } }, { event: done, data: {} }] }
+  - route: { operation: sendEvent }
+    expect_request:
+      body: { type: world.practice_requested, data: { topic: buying food at a market, source_lang: en, target_lang: zh, level: 3, generate: true } }
+    respond:
+      status: 202
+      json:
+        id: lgr_evt_1
+        type: world.practice_requested
+        created_at: "2026-10-01T12:00:00Z"
+        reaction: { status: started, plan_id: 8f0e2c1a-0000-4000-8000-000000000002, plan_status: complete }
+  - route: { operation: getLessonPlan }
+    respond:
+      json:
+        id: 8f0e2c1a-0000-4000-8000-000000000002
+        status: complete
+        level: 3
+        source_lang: en
+        target_lang: zh
+        ai_generated: true
+        created_at: "2026-10-01T12:00:00Z"
+        title: At the market
+        content:
+          learning_objectives: []
+          vocabulary: [{ word: 饺子, translation: dumplings }]
+          sets:
+            - number: 1
+              questions:
+                - { type: multiple_choice, prompt: thank you, options: [再见, 谢谢], answer: 谢谢, explanation: thanks }
+                - { type: free_response, prompt: Ask the price of the dumplings, answer: 饺子多少钱？, explanation: 多少钱 asks a price }
+  - route: { operation: sendEvent }
+    expect_request:
+      body:
+        type: world.practice_completed
+        data:
+          plan_id: 8f0e2c1a-0000-4000-8000-000000000002
+          completed: true
+          items: [{ set_number: 1, question: 0, outcome: correct }, { set_number: 1, question: 1, outcome: self_correct }]
+    respond: { status: 202, json: { id: lgr_evt_2, type: world.practice_completed, created_at: "2026-10-01T12:00:00Z" } }
+host: []
+expect:
+  requests: { count: 6 }

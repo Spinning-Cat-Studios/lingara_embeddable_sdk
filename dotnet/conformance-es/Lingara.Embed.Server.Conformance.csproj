@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The ES harness over Lingara.Embed.Server's public API (ADR 1.10.26af D13).
+    `make conformance-es-dotnet` starts it under `conformance-server run`, from
+    the repo root. Its webhook receiver is ASP.NET Core minimal APIs, a
+    framework reference of this conformance-only project and never of the
+    package. It needs no native library.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Lingara.Embed.Server.Conformance</RootNamespace>
+    <!--
+      A harness, not a library: it awaits on ASP.NET's context (CA2007), and
+      records any failure of a job as the case's result rather than crash (CA1031).
+    -->
+    <NoWarn>$(NoWarn);CA2007;CA1031</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../src/Lingara.Embed.Server/Lingara.Embed.Server.csproj" />
+  </ItemGroup>
+</Project>

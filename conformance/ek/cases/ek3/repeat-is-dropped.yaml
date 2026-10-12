@@ -1,0 +1,26 @@
+id: ek3.repeat-is-dropped
+behaviours: [EK3]
+tier: ek
+# The resumed stream repeats e2: the host sees it once.
+serve:
+  - route: { operation: streamEvents }
+    respond:
+      sse:
+        - { id: e1, event: event, data: { id: e1, type: game.custom, created_at: "2026-10-01T12:00:00Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e2, event: event, data: { id: e2, type: game.custom, created_at: "2026-10-01T12:00:01Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+      fault: { drop_after_events: 2 }
+  - route: { operation: streamEvents }
+    expect_request: { headers: { last-event-id: e2 } }
+    respond:
+      sse:
+        - { id: e2, event: event, data: { id: e2, type: game.custom, created_at: "2026-10-01T12:00:01Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+        - { id: e3, event: event, data: { id: e3, type: game.custom, created_at: "2026-10-01T12:00:02Z", api_version: 2026-10-golden-remora, subject: lgr_sub_conformance, data: {} } }
+      fault: { heartbeat_gap_s: 10 }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: true } }
+  - poll_until: { event: lingara, match: { event: { id: e1 } }, within_ms: 2000 }
+  - poll_until: { event: lingara, match: { event: { id: e2 } }, within_ms: 2000 }
+  - expect_no_event: { event: lingara, match: { event: { id: e2 } }, for_ms: 2500 }
+  - close: {}
+expect:
+  requests: { count: 2 }

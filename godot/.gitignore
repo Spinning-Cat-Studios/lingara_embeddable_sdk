@@ -1,0 +1,7 @@
+# Built and copied, never committed (ADR 1.10.26ab D6, D9). The root
+# .gitignore already ignores bin/, dist/ and .godot/.
+demo/addons/
+.cache/
+# Godot 4.4+ writes a .uid beside each script on import. Every reference
+# here is by path, so they carry nothing and are not kept.
+*.gd.uid

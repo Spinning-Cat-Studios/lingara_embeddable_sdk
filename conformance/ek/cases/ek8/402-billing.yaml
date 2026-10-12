@@ -1,0 +1,13 @@
+id: ek8.402-billing
+behaviours: [EK8]
+tier: ek
+serve:
+  - route: { operation: sendEvent }
+    respond: { status: 402, json: { code: spend_cap_reached, error: the integrator's spend cap is reached } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: error, match: { error: { kind: billing, retryable: false, status: 402, code: spend_cap_reached } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }
