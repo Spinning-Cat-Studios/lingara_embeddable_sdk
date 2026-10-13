@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    lingara-embed (0.1.0.pre.alpha.6)
+    lingara-embed (0.1.0.pre.alpha.7)
       lingara (>= 0.2.0.pre.alpha.1, < 0.3)
 
 GEM

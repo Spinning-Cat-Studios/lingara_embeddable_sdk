@@ -115,7 +115,7 @@ RELEASE_CONTAINER_SETUP := export PATH="/work/target/container/cargo/bin:/opt/py
   { command -v cargo-zigbuild >/dev/null || cargo install cargo-zigbuild --locked; }
 
 .PHONY: release-manifest-install bump-version release-matrix release-build release-conformance release-pack \
-        release-natives release-ffi-zip unreal-bundle check-release-tree check-release-tools help-release
+        release-natives release-ffi-zip release-cpp-ports unreal-bundle check-release-tree check-release-tools help-release
 
 $(RELEASE_MANIFEST):
 	$(CARGO) install --git $(RELEASE_MANIFEST_REPO) --tag $(RELEASE_MANIFEST_TAG) --locked --root $(RELEASE_MANIFEST_ROOT) release-manifest
@@ -173,20 +173,43 @@ release-natives:
 	  else $(MAKE) --no-print-directory $$args || exit 1; fi; \
 	done
 
-## lingara-embed-ffi-<tag>-<rid>.zip: dist/ffi/<rid>/, K3's C header and K5's C++ wrapper.
+## lingara-embed-ffi-<tag>-<rid>.zip: an install tree (ADR 8.10.26q D4) of
+## dist/ffi/<rid>/'s library, K3's C header, K5's C++ wrapper, the stamped
+## CMake package and LICENSE. FFI_ZIP_OUT moves it (make test-cpp does).
+FFI_ZIP_OUT ?= dist/release
+FFI_ZIP_VERSION = $(patsubst v%,%,$(RELEASE_TAG))
+# CMake versions are numeric, so the package version drops any pre-release.
+FFI_ZIP_CMAKE_VERSION = $(firstword $(subst -, ,$(FFI_ZIP_VERSION)))
+FFI_ZIP_STAGE = target/ffi-zip/$(RID)
+FFI_ZIP = $(FFI_ZIP_OUT)/lingara-embed-ffi-$(RELEASE_TAG)-$(RID).zip
 release-ffi-zip:
 	@test -n "$(RID)" || { echo "Usage: make release-ffi-zip RID=<rid> [TAG=v…]" >&2; exit 2; }
 	@test -d dist/ffi/$(RID) || { echo "✗ no dist/ffi/$(RID): run make ffi-dist RID=$(RID)"; exit 1; }
-	@rm -rf target/ffi-zip/$(RID) && mkdir -p target/ffi-zip/$(RID) dist/release
-	cp dist/ffi/$(RID)/* target/ffi-zip/$(RID)/
-	cp ffi/include/lingara_embed.h unreal/LingaraEmbed/Source/ThirdParty/LingaraEmbedLibrary/include/lingara_embed.hpp target/ffi-zip/$(RID)/
-	@rm -f dist/release/lingara-embed-ffi-$(RELEASE_TAG)-$(RID).zip
+	@rm -rf $(FFI_ZIP_STAGE) && mkdir -p $(FFI_ZIP_STAGE)/include $(FFI_ZIP_STAGE)/lib $(FFI_ZIP_STAGE)/share/lingara-embed $(FFI_ZIP_OUT)
+	cp ffi/include/lingara_embed.h unreal/LingaraEmbed/Source/ThirdParty/LingaraEmbedLibrary/include/lingara_embed.hpp $(FFI_ZIP_STAGE)/include/
+	cp LICENSE $(FFI_ZIP_STAGE)/
+	@# The DLL under bin/, its import library under lib/. Windows' static
+	@# lingara_embed.lib is never shipped: it carries its own CRT (D2).
+	@for f in dist/ffi/$(RID)/*; do case "$${f##*/}" in \
+	  *.h|lingara_embed.lib) ;; \
+	  *.dll) mkdir -p $(FFI_ZIP_STAGE)/bin && cp "$$f" $(FFI_ZIP_STAGE)/bin/ ;; \
+	  *) cp "$$f" $(FFI_ZIP_STAGE)/lib/ ;; esac; done
+	@for f in lingara-embed-config lingara-embed-config-version; do \
+	  sed -e 's|@VERSION@|$(FFI_ZIP_VERSION)|g' -e 's|@CMAKE_VERSION_NUMBER@|$(FFI_ZIP_CMAKE_VERSION)|g' \
+	    cpp/cmake/$$f.cmake.in > $(FFI_ZIP_STAGE)/share/lingara-embed/$$f.cmake || exit 1; done
+	@rm -f $(FFI_ZIP)
 	@# Python's zipfile, not zip: Git Bash on the win-x64 leg has no zip, and
-	@# every natives leg has Python. The directory is flat, so naming its files
-	@# stores each at the archive's root, as `zip -r .` did.
-	cd target/ffi-zip/$(RID) && "$$(command -v python3 || command -v python)" -m zipfile \
-	  -c $(CURDIR)/dist/release/lingara-embed-ffi-$(RELEASE_TAG)-$(RID).zip *
-	@echo "✓ dist/release/lingara-embed-ffi-$(RELEASE_TAG)-$(RID).zip"
+	@# every natives leg has Python. Naming the top-level entries stores the
+	@# tree at the archive's root, with no wrapping directory.
+	cd $(FFI_ZIP_STAGE) && "$$(command -v python3 || command -v python)" -m zipfile \
+	  -c $(abspath $(FFI_ZIP)) *
+	@echo "✓ $(FFI_ZIP)"
+
+## The vcpkg port and Conan recipe zips for TAG, from the five ffi zips in
+## ZIPS (ADR 8.10.26q D5). The recipe is make/cpp.mk's cpp-ports.
+release-cpp-ports:
+	@test -n "$(ZIPS)" || { echo "Usage: make release-cpp-ports ZIPS=<dir of the five ffi zips> [TAG=v…]" >&2; exit 2; }
+	$(MAKE) --no-print-directory cpp-ports ZIPS=$(ZIPS) RELEASE_TAG=$(RELEASE_TAG)
 
 ## K5's per-engine Fab zips, unchanged, in one bundle beside them (D1): one
 ## Release asset whatever unreal/engine-versions.txt lists.
@@ -220,6 +243,7 @@ help-release:
 	@echo "  make release-pack ID=<id>        - Pack it, then check-package over natives inside"
 	@echo "  make release-natives RID=<rid>   - Every native build of release.toml for one platform"
 	@echo "  make release-ffi-zip RID=<rid>   - The C ABI's release zip for one platform"
+	@echo "  make release-cpp-ports ZIPS=<d>  - The vcpkg port and Conan recipe zips over the five"
 	@echo "  make unreal-bundle               - K5's per-engine zips in one bundle"
 	@echo "  make check-release-tree          - languages.toml agrees with the tree"
 	@echo "  make check-release-tools         - check-package.sh and prove-install.sh, offline"

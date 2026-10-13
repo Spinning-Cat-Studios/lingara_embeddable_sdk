@@ -1,0 +1,59 @@
+# lingara-embed's CMake package (ADR 8.10.26q D4), stamped for @VERSION@.
+#
+# Upstream's own config: it ships in every lingara-embed-ffi zip under
+# share/lingara-embed/, and the vcpkg port installs it unchanged.
+#
+#   lingara::embed      the C ABI: lingara_embed.h and the library
+#   lingara::embed_cpp  lingara_embed.hpp over it; requires C++17
+#
+# One release build serves every configuration: the C ABI carries no CRT or
+# STL type, so a Debug consumer links it safely (D2). The configuration-less
+# IMPORTED_LOCATION is what lets a Debug build resolve it.
+if(TARGET lingara::embed)
+  return()
+endif()
+
+get_filename_component(_lingara_prefix "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+set(LINGARA_EMBED_PACKAGE_VERSION "@VERSION@")
+
+if(WIN32)
+  # The DLL is built with a static CRT, which is safe because no CRT object
+  # or allocation crosses the ABI (ADR 1.10.26aa D4).
+  set(_lingara_library "${_lingara_prefix}/bin/lingara_embed.dll")
+  add_library(lingara::embed SHARED IMPORTED)
+  set_target_properties(lingara::embed PROPERTIES
+    IMPORTED_IMPLIB "${_lingara_prefix}/lib/lingara_embed.dll.lib")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+  # An iOS app may not load a loose dylib, so iOS gets the staticlib. rustc's
+  # native-static-libs names no framework, only libiconv beside libSystem.
+  set(_lingara_library "${_lingara_prefix}/lib/liblingara_embed.a")
+  add_library(lingara::embed STATIC IMPORTED)
+  set_target_properties(lingara::embed PROPERTIES INTERFACE_LINK_LIBRARIES "iconv")
+elseif(APPLE)
+  set(_lingara_library "${_lingara_prefix}/lib/liblingara_embed.dylib")
+  add_library(lingara::embed SHARED IMPORTED)
+  set_target_properties(lingara::embed PROPERTIES IMPORTED_SONAME "@rpath/liblingara_embed.dylib")
+else()
+  set(_lingara_library "${_lingara_prefix}/lib/liblingara_embed.so")
+  add_library(lingara::embed SHARED IMPORTED)
+endif()
+set_target_properties(lingara::embed PROPERTIES
+  IMPORTED_LOCATION "${_lingara_library}"
+  INTERFACE_INCLUDE_DIRECTORIES "${_lingara_prefix}/include")
+
+# A second target, so a C-only project never meets a C++ compile feature.
+add_library(lingara::embed_cpp INTERFACE IMPORTED)
+set_target_properties(lingara::embed_cpp PROPERTIES
+  INTERFACE_LINK_LIBRARIES lingara::embed
+  INTERFACE_COMPILE_FEATURES cxx_std_17)
+
+# A missing file is a not-found package with a reason, never a link error later.
+foreach(_lingara_file "${_lingara_prefix}/include/lingara_embed.h" "${_lingara_library}")
+  if(NOT EXISTS "${_lingara_file}")
+    set(${CMAKE_FIND_PACKAGE_NAME}_FOUND FALSE)
+    set(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE "missing ${_lingara_file}")
+  endif()
+endforeach()
+unset(_lingara_file)
+unset(_lingara_library)
+unset(_lingara_prefix)

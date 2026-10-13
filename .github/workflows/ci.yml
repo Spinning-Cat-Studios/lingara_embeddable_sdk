@@ -498,6 +498,50 @@ jobs:
         if: runner.os == 'Linux'
         run: make conformance-ek-unreal
 
+  # The C++ channels (ADR 8.10.26q D6): the host's ffi zip, then one consumer
+  # through the stamped vcpkg overlay port, Conan and the plain zip, a C-only
+  # consumer, and clang-tidy. vcpkg and Conan are pinned in make/cpp.mk.
+  cpp:
+    name: cpp (vcpkg, Conan, zip) on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      RID: ${{ matrix.rid }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: linux-x64, os: ubuntu-latest, targets: x86_64-unknown-linux-gnu, zig: true }
+          - { rid: osx, os: macos-14, targets: "aarch64-apple-darwin,x86_64-apple-darwin" }
+          - { rid: win-x64, os: windows-latest, targets: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.targets }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: cpp-${{ matrix.rid }}
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      # bash puts Git's /usr/bin first, whose coreutils `link` shadows
+      # MSVC's link.exe for rustc and cl alike.
+      - name: MSVC's link.exe, not Git's
+        if: runner.os == 'Windows'
+        shell: bash
+        run: rm -f /usr/bin/link.exe
+      - uses: mlugg/setup-zig@v2
+        if: matrix.zig
+        with:
+          version: 0.15.2
+      - run: cargo install cargo-zigbuild --locked
+        if: matrix.zig
+      - name: The host's ffi libraries
+        shell: bash
+        run: make ffi-dist
+      - name: Every leg
+        shell: bash
+        run: make test-cpp
+
   # The server kits (ADR 1.10.26af): one job per toolchain, each running its
   # kit's unit tests, linters and snippets, then every ES case through its
   # harness against the conformance server (which needs Rust).

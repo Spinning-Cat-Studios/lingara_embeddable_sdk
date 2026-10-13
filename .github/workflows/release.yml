@@ -434,7 +434,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: The asset set verify.assets names
         run: |
-          ffi=$(for rid in $(bash tools/release/release-toml.sh rids); do echo "lingara-embed-ffi-$TAG-$rid.zip"; done | jq -R . | jq -sc .)
+          ffi=$({ for rid in $(bash tools/release/release-toml.sh rids); do echo "lingara-embed-ffi-$TAG-$rid.zip"; done
+                  echo "lingara-embed-vcpkg-port-$TAG.zip"; echo "lingara-embed-conan-recipe-$TAG.zip"; } | jq -R . | jq -sc .)
           want=$(echo "$MATRIX" | jq -c --argjson ffi "$ffi" '[.include[].uploaded | select(. != "")] + $ffi + ["checksums.txt"] | sort')
           echo "WANT=$want" >> "$GITHUB_ENV"
       # A published release is immutable, so a re-run never repairs one: it
@@ -457,6 +458,11 @@ jobs:
           pattern: artefact-*
           merge-multiple: true
           path: assets
+      # ADR 8.10.26q D5: the five ffi zips' layout checked, then the vcpkg
+      # port and the Conan recipe stamped with their hashes, beside them.
+      - if: steps.existing.outputs.published == 'false'
+        name: The vcpkg port and the Conan recipe
+        run: make release-cpp-ports ZIPS=assets TAG="$TAG"
       # The body is the tagged commit's message body: in public, the
       # production note promotion wrote; in staging, the publish commit's.
       - if: steps.existing.outputs.published == 'false'

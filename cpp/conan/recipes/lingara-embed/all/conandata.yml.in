@@ -1,0 +1,17 @@
+sources:
+  "@VERSION@":
+    win-x64:
+      url: "@URL_BASE@/lingara-embed-ffi-v@VERSION@-win-x64.zip"
+      sha256: "@SHA256_WIN_X64@"
+    osx:
+      url: "@URL_BASE@/lingara-embed-ffi-v@VERSION@-osx.zip"
+      sha256: "@SHA256_OSX@"
+    linux-x64:
+      url: "@URL_BASE@/lingara-embed-ffi-v@VERSION@-linux-x64.zip"
+      sha256: "@SHA256_LINUX_X64@"
+    android-arm64:
+      url: "@URL_BASE@/lingara-embed-ffi-v@VERSION@-android-arm64.zip"
+      sha256: "@SHA256_ANDROID_ARM64@"
+    ios-arm64:
+      url: "@URL_BASE@/lingara-embed-ffi-v@VERSION@-ios-arm64.zip"
+      sha256: "@SHA256_IOS_ARM64@"

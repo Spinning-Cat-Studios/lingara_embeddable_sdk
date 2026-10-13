@@ -14,6 +14,7 @@
 
 include make/config.mk
 -include make/core.mk make/bevy.mk make/ffi.mk make/dotnet.mk make/godot.mk make/unreal.mk
+-include make/cpp.mk
 -include make/kotlin.mk make/java.mk make/typescript.mk make/go.mk make/ruby.mk make/php.mk make/kotlin-server.mk make/java-server.mk
 include make/spec.mk make/quality.mk
 include make/release.mk

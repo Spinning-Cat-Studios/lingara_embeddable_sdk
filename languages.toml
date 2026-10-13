@@ -24,6 +24,9 @@ extra_assets = [
   "lingara-embed-ffi-{version}-win-x64.zip", "lingara-embed-ffi-{version}-osx.zip",
   "lingara-embed-ffi-{version}-linux-x64.zip", "lingara-embed-ffi-{version}-android-arm64.zip",
   "lingara-embed-ffi-{version}-ios-arm64.zip",
+  # The C++ channels over those five (ADR 8.10.26q D3, D5): channels, not
+  # registry ids, so they ride here rather than as entries.
+  "lingara-embed-vcpkg-port-{version}.zip", "lingara-embed-conan-recipe-{version}.zip",
 ]
 
 # The core crate. The two unpublished native crates report the version too

@@ -1,0 +1,6 @@
+[requires]
+lingara-embed/[*, include_prerelease]
+
+[generators]
+CMakeDeps
+CMakeToolchain

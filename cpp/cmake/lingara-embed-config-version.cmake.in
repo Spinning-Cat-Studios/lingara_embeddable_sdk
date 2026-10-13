@@ -1,0 +1,43 @@
+# lingara-embed's package version (ADR 8.10.26q D4). CMake versions are
+# numeric, so a pre-release is stamped as its numeric part: @VERSION@ is
+# @CMAKE_VERSION_NUMBER@ here. Before 1.0.0 a minor may break, so the
+# compatibility is SameMinorVersion; from 1.0.0 it is SameMajorVersion.
+set(PACKAGE_VERSION "@CMAKE_VERSION_NUMBER@")
+string(REGEX MATCH "^([0-9]+)\\.([0-9]+)" _lingara_have "${PACKAGE_VERSION}")
+set(_lingara_have_major "${CMAKE_MATCH_1}")
+set(_lingara_have_minor "${CMAKE_MATCH_2}")
+
+if(PACKAGE_FIND_VERSION_RANGE)
+  # A range is matched as CMake's own: the version must fall inside it.
+  if((PACKAGE_FIND_VERSION_RANGE_MIN STREQUAL "INCLUDE" AND PACKAGE_VERSION VERSION_LESS PACKAGE_FIND_VERSION_MIN)
+     OR (PACKAGE_FIND_VERSION_RANGE_MIN STREQUAL "EXCLUDE" AND PACKAGE_VERSION VERSION_LESS_EQUAL PACKAGE_FIND_VERSION_MIN)
+     OR (PACKAGE_FIND_VERSION_RANGE_MAX STREQUAL "INCLUDE" AND PACKAGE_VERSION VERSION_GREATER PACKAGE_FIND_VERSION_MAX)
+     OR (PACKAGE_FIND_VERSION_RANGE_MAX STREQUAL "EXCLUDE" AND PACKAGE_VERSION VERSION_GREATER_EQUAL PACKAGE_FIND_VERSION_MAX))
+    set(PACKAGE_VERSION_COMPATIBLE FALSE)
+  else()
+    set(PACKAGE_VERSION_COMPATIBLE TRUE)
+  endif()
+elseif(NOT PACKAGE_FIND_VERSION)
+  set(PACKAGE_VERSION_COMPATIBLE TRUE)
+elseif(PACKAGE_VERSION VERSION_LESS PACKAGE_FIND_VERSION)
+  set(PACKAGE_VERSION_COMPATIBLE FALSE)
+elseif(NOT PACKAGE_FIND_VERSION_MAJOR STREQUAL _lingara_have_major)
+  set(PACKAGE_VERSION_COMPATIBLE FALSE)
+elseif(_lingara_have_major STREQUAL "0" AND NOT PACKAGE_FIND_VERSION_MINOR STREQUAL _lingara_have_minor)
+  # SameMinorVersion before 1.0.0.
+  set(PACKAGE_VERSION_COMPATIBLE FALSE)
+else()
+  set(PACKAGE_VERSION_COMPATIBLE TRUE)
+  if(PACKAGE_FIND_VERSION STREQUAL PACKAGE_VERSION)
+    set(PACKAGE_VERSION_EXACT TRUE)
+  endif()
+endif()
+
+# The libraries are 64-bit only; refuse a 32-bit consumer by name.
+if(CMAKE_SIZEOF_VOID_P AND NOT CMAKE_SIZEOF_VOID_P STREQUAL "8")
+  set(PACKAGE_VERSION "${PACKAGE_VERSION} (64-bit)")
+  set(PACKAGE_VERSION_UNSUITABLE TRUE)
+endif()
+unset(_lingara_have)
+unset(_lingara_have_major)
+unset(_lingara_have_minor)

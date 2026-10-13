@@ -105,11 +105,11 @@ attempt() {
             CARGO_HOME="$scratch/cargo" cargo fetch ;;
         dotnet)
             dotnet new classlib -o proof >/dev/null && cd proof && csproj &&
-            NUGET_PACKAGES="$scratch/nuget" dotnet restore >/dev/null &&
+            NUGET_PACKAGES="$scratch/nuget" NUGET_HTTP_CACHE_PATH="$scratch/nuget-http" dotnet restore >/dev/null &&
             holds_restored "$scratch/nuget/lingara.embed/$(echo "$semver" | tr '[:upper:]' '[:lower:]')" ;;
         dotnetserver)
             dotnet new classlib -f net8.0 -o proof >/dev/null && cd proof && csproj &&
-            NUGET_PACKAGES="$scratch/nuget" dotnet build >/dev/null ;;
+            NUGET_PACKAGES="$scratch/nuget" NUGET_HTTP_CACHE_PATH="$scratch/nuget-http" dotnet build >/dev/null ;;
         typescript)
             npm init -y >/dev/null &&
             npm_config_cache="$scratch/npm" npm_config_prefer_online=true sh -ec "$line" &&

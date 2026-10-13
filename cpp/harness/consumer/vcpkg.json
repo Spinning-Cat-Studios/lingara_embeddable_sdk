@@ -1,0 +1,5 @@
+{
+  "name": "lingara-cpp-consumer",
+  "version": "0.0.0",
+  "dependencies": ["lingara-embed"]
+}

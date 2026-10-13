@@ -199,9 +199,15 @@ test_arch_rejects_the_wrong_slice() {
   mkdir -p "$tmp/root/ffi/include" "$tmp/root/unreal/LingaraEmbed/Source/ThirdParty/LingaraEmbedLibrary/include"
   echo "/* c */" > "$tmp/root/ffi/include/lingara_embed.h"
   echo "// c++" > "$tmp/root/unreal/LingaraEmbed/Source/ThirdParty/LingaraEmbedLibrary/include/lingara_embed.hpp"
+  # 8.10.26q D4: the zip is an install tree, with LICENSE and the CMake package.
+  cp "$repo/LICENSE" "$tmp/root/LICENSE"
+  mkdir -p "$tmp/root/cpp" && cp -R "$repo/cpp/cmake" "$tmp/root/cpp/"
   make -s -C "$tmp/root" -f "$repo/make/release.mk" release-ffi-zip RID=osx TAG=v9.9.9 > "$tmp/out" 2>&1 || { cat "$tmp/out"; echo "FAIL: release-ffi-zip"; return 1; }
-  [ "$(unzip -Z1 "$tmp/root/dist/release/lingara-embed-ffi-v9.9.9-osx.zip" | sort | tr '\n' ' ')" = "liblingara_embed.dylib lingara_embed.h lingara_embed.hpp " ] ||
+  [ "$(unzip -Z1 "$tmp/root/dist/release/lingara-embed-ffi-v9.9.9-osx.zip" | grep -v '/$' | sort | tr '\n' ' ')" = \
+    "LICENSE include/lingara_embed.h include/lingara_embed.hpp lib/liblingara_embed.dylib share/lingara-embed/lingara-embed-config-version.cmake share/lingara-embed/lingara-embed-config.cmake " ] ||
     { unzip -Z1 "$tmp/root/dist/release/lingara-embed-ffi-v9.9.9-osx.zip"; echo "FAIL: the ffi zip's contents"; return 1; }
+  bash "$repo/cpp/tools/check-ffi-zip.sh" "$tmp/root/dist/release/lingara-embed-ffi-v9.9.9-osx.zip" osx > "$tmp/out" 2>&1 ||
+    { cat "$tmp/out"; echo "FAIL: check-ffi-zip.sh over release-ffi-zip's output"; return 1; }
   unset FILE_CMD LIPO OBJDUMP
 }
 

@@ -1,0 +1,8 @@
+{
+  "name": "lingara-embed",
+  "version-semver": "@VERSION@",
+  "description": "Lingara inside a game: the C ABI (lingara_embed.h) and its header-only C++17 wrapper (lingara_embed.hpp), prebuilt",
+  "homepage": "https://github.com/Spinning-Cat-Studios/lingara_embeddable_sdk",
+  "license": "MIT",
+  "supports": "(windows & x64 & !uwp) | osx | (linux & x64) | (android & arm64) | (ios & arm64)"
+}

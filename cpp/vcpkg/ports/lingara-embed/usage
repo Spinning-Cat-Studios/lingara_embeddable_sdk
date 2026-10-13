@@ -1,0 +1,7 @@
+lingara-embed provides CMake targets:
+
+  find_package(lingara-embed CONFIG REQUIRED)
+  # C: lingara_embed.h
+  target_link_libraries(main PRIVATE lingara::embed)
+  # C++17: lingara_embed.hpp
+  target_link_libraries(main PRIVATE lingara::embed_cpp)
