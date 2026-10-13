@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.0-alpha.6 — 2026-10-13
+
+
+Generated from Lingara API 2026-10-virile-dragon (development) at spec backend@df3362ff852184f65973a1b7bbf159b696125755.
+
+### Fixed
+
+- The repository now ships its `.gitattributes`, so a Windows checkout gets LF line endings and the C header and JSON schema freshness tests pass there; under v0.1.0-alpha.5 they reported `include/lingara_embed.h` and `schema/messages.schema.json` as stale on Windows. The packages themselves are unchanged.
+
 ## v0.1.0-alpha.5 — 2026-10-13
 
 

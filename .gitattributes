@@ -1,0 +1,6 @@
+# Check out LF everywhere, Windows runners included: the committed header,
+# schema and codegen are compared byte for byte with what the tools write
+# (LF), and core.autocrlf=true on windows-latest made them read as stale.
+* text=auto eol=lf
+# Stored with CRLF and run by cmd.exe; left byte for byte as committed.
+*.bat -text
