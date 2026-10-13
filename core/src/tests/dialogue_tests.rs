@@ -43,7 +43,6 @@ fn a_turn_streams_finishes_and_cancels_cleanly() {
     };
     let (fake, embed, d) = open(reply, vec![entry(Speaker::Player, "hi"), entry(Speaker::Npc, "hello")]);
     embed.dialogue_say(d, "  how are you?  ").unwrap();
-    assert_eq!(embed.dialogue_say(d, "again").unwrap_err().kind, ErrorKind::Busy);
     let (done, before) = wait_for(&embed, 5 * SECS, finished);
     let updates: Vec<_> = before.iter().filter_map(turn_update).collect();
     let notice = NpcTurnUpdate::Notice { code: "truncated".into(), message: "cut".into() };
@@ -59,6 +58,9 @@ fn a_turn_streams_finishes_and_cancels_cleanly() {
     let (_, embed, d) = open(hold, vec![]);
     embed.dialogue_say(d, "hello").unwrap();
     wait_for(&embed, 5 * SECS, |e| matches!(turn_update(e), Some(NpcTurnUpdate::Fragment { .. })));
+    // Busy is asserted on the held turn: the first turn's whole stream can
+    // finish between two calls, and then a second say is accepted.
+    assert_eq!(embed.dialogue_say(d, "again").unwrap_err().kind, ErrorKind::Busy);
     embed.dialogue_cancel(d).unwrap();
     wait_for(&embed, 5 * SECS, |e| matches!(turn_update(e), Some(NpcTurnUpdate::Cancelled)));
     let snapshot = embed.dialogue_snapshot(d).unwrap();

@@ -535,9 +535,22 @@ jobs:
           version: 0.15.2
       - run: cargo install cargo-zigbuild --locked
         if: matrix.zig
+      # macOS images ship Homebrew's LLVM keg-only, so clang-tidy is off PATH.
+      - name: clang-tidy from Homebrew's LLVM
+        if: runner.os == 'macOS'
+        run: |
+          tidy="$(ls "$(brew --prefix)"/opt/llvm*/bin/clang-tidy 2>/dev/null | sort -V | tail -1)"
+          if [ -z "$tidy" ]; then brew install llvm && tidy="$(brew --prefix llvm)/bin/clang-tidy"; fi
+          echo "CLANG_TIDY=$tidy" >> "$GITHUB_ENV"
       - name: The host's ffi libraries
         shell: bash
         run: make ffi-dist
+      # rust-cache saves target/ but prunes what it does not know as cargo's,
+      # so target/cpp-harness/ comes back as debris: a vcpkg tree missing the
+      # .vcpkg-root the clone rule keys on, which `git clone` then refuses.
+      - name: No cached harness
+        shell: bash
+        run: rm -rf target/cpp-harness
       - name: Every leg
         shell: bash
         run: make test-cpp

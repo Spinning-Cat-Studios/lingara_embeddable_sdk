@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.1.0-alpha.8 — 2026-10-13
+
+
+Generated from Lingara API 2026-10-virile-dragon (development) at spec backend@df3362ff852184f65973a1b7bbf159b696125755.
+
+### Added
+
+### Changed
+
+### Fixed
+
+- C and C++: the Linux and Android `liblingara_embed.so` now carries a `DT_SONAME`, so a consumer records the bare `liblingara_embed.so` and finds it through its RUNPATH. Without one, a vcpkg manifest-mode build linked a build-tree-relative path, and the binary failed to load from any other working directory.
+
+### Removed
+
 ## v0.1.0-alpha.7 — 2026-10-13
 
 

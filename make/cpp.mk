@@ -14,6 +14,8 @@ CMAKE ?= cmake
 CLANG_TIDY ?= clang-tidy
 CPP_DIR := cpp
 CPP_BUILD := target/cpp-harness
+# CPP_BUILD for cmd.exe, its backslashes doubled for the recipe's double quotes.
+CPP_BUILD_CMD = $(subst /,\\,$(CPP_BUILD))
 CPP_ZIPS := $(CPP_BUILD)/zips
 CPP_STAMPED := $(CPP_BUILD)/stamped
 CPP_PREFIX := $(CPP_BUILD)/zip-root
@@ -30,7 +32,9 @@ CPP_CONFIGURE = -DCMAKE_BUILD_TYPE=Release -DLINGARA_DOCTEST_DIR="$(CPP_DOCTEST)
 VCPKG_COMMIT := 2025.06.13
 CPP_VCPKG_ROOT ?= $(CURDIR)/$(CPP_BUILD)/vcpkg
 VCPKG_TRIPLETS ?= $(if $(filter Windows_NT,$(OS)),x64-windows x64-windows-static-md,default)
-CONAN_VERSION := 2.15.0
+# 2.15.0 predates Visual Studio 18 (msvc 195): on a windows-latest image that
+# has no older VS, its detect fell through to MinGW's gcc 15 on PATH.
+CONAN_VERSION := 2.33.0
 CONAN_VENV := $(CPP_BUILD)/conan-venv
 CONAN = $(CURDIR)/$(CONAN_VENV)/$(if $(filter Windows_NT,$(OS)),Scripts/conan.exe,bin/conan)
 CONAN_ENV = CONAN_HOME="$(CURDIR)/$(CPP_BUILD)/conan-home"
@@ -115,7 +119,10 @@ $(CONAN):
 ## consumer builds from conanfile.txt with CMakeDeps and the smoke runs (AC5).
 test-cpp-conan: cpp-harness-stage $(CONAN)
 	$(CONAN_ENV) $(CONAN) profile detect --force
-	$(CONAN_ENV) $(CONAN) create $(CPP_STAMPED)/conan/recipes/lingara-embed/all --version $(RELEASE_VERSION) --build=missing
+	@# test_package builds in a temp dir: under the recipe tree, MSBuild's
+	@# tracking logs pass Windows' 260-character MAX_PATH (FTK1011).
+	$(CONAN_ENV) $(CONAN) create $(CPP_STAMPED)/conan/recipes/lingara-embed/all --version $(RELEASE_VERSION) --build=missing \
+	  -c 'tools.cmake.cmake_layout:test_folder=$$TMP'
 	@# user_presets off: CMakeUserPresets.json would land in the source tree.
 	$(CONAN_ENV) $(CONAN) install $(CPP_DIR)/harness/consumer/conanfile.txt --output-folder $(CPP_BUILD)/conan-deps \
 	  -s build_type=Release -c tools.cmake.cmaketoolchain:user_presets=
@@ -123,12 +130,17 @@ test-cpp-conan: cpp-harness-stage $(CONAN)
 	  -DCMAKE_TOOLCHAIN_FILE="$(CURDIR)/$(CPP_BUILD)/conan-deps/conan_toolchain.cmake"
 	$(CMAKE) --build $(CPP_BUILD)/conan --config Release
 	@# conanrun puts the library on the loader's path, as a Conan user's run does.
-	$(if $(filter Windows_NT,$(OS)),cmd //c "$(CPP_BUILD)\\conan-deps\\conanrun.bat && $(CPP_BUILD)\\conan\\bin\\consumer.exe",\
+	@# cmd reads a `/` as a switch, so its paths are backslashes throughout.
+	$(if $(filter Windows_NT,$(OS)),cmd //c "$(CPP_BUILD_CMD)\\conan-deps\\conanrun.bat && $(CPP_BUILD_CMD)\\conan\\bin\\consumer.exe",\
 	  . $(CPP_BUILD)/conan-deps/conanrun.sh && $(CPP_BUILD)/conan/bin/consumer)
 
 ## D6 step 7: clang-tidy at K5's numbers over the C++ consumer (the plain-zip build's database).
+# A configure of its own: the Visual Studio generators write no
+# compile_commands.json, so Windows takes Ninja (the dev env's) for this one.
 check-cpp-tidy: test-cpp-zip
-	$(CLANG_TIDY) --quiet --config-file=unreal/harness/.clang-tidy -p $(CPP_BUILD)/zip \
+	$(CMAKE) -S $(CPP_DIR)/harness/consumer -B $(CPP_BUILD)/tidy $(CPP_CONFIGURE) -DCMAKE_PREFIX_PATH="$(CURDIR)/$(CPP_PREFIX)" \
+	  $(if $(filter Windows_NT,$(OS)),-G Ninja -DCMAKE_CXX_COMPILER=cl,)
+	$(CLANG_TIDY) --quiet --config-file=unreal/harness/.clang-tidy -p $(CPP_BUILD)/tidy \
 	  $(if $(filter Darwin,$(shell uname -s)),--extra-arg=-isysroot$(shell xcrun --show-sdk-path),) \
 	  $(CPP_DIR)/harness/consumer/main.cpp
 

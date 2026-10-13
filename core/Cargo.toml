@@ -1,7 +1,7 @@
 [package]
 name = "lingara-embed"
 # The trio's one VERSION (roadmap D10); the release tooling writes both.
-version = "0.1.0-alpha.7"
+version = "0.1.0-alpha.8"
 edition = "2024"
 # The `lingara` library's floor, which a dependent cannot go below.
 rust-version = "1.87"

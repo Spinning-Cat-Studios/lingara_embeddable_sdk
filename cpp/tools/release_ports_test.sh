@@ -25,10 +25,12 @@ compatible() {
 test_config_version_compatibility() {
   local tmp; tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' RETURN
-  printf 'include("%s/version.cmake")\nmessage("compatible=${PACKAGE_VERSION_COMPATIBLE}")\n' "$tmp" > "$tmp/probe.cmake"
+  # CMAKE_CURRENT_LIST_DIR, not "$tmp": an MSYS /tmp path written into a
+  # file is never converted, and a native cmake.exe cannot open it.
+  printf 'include("${CMAKE_CURRENT_LIST_DIR}/version.cmake")\nmessage("compatible=${PACKAGE_VERSION_COMPATIBLE}")\n' > "$tmp/probe.cmake"
   local have want expect got
   while read -r have want expect; do
-    got="$(compatible "$tmp" "$have" "$want")"
+    got="$(compatible "$tmp" "$have" "$want")" || { echo "$got"; echo "FAIL: cmake -P for $have, $want"; return 1; }
     [ "$got" = "compatible=$expect" ] || { echo "FAIL: $have for a request of $want: $got, want $expect"; return 1; }
   done <<'CASES'
 0.1.0 0.1.0 TRUE
