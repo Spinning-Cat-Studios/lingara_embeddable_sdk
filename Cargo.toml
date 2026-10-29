@@ -4,8 +4,13 @@
 # first appearance in this file, so no comment above it may spell that key.)
 [workspace]
 resolver = "3"
-members = ["bevy", "bevy/conformance", "bevy/demo", "conformance/server", "core", "core/conformance", "core/conformance-es", "ffi", "godot", "kotlin/uniffi", "kotlin/uniffi/bindgen", "snippets/player/bevy", "snippets/server/rust", "tools/demo-token-server"]
+members = ["bevy", "bevy/conformance", "bevy/demo", "conformance/server", "core", "core/conformance", "core/conformance-es", "dialogue-ir", "ffi", "godot", "kotlin/uniffi", "kotlin/uniffi/bindgen", "snippets/player/bevy", "snippets/server/rust", "tools/demo-token-server"]
 exclude = ["tools/scs-snapshot", "tools/code-health"]
+
+# Dev and test builds keep full debug info for this workspace's crates and
+# none for dependencies (Bevy, tokio, reqwest…) (ADR 20.10.26f D3).
+[profile.dev.package."*"]
+debug = false
 
 # The native libraries `make ffi-dist` ships (ADR 1.10.26aa D1). Named, so
 # core/ and bevy/ builds never pay for fat LTO; here, because Cargo ignores a

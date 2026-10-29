@@ -1,6 +1,6 @@
 {
   "name": "@lingara/embed",
-  "version": "0.1.0-alpha.8",
+  "version": "0.2.0-alpha.1",
   "description": "Lingara practice inside a website: the <lingara-embed> element. No runtime dependencies.",
   "license": "MIT",
   "repository": {

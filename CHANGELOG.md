@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.2.0-alpha.1 — 2026-10-29
+
+
+Generated from Lingara API 2026-10-expensive-sauger (development) at spec backend@6b556aa7c240143e192e5570f29c1151c4196afd.
+
+### Added
+
+### Changed
+
+### Fixed
+
+- C and C++: the release check on each `lingara-embed-ffi` zip no longer fails a complete zip at random, with a wrong `no LICENSE` (or another file it had found) and a `printf: write error: Broken pipe`. The core's test of an NPC turn's request now checks only the fields the core sets, so it keeps passing when a newer `lingara` adds a defaulted field such as `pedagogy`. Neither change touches the shipped libraries.
+
+### Removed
+
+## v0.1.0-alpha.9 — 2026-10-29
+
+
+Generated from Lingara API 2026-10-expensive-sauger (development) at spec backend@6b556aa7c240143e192e5570f29c1151c4196afd.
+
+### Added
+
+- `lingara-dialogue-ir`, a new crate on crates.io: the `dialogue.v1` dialogue graph format's Rust types, its load-time checks (each refusal naming its JSON path), and the fact-predicate language an edge's `predicate` is written in, with its grammar shipped as `predicate.ebnf`. It depends only on `serde` and `serde_json`, so a server can validate a dialogue with the same parser the game runs (ADR 28.10.26f, Phase A).
+
+### Changed
+
+### Fixed
+
+### Removed
+
 ## v0.1.0-alpha.8 — 2026-10-13
 
 

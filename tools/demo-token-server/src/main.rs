@@ -7,6 +7,8 @@
 //! It binds loopback only and prints `listening <port>` first, so a test can
 //! run it on `--port 0`. `--fake` mints nothing, needs no secret and no
 //! network, and answers a visibly fake `lgr_et_` token: CI runs only that.
+//! `LINGARA_BASE_URL` (and `LINGARA_TOKEN_URL`, else `<base>/oauth/token`)
+//! point it at another Lingara, a local stack say (ADR 15.10.26g).
 
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -36,11 +38,13 @@ struct Options {
     player_ref: String,
     fake: bool,
     credentials: Option<(String, String)>,
+    base_url: Option<String>,
+    token_url: Option<String>,
 }
 
-/// `--port`, `--player-ref`, `--fake`; the secret from the environment.
+/// `--port`, `--player-ref`, `--fake`; the secret and any other Lingara from the environment.
 fn options(args: &[String], env: impl Fn(&str) -> Option<String>) -> Result<Options, String> {
-    let mut options = Options { port: 8787, player_ref: "demo-player-1".into(), fake: false, credentials: None };
+    let mut options = Options { port: 8787, player_ref: "demo-player-1".into(), fake: false, credentials: None, base_url: None, token_url: None };
     let mut args = args.iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -51,6 +55,10 @@ fn options(args: &[String], env: impl Fn(&str) -> Option<String>) -> Result<Opti
         }
     }
     options.credentials = env("LINGARA_CLIENT_ID").zip(env("LINGARA_CLIENT_SECRET")).filter(|(id, secret)| !id.is_empty() && !secret.is_empty());
+    let set = |k: &str| env(k).filter(|v| !v.is_empty());
+    options.base_url = set("LINGARA_BASE_URL").map(|url| url.trim_end_matches('/').to_owned());
+    // A token from one Lingara is refused by another, so the exchange follows the base by default.
+    options.token_url = set("LINGARA_TOKEN_URL").or_else(|| options.base_url.as_ref().map(|base| format!("{base}/oauth/token")));
     if !options.fake && options.credentials.is_none() {
         return Err("set LINGARA_CLIENT_ID and LINGARA_CLIENT_SECRET (a metered client's), or pass --fake".into());
     }
@@ -115,7 +123,14 @@ fn app(server: Server) -> Router {
 fn server(options: &Options) -> Result<Server, String> {
     let minter = match &options.credentials {
         Some((id, secret)) if !options.fake => {
-            let client = lingara::Client::builder().client_credentials(id, secret).build().map_err(|e| e.to_string())?;
+            let mut builder = lingara::Client::builder().client_credentials(id, secret);
+            if let Some(url) = &options.base_url {
+                builder = builder.base_url(url);
+            }
+            if let Some(url) = &options.token_url {
+                builder = builder.token_url(url);
+            }
+            let client = builder.build().map_err(|e| e.to_string())?;
             Minter::Lingara(EmbedServer::new(client))
         }
         _ => Minter::Fake,

@@ -45,3 +45,27 @@ async fn the_server_needs_a_secret_unless_fake() {
     let expires_at = body.split("\"expires_at\":\"").nth(1).unwrap().trim_end_matches("\"}");
     assert!(expires_at.len() == 20 && expires_at.ends_with('Z') && expires_at.as_bytes()[10] == b'T', "{expires_at}");
 }
+
+/// 15.10.26g AC1: production unless `LINGARA_BASE_URL` says otherwise; the
+/// token URL follows the base unless `LINGARA_TOKEN_URL` is set; empty is unset.
+#[test]
+fn another_lingara_comes_from_the_environment() {
+    let prod = options(&[], with_secret).unwrap();
+    assert_eq!((prod.base_url, prod.token_url), (None, None));
+
+    let local = |key: &str| match key {
+        "LINGARA_BASE_URL" => Some("http://localhost:8080/".into()),
+        "LINGARA_TOKEN_URL" => Some(String::new()),
+        other => with_secret(other),
+    };
+    let derived = options(&[], local).unwrap();
+    assert_eq!(derived.base_url.as_deref(), Some("http://localhost:8080"));
+    assert_eq!(derived.token_url.as_deref(), Some("http://localhost:8080/oauth/token"));
+    assert!(server(&derived).is_ok(), "an http:// local base builds a client");
+
+    let both = |key: &str| match key {
+        "LINGARA_TOKEN_URL" => Some("http://127.0.0.1:9000/token".into()),
+        other => local(other),
+    };
+    assert_eq!(options(&[], both).unwrap().token_url.as_deref(), Some("http://127.0.0.1:9000/token"));
+}

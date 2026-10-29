@@ -2,10 +2,7 @@
 //! panel, and the keys. It reads state and writes `DemoInput`; it never
 //! talks to `bevy_lingara` itself.
 //!
-//! Keys: `1`–`3` say a line, `Tab` talks to the other NPC, `W` walks to the
-//! other stall, `+` / `-` change the NPC's level, `P` practises. During a
-//! practice: `1`–`4` choose, `Y` / `N` grade yourself, `Space` goes on,
-//! `Esc` finishes early.
+//! The keys are [`HELP`], which `H` shows in the window (ADR 15.10.26p D3).
 
 use std::fmt::Write as _;
 
@@ -14,15 +11,44 @@ use bevy_lingara::{LingaraStatus, NpcDialogue, NpcReplied, NpcTranscript, Practi
 
 use crate::{DemoInput, DemoNpc, DemoState};
 
+/// The README's key table, as the `H` panel shows it. `H` itself is view
+/// state, never a `DemoInput`, so it means the same thing in every state.
+const HELP: &str = "\
+1-3   say a line to the NPC you are talking to
+Tab   talk to the other NPC, without walking
+W     walk to the other stall
++ / - raise or lower this NPC's level
+P     practise, at this NPC's language and level
+H     show or hide these keys
+During practice:
+  1-4    choose an option
+  Y / N  grade yourself
+  Space  reveal, or go on
+  Esc    finish early (it still reports)";
+
 pub struct DemoViewPlugin;
 
 #[derive(Component)]
 struct Panel;
 
+#[derive(Component)]
+struct HelpPanel;
+
 impl Plugin for DemoViewPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, draw_stalls).add_systems(Update, (keys, show, log_replies));
+        app.add_systems(Startup, draw_stalls).add_systems(Update, (keys, toggle_help, show, log_replies));
     }
+}
+
+/// Sans-serif through the OS's font fallback, which supplies the CJK glyphs
+/// and the `·` Bevy's built-in face lacks (ADR 15.10.26p D1).
+fn font() -> TextFont {
+    TextFont { font: FontSource::sans_serif(), font_size: FontSize::Px(18.0), ..default() }
+}
+
+/// Translucent, so text over a stall stays readable.
+fn backdrop() -> BackgroundColor {
+    BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7))
 }
 
 fn draw_stalls(mut commands: Commands) {
@@ -30,8 +56,27 @@ fn draw_stalls(mut commands: Commands) {
     let stall = |x: f32, color: Color| (Sprite::from_color(color, Vec2::new(160.0, 160.0)), Transform::from_xyz(x, 120.0, 0.0));
     commands.spawn(stall(-200.0, Color::srgb(0.85, 0.35, 0.25)));
     commands.spawn(stall(200.0, Color::srgb(0.25, 0.55, 0.45)));
-    let node = Node { position_type: PositionType::Absolute, left: Val::Px(16.0), bottom: Val::Px(16.0), ..default() };
-    commands.spawn((Text::new(""), node, Panel));
+    // `left` and `right` fix the width, so parley wraps inside the window;
+    // `max_height` and the clip are the backstop against the top edge.
+    let node = Node {
+        position_type: PositionType::Absolute,
+        left: Val::Px(16.0),
+        right: Val::Px(16.0),
+        bottom: Val::Px(16.0),
+        max_height: Val::Percent(60.0),
+        overflow: Overflow::clip(),
+        padding: UiRect::all(Val::Px(8.0)),
+        ..default()
+    };
+    commands.spawn((Text::new(""), font(), node, backdrop(), Panel));
+    let help = Node { position_type: PositionType::Absolute, left: Val::Px(16.0), top: Val::Px(16.0), padding: UiRect::all(Val::Px(8.0)), ..default() };
+    commands.spawn((Text::new(HELP), font(), help, backdrop(), Visibility::Hidden, HelpPanel));
+}
+
+fn toggle_help(keys: Res<ButtonInput<KeyCode>>, mut help: Single<&mut Visibility, With<HelpPanel>>) {
+    if keys.just_pressed(KeyCode::KeyH) {
+        **help = if **help == Visibility::Hidden { Visibility::Visible } else { Visibility::Hidden };
+    }
 }
 
 const DIGITS: [KeyCode; 4] = [KeyCode::Digit1, KeyCode::Digit2, KeyCode::Digit3, KeyCode::Digit4];
@@ -65,13 +110,16 @@ fn show(
     sessions: Query<&PracticeSession>,
     mut panel: Single<&mut Text, With<Panel>>,
 ) {
-    let mut text = format!("Lingara: {:?}\n", status.phase);
+    let mut text = format!("Lingara: {:?} · H: keys\n", status.phase);
     for (i, entity) in state.npcs.iter().enumerate() {
         let Ok((demo, npc, transcript)) = npcs.get(*entity) else { continue };
-        let mark = if i == state.selected { ">" } else { " " };
+        let selected = i == state.selected;
+        let mark = if selected { ">" } else { " " };
         let _ = writeln!(text, "{mark} {} (level {}) at {}{}", npc.npc().name, npc.level(), demo.scene, if demo.stall == state.stall { " · you are here" } else { "" });
-        if let Some(t) = transcript {
-            t.turns.iter().rev().take(2).for_each(|turn| _ = writeln!(text, "    you: {}\n    {}: {}", turn.line, npc.npc().name, turn.reply));
+        // Only the selected NPC's last two turns, oldest first, so the
+        // panel stays under its height cap (ADR 15.10.26p D2).
+        if let Some(t) = transcript.filter(|_| selected) {
+            t.turns.iter().skip(t.turns.len().saturating_sub(2)).for_each(|turn| _ = writeln!(text, "    you: {}\n    {}: {}", turn.line, npc.npc().name, turn.reply));
             if let Some(streaming) = &t.streaming {
                 let _ = writeln!(text, "    …{streaming}");
             }
@@ -87,7 +135,7 @@ fn show(
     panel.0 = text;
 }
 
-/// Bevy's built-in font has no CJK glyphs, so each reply is logged too.
+/// Every reply in full, whatever the panel shows.
 fn log_replies(mut replies: MessageReader<NpcReplied>, npcs: Query<&NpcDialogue>) {
     for reply in replies.read() {
         let name = npcs.get(reply.entity).map(|n| n.npc().name.clone()).unwrap_or_default();

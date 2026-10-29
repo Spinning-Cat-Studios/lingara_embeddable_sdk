@@ -2,7 +2,7 @@
 name = "lingara_godot"
 # The trio's one VERSION (roadmap D10). The addon ships this crate as a
 # binary, never to crates.io (ADR 1.10.26ab D1).
-version = "0.1.0-alpha.8"
+version = "0.2.0-alpha.1"
 edition = "2024"
 # gdext 0.5's own MSRV.
 rust-version = "1.94"
@@ -19,6 +19,6 @@ crate-type = ["cdylib"]
 # (D1). No `experimental-threads`: K1's thread never touches a Godot object.
 [dependencies]
 godot = { version = "0.5", features = ["api-4-5"] }
-lingara-embed = { path = "../core", version = "=0.1.0-alpha.8" }
+lingara-embed = { path = "../core", version = "=0.2.0-alpha.1" }
 serde = "1"
 serde_json = "1"

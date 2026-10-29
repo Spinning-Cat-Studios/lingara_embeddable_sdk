@@ -1,0 +1,30 @@
+[package]
+name = "lingara-dialogue-ir"
+# The trio's one VERSION (roadmap D10); the release tooling writes it.
+version = "0.2.0-alpha.1"
+edition = "2024"
+rust-version = "1.87"
+license = "MIT"
+description = "The Lingara dialogue graph format (dialogue.v1): its types, its load-time checks and the fact-predicate language, shared by the embed kits and the server."
+repository = "https://github.com/Spinning-Cat-Studios/lingara_embeddable_sdk"
+homepage = "https://getlingara.com"
+readme = "README.md"
+keywords = ["lingara", "dialogue", "npc", "gamedev", "language-learning"]
+categories = ["game-development", "parser-implementations"]
+include = ["src/**", "predicate.ebnf", "README.md", "LICENSE"]
+
+[lib]
+name = "lingara_dialogue_ir"
+
+[features]
+# Derives `schemars::JsonSchema` on the IR types, for a binding's committed
+# message schema (the core turns it on with its own `schema`).
+schema = ["dep:schemars"]
+
+# Dependency-light by design (ADR 28.10.26f D11): Backend links this crate, so
+# nothing beyond serde, serde_json and the optional schemars.
+# `make check-package-dialogue` refuses any other non-dev dependency.
+[dependencies]
+schemars = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

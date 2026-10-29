@@ -34,7 +34,7 @@ case "$deadline" in
 esac
 
 case "$id" in
-    core | bevy | dotnet | dotnetserver | typescript | kotlin | kotlinserver | java | javaserver | \
+    dialogue | core | bevy | dotnet | dotnetserver | typescript | kotlin | kotlinserver | java | javaserver | \
         nativesdesktop | nativesandroid | go | ruby | php) ;;
     godot | unreal) echo "prove-install.sh: $id is a store; there is no install line to prove (Manual steps 7-8)" >&2; exit 2 ;;
     *) echo "prove-install.sh: no proof for $id" >&2; exit 2 ;;
@@ -47,11 +47,15 @@ command -v release-manifest >/dev/null 2>&1 ||
     { echo "prove-install.sh: release-manifest is not on PATH (make release-manifest-install)" >&2; exit 2; }
 line=$(release-manifest install-line "$id" "$tag")
 
-# The install line spliced into a fresh project of each build tool.
+# The install line spliced into a fresh project of each build tool. Every JVM
+# proof names maven.getlingara.com beside the snippet, in the forms the
+# READMEs show (Generator ADR 23.10.26a §6): the snippet stays one dependency
+# fragment.
 pom() {
     { echo '<project xmlns="http://maven.apache.org/POM/4.0.0">'
       echo '  <modelVersion>4.0.0</modelVersion>'
       echo '  <groupId>proof</groupId><artifactId>proof</artifactId><version>0</version>'
+      echo '  <repositories><repository><id>lingara</id><url>https://maven.getlingara.com</url></repository></repositories>'
       echo '  <dependencies>'; echo "$line"; echo '  </dependencies>'
       echo '</project>'; } > pom.xml
 }
@@ -65,7 +69,7 @@ csproj() {
 # copied in rather than downloaded again.
 gradle_deps() {
     : > settings.gradle.kts &&
-    printf 'plugins { java }\nrepositories { mavenCentral() }\ndependencies {\n%s\n}\n' "$line" > build.gradle.kts &&
+    printf 'plugins { java }\nrepositories {\n    exclusiveContent {\n        forRepository { maven("https://maven.getlingara.com") }\n        filter { includeGroup("com.getlingara") }\n    }\n    mavenCentral()\n}\ndependencies {\n%s\n}\n' "$line" > build.gradle.kts &&
     mkdir -p "$1/gradle/wrapper" &&
     { [ ! -d "$HOME/.gradle/wrapper/dists" ] || cp -R "$HOME/.gradle/wrapper/dists" "$1/gradle/wrapper/"; } &&
     GRADLE_USER_HOME="$1/gradle" "$checkout/gradlew" -p "$1" dependencies \
@@ -88,6 +92,7 @@ holds_every_rid() {
 natives() {
     artifact=lingara-embed-natives-$1 ext=$2
     mvn -q -U -Dmaven.repo.local="$scratch/m2" dependency:get -Dtransitive=false \
+        -DremoteRepositories=lingara::default::https://maven.getlingara.com \
         -Dartifact="com.getlingara:$artifact:$semver${ext:+:$ext}" &&
     holds_every_rid "$3" "$scratch/m2/com/getlingara/$artifact/$semver/$artifact-$semver.${ext:-jar}"
 }
@@ -99,7 +104,7 @@ attempt() {
     scratch=$1
     cd "$scratch" || return 1
     case "$id" in
-        core | bevy)
+        dialogue | core | bevy)
             cargo new --quiet proof && cd proof &&
             CARGO_HOME="$scratch/cargo" sh -ec "$line" &&
             CARGO_HOME="$scratch/cargo" cargo fetch ;;

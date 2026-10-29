@@ -11,8 +11,20 @@ The official Kotlin server kit for embedding [Lingara](https://getlingara.com) i
 
 ## Install
 
+The kit is published to Lingara's own Maven repository, `https://maven.getlingara.com`, so your build names it beside the dependency. The versions published before the move stay on Maven Central too; new ones are only here.
+
 ```kotlin
-implementation("com.getlingara:lingara-embed-server-kotlin:VERSION")
+repositories {
+    exclusiveContent {
+        forRepository { maven("https://maven.getlingara.com") }
+        filter { includeGroup("com.getlingara") }
+    }
+    mavenCentral()
+}
+
+dependencies {
+    implementation("com.getlingara:lingara-embed-server-kotlin:VERSION")
+}
 ```
 
 Build one server and one router at startup, from the environment. Only a **metered** client may mint.

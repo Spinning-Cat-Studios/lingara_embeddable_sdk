@@ -6,7 +6,16 @@ same kit, with a builder for Kotlin's default arguments, `Optional`,
 
 ## Install
 
+The kit is published to Lingara's own Maven repository, `https://maven.getlingara.com`, so your build names it beside the dependencies. The versions published before the move stay on Maven Central too; new ones are only here.
+
 ```xml
+<repositories>
+  <repository>
+    <id>lingara</id>
+    <url>https://maven.getlingara.com</url>
+  </repository>
+</repositories>
+
 <dependency>
   <groupId>com.getlingara</groupId>
   <artifactId>lingara-embed-java</artifactId>
@@ -18,6 +27,23 @@ same kit, with a builder for Kotlin's default arguments, `Optional`,
   <artifactId>lingara-embed-natives-desktop</artifactId>
   <version>VERSION</version>
 </dependency>
+```
+
+Gradle:
+
+```kotlin
+repositories {
+    exclusiveContent {
+        forRepository { maven("https://maven.getlingara.com") }
+        filter { includeGroup("com.getlingara") }
+    }
+    mavenCentral()
+}
+
+dependencies {
+    implementation("com.getlingara:lingara-embed-java:VERSION")
+    implementation("com.getlingara:lingara-embed-natives-desktop:VERSION")
+}
 ```
 
 ## Use

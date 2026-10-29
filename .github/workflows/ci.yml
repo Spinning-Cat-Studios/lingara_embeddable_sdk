@@ -95,9 +95,10 @@ jobs:
         with:
           key: bevy
 
+      # libfontconfig1-dev: the demo's OS font fallback (ADR 15.10.26p D4).
       - name: Bevy's Linux libraries (the demo draws)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev libfontconfig1-dev
 
       - name: The plugin, the token server and the snippets
         run: make test-bevy

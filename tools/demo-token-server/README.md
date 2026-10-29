@@ -22,3 +22,9 @@ LINGARA_CLIENT_ID=… LINGARA_CLIENT_SECRET=… cargo run -p lingara_demo_token_
 - `--player-ref <ref>` mints for another player (default `demo-player-1`).
 - `--fake` mints nothing, needs no credentials and no network, and answers a
   visibly fake token. The headless tests use it.
+- It mints at production unless `LINGARA_BASE_URL` names another Lingara
+  (a local stack: `http://localhost:8080`). The token exchange follows it to
+  `<base>/oauth/token` unless `LINGARA_TOKEN_URL` says otherwise. Point the
+  game at the same base (`LINGARA_DEMO_API_URL`): a token is valid only at the
+  Lingara that minted it.
+- A failed mint answers `502` with `the mint failed: <reason>` as plain text.

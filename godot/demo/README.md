@@ -19,6 +19,9 @@ Three terminals, from the repository root.
    LINGARA_CLIENT_ID=… LINGARA_CLIENT_SECRET=… cargo run -p lingara_demo_token_server
    ```
 
+   Against a local stack, add `LINGARA_BASE_URL=http://localhost:8080` here
+   and `LINGARA_DEMO_API_URL=http://localhost:8080` to the demo below.
+
 2. **The demo,** in the editor (press F5 to run it):
 
    ```sh
@@ -39,6 +42,11 @@ Three terminals, from the repository root.
 `main.gd` sets `base_url` and then calls `Lingara.start()`, so no request
 leaves before the demo's configuration is in place. The demo reads no stream
 event itself; a plan still being made turns the stream on by itself.
+
+The text size is the demo's own: `project.godot`'s `gui/theme/custom` names
+`demo_theme.tres`, whose `default_font_size` (24) reaches every control,
+including the practice options `practice_panel.gd` builds at runtime
+(ADR 15.10.26f). The addon sets no theme; your game keeps its own.
 
 ## The tests
 

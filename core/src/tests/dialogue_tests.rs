@@ -51,7 +51,12 @@ fn a_turn_streams_finishes_and_cancels_cleanly() {
     assert_eq!(turn_update(&done), Some(NpcTurnUpdate::Finished { text: "Ni hao".into() }));
     let want = json!({ "npc": { "name": "Mei" }, "source_lang": "en", "target_lang": "zh", "level": 2, "line": "how are you?",
         "history": [{ "speaker": "player", "text": "hi" }, { "speaker": "npc", "text": "hello" }] });
-    assert_eq!(fake.seen()[0].body, want);
+    // The library may serialise its own defaults (lingara 0.2.0-alpha.6 adds
+    // `pedagogy`); the core owns only these fields.
+    let body = &fake.seen()[0].body;
+    for (key, value) in want.as_object().unwrap() {
+        assert_eq!(&body[key], value, "{key}");
+    }
     assert_eq!(embed.dialogue_snapshot(d).unwrap().window.len(), 4);
 
     let hold = |_| Reply::Sse(vec![frame("delta", json!({ "text": "partial" }))], After::Hold);

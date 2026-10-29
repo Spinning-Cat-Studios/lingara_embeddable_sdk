@@ -1,0 +1,78 @@
+# The dialogue.v1 fact-predicate language (lingara-dialogue-ir; ADR 28.10.26f D3).
+#
+# An edge's `predicate` is a game condition the embed core evaluates over the
+# facts the game has set: comparisons, `and` / `or` / `not`, fact lookups. No
+# arithmetic, no functions.
+
+predicate  = or_expr
+or_expr    = and_expr { "or" and_expr }
+and_expr   = unary { "and" unary }
+unary      = "not" unary | primary
+primary    = "(" or_expr ")" | comparison | fact | "true" | "false"
+comparison = fact cmp literal | literal cmp fact
+cmp        = "==" | "!=" | "<" | "<=" | ">" | ">="
+literal    = number | string | "true" | "false"
+number     = [ "-" ] digit { digit } [ "." digit { digit } ]
+string     = '"' { char other than '"' or '\' | '\"' | '\\' } '"'
+fact       = id                       (the IR's id pattern)
+
+# Whitespace (space and tab) separates tokens and is otherwise ignored.
+# Keywords are lowercase. `and`, `or`, `not`, `true` and `false` are always
+# keywords, so a fact keyed with one of them can be declared and disclosed,
+# but never read by a predicate.
+#
+# Precedence: `not` over `and` over `or`.
+#
+# Types: a `number` fact compares with a number under all six operators. A
+# `string` fact compares with a string, and a `boolean` fact with `true` or
+# `false`, under `==` and `!=` only. A `boolean` fact may also stand bare.
+# Every fact read must be declared in the dialogue's `facts`.
+#
+# Evaluation: a fact's value is the game's last set value, else its
+# `default`, else unset. A comparison over an unset fact is false, and so is
+# a bare unset boolean fact; `not` inverts whatever its operand yields.
+#
+# Bounds: at most 200 characters, and at most 8 parentheses open at once.
+#
+# The crate's tests parse every line under `# accepts` and refuse every line
+# under `# refuses`, so this file cannot describe a language the parser does
+# not speak.
+
+# accepts
+alarm_raised
+not alarm_raised
+trust >= 0.4
+0.4 <= trust
+trust > -1
+gold == 10
+eastern_gate == "north"
+eastern_gate != "say \"hi\" \\ wave"
+has_lantern == true
+true == has_lantern
+true
+false
+not not alarm_raised
+alarm_raised or trust >= 0.4 and not has_lantern
+(alarm_raised or trust >= 0.4) and not has_lantern
+((((((((alarm_raised))))))))
+	trust	<	3
+
+# refuses
+trust + 1 > 2
+trust >= 1e3
+trust >= .5
+trust >= +1
+trust >= 1.
+has_item("lantern")
+trust >= other_fact
+eastern_gate == "north
+eastern_gate == 'north'
+"north" == "north"
+trust >=
+trust = 1
+trust => 1
+alarm_raised and
+(alarm_raised
+alarm_raised)
+Trust > 1
+not

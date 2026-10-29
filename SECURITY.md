@@ -21,7 +21,7 @@ that does is a vulnerability, and we want to hear about it.
 
 ## Release signing
 
-The six Maven Central artefacts under `com.getlingara:lingara-embed-*` are
+The six Maven artefacts at `maven.getlingara.com`, under `com.getlingara:lingara-embed-*`, are
 signed with the Lingara release key,
 `Lingara Release Signing <support@getlingara.com>`, whose fingerprint is:
 

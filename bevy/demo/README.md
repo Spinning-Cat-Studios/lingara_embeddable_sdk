@@ -18,6 +18,9 @@ Three terminals, from the repository root.
    LINGARA_CLIENT_ID=… LINGARA_CLIENT_SECRET=… cargo run -p lingara_demo_token_server
    ```
 
+   Against a local stack, add `LINGARA_BASE_URL=http://localhost:8080` here
+   and `LINGARA_DEMO_API_URL=http://localhost:8080` to the demo below.
+
 2. **The demo:**
 
    ```sh
@@ -43,10 +46,17 @@ Three terminals, from the repository root.
 | `1`–`4` | During practice: choose an option |
 | `Y` / `N` | During practice: grade yourself |
 | `Space` | During practice: reveal, or go on |
-| `Esc` | Finish the practice early (it still reports) |
+| `Esc` | During practice: finish early (it still reports) |
+| `H` | Show or hide these keys in the window |
 
-Bevy's built-in font has no Chinese or Japanese glyphs, so each reply is
-also written to the log.
+The status line says `H: keys`, so the window names its own keys.
+
+Text is drawn in the OS's sans-serif face, with its font fallback
+supplying the Chinese and Japanese glyphs (PingFang or Hiragino on macOS,
+Microsoft YaHei or Meiryo on Windows, Noto CJK through fontconfig on
+Linux). Every reply is also written to the log in full. On Linux, building
+the demo needs `libfontconfig1-dev`, and a box with no CJK font installed
+draws boxes, so read the log there.
 
 ## The headless test
 

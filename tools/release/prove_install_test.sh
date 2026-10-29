@@ -43,5 +43,57 @@ test_store_and_unknown_ids_are_refused() {
   [ "$elapsed" -le 10 ] || { echo "FAIL: the 5s deadline took ${elapsed}s"; return 1; }
 }
 
+# 23.10.26b AC6
+# Every scratch build a JVM proof makes names maven.getlingara.com: the pom
+# (java, javaserver), the Gradle file (kotlin, kotlinserver) and the natives'
+# `dependency:get` (nativesdesktop, nativesandroid). A stub `mvn` on PATH and a
+# fake checkout's stub `gradlew` copy each build out before prove-install.sh's
+# `rm -rf`, then fail, so the 1s deadline ends the run.
+test_every_jvm_scratch_build_names_our_repository() {
+  local tmp; tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' RETURN
+  mkdir -p "$tmp/bin" "$tmp/checkout" "$tmp/capture"
+  cat > "$tmp/bin/release-manifest" <<'EOF'
+#!/bin/sh
+[ "$1" = install-line ] || exit 9
+case "$2" in
+  java*) echo '<dependency><groupId>com.getlingara</groupId><artifactId>x</artifactId><version>0</version></dependency>' ;;
+  *) echo 'implementation("com.getlingara:x:0")' ;;
+esac
+EOF
+  cat > "$tmp/bin/mvn" <<'EOF'
+#!/bin/sh
+[ ! -f pom.xml ] || cp pom.xml "$(mktemp "$CAPTURE/pom.XXXXXX")"
+echo "$*" > "$(mktemp "$CAPTURE/mvn-args.XXXXXX")"
+exit 1
+EOF
+  cat > "$tmp/checkout/gradlew" <<'EOF'
+#!/bin/sh
+while [ $# -gt 0 ]; do [ "$1" != -p ] || dir=$2; shift; done
+cp "$dir/build.gradle.kts" "$(mktemp "$CAPTURE/gradle.XXXXXX")"
+exit 1
+EOF
+  chmod +x "$tmp/bin/release-manifest" "$tmp/bin/mvn" "$tmp/checkout/gradlew"
+
+  local id want code
+  for id in java javaserver kotlin kotlinserver nativesdesktop nativesandroid; do
+    rm -f "$tmp/capture"/*
+    case "$id" in
+      java*) want='<url>https://maven.getlingara.com</url>' ;;
+      kotlin*) want='forRepository { maven("https://maven.getlingara.com") }' ;;
+      natives*) want='-DremoteRepositories=lingara::default::https://maven.getlingara.com' ;;
+    esac
+    code=0
+    (cd "$tmp/checkout" && PATH="$tmp/bin:$PATH" CAPTURE="$tmp/capture" TMPDIR="$tmp" \
+      sh "$prove" "$id" v0.0.0 --deadline 1s) > "$tmp/out" 2>&1 || code=$?
+    [ "$code" = 1 ] || { cat "$tmp/out"; echo "FAIL: $id exited $code, not 1"; return 1; }
+    [ -n "$(ls -A "$tmp/capture")" ] || { cat "$tmp/out"; echo "FAIL: $id made no scratch build"; return 1; }
+    grep -qF -- "$want" "$tmp/capture"/* ||
+      { cat "$tmp/capture"/*; echo "FAIL: $id's scratch build does not name maven.getlingara.com"; return 1; }
+  done
+}
+
 test_store_and_unknown_ids_are_refused
 echo "✓ prove_install_test.sh: test_store_and_unknown_ids_are_refused"
+test_every_jvm_scratch_build_names_our_repository
+echo "✓ prove_install_test.sh: test_every_jvm_scratch_build_names_our_repository"

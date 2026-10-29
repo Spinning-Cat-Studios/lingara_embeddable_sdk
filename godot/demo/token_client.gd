@@ -32,8 +32,14 @@ func _on_token_needed(_request: int, _reason: String) -> void:
 		return
 	var reply: Array = await http.request_completed
 	http.queue_free()
-	var body: Variant = JSON.parse_string((reply[3] as PackedByteArray).get_string_from_utf8())
-	if reply[0] == HTTPRequest.RESULT_SUCCESS and reply[1] == 200 and body is Dictionary and body.has("token"):
+	var text := (reply[3] as PackedByteArray).get_string_from_utf8()
+	# Only a 200 is JSON; a failed mint answers 502 with its reason as text
+	# (ADR 15.10.26g), which is passed on rather than parsed.
+	if reply[0] != HTTPRequest.RESULT_SUCCESS or reply[1] != 200:
+		_lingara().token_unavailable("the token server answered %d: %s" % [reply[1], text])
+		return
+	var body: Variant = JSON.parse_string(text)
+	if body is Dictionary and body.has("token"):
 		_lingara().provide_token(body["token"], body["expires_at"])
 	else:
-		_lingara().token_unavailable("the token server answered %d" % reply[1])
+		_lingara().token_unavailable("the token server answered 200 without a token")

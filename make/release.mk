@@ -20,8 +20,9 @@
 # opens, for a package with natives inside).
 
 # A widening of release-manifest is a clients release first, then this pin
-# (D2, Consequences).
-RELEASE_MANIFEST_TAG := v0.2.0-alpha.1
+# (D2, Consequences). v0.2.0-alpha.4 is the first tag that spells `maven`
+# (Generator ADR 23.10.26b): languages.toml moves with it.
+RELEASE_MANIFEST_TAG := v0.2.0-alpha.4
 RELEASE_MANIFEST_REPO := https://github.com/Spinning-Cat-Studios/lingara_api_clients
 RELEASE_MANIFEST_ROOT := .tools/release-manifest-$(RELEASE_MANIFEST_TAG)
 RELEASE_MANIFEST := $(RELEASE_MANIFEST_ROOT)/bin/release-manifest
@@ -32,6 +33,12 @@ RELEASE_TOML := bash tools/release/release-toml.sh
 GRADLE ?= ./gradlew
 
 # ── The rows (Step 0: each kit's make file, read 2026-10-12) ───────────────
+
+# The dialogue IR crate (ADR 28.10.26f D11): no conformance surface of its
+# own, so no tier.
+RELEASE_BUILD_dialogue := test-dialogue check-package-dialogue
+RELEASE_TIER_dialogue :=
+RELEASE_PACK_dialogue = $(CARGO) package -p lingara-dialogue-ir --locked
 
 RELEASE_BUILD_core := check-codegen-core test-core check-msrv-core check-package-core
 RELEASE_TIER_core := ek es

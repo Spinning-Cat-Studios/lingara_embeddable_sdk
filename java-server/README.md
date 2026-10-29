@@ -11,9 +11,18 @@ The official Java server kit for embedding [Lingara](https://getlingara.com) in 
 
 ## Install
 
+The kit is published to Lingara's own Maven repository, `https://maven.getlingara.com`, so your build names it beside the dependency. The versions published before the move stay on Maven Central too; new ones are only here.
+
 Maven:
 
 ```xml
+<repositories>
+  <repository>
+    <id>lingara</id>
+    <url>https://maven.getlingara.com</url>
+  </repository>
+</repositories>
+
 <dependency>
   <groupId>com.getlingara</groupId>
   <artifactId>lingara-embed-server-java</artifactId>
@@ -24,7 +33,17 @@ Maven:
 Gradle:
 
 ```kotlin
-implementation("com.getlingara:lingara-embed-server-java:VERSION")
+repositories {
+    exclusiveContent {
+        forRepository { maven("https://maven.getlingara.com") }
+        filter { includeGroup("com.getlingara") }
+    }
+    mavenCentral()
+}
+
+dependencies {
+    implementation("com.getlingara:lingara-embed-server-java:VERSION")
+}
 ```
 
 Build one server and one router at startup, from the environment. Only a **metered** client may mint.

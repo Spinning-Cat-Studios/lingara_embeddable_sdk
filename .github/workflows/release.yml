@@ -10,8 +10,8 @@ name: Release
 # and checked inside every package that carries them before anything is
 # published. No registry credential exists outside the public repository's
 # `release` environment: crates.io, npm, NuGet and RubyGems mint a short-lived
-# token through OIDC; Maven Central and the PHP mirror read the environment's
-# secrets; the Godot Asset Library and Fab have no publish API, so their jobs
+# token through OIDC; maven.getlingara.com's R2 bucket and the PHP mirror read
+# the environment's secrets; the Godot Asset Library and Fab have no publish API, so their jobs
 # write a person's checklist.
 #
 # release-manifest is installed from the public lingara_api_clients
@@ -216,8 +216,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: release-build-${{ matrix.id }}
+      # libfontconfig1-dev: clippy-bevy builds the demo, whose OS font
+      # fallback links fontconfig (ADR 15.10.26p D4).
       - if: matrix.id == 'bevy'
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev libfontconfig1-dev
       - if: matrix.id == 'typescript'
         uses: actions/setup-node@v4
         with:
@@ -321,13 +323,13 @@ jobs:
         run: npm publish --dry-run --tag next "$RUNNER_TEMP/artefact/${{ matrix.uploaded }}"
 
       # Multi-package (Cargo >= 1.90), so bevy_lingara packages against the
-      # unpublished core.
+      # unpublished core. The dialogue IR crate leads (ADR 28.10.26f D11).
       - if: matrix.registry == 'crates.io'
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.98.1"
       - if: matrix.registry == 'crates.io'
-        run: cargo +1.98.1 publish --dry-run --locked -p lingara-embed -p bevy_lingara
+        run: cargo +1.98.1 publish --dry-run --locked -p lingara-dialogue-ir -p lingara-embed -p bevy_lingara
 
       # K3 AC22 and V1 AC31: the package-shape tests, the player's over the
       # Release's own .nupkg.
@@ -375,9 +377,9 @@ jobs:
           git cat-file -e "$split:composer.json" || { echo "✗ the split has no root composer.json"; exit 1; }
 
       # Sign with a key made here, publish to the file repository, and check
-      # what Central requires. The real key never leaves `release`. The AAR's
-      # main file is .aar; every other coordinate's is .jar.
-      - if: matrix.registry == 'maven-central'
+      # the files a Maven repository serves. The real key never leaves
+      # `release`. The AAR's main file is .aar; every other coordinate's is .jar.
+      - if: matrix.registry == 'maven'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -388,7 +390,7 @@ jobs:
           pattern: natives-{win-x64,osx,linux-x64,android-arm64}
           merge-multiple: true
           path: .
-      - if: matrix.registry == 'maven-central'
+      - if: matrix.registry == 'maven'
         name: Sign with an ephemeral key and check the file repository
         env:
           PROJECT: ${{ matrix.dir }}
@@ -506,11 +508,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.98.1"
-      # Cargo publishes the core first and waits for the index before the
-      # plugin; a crate already published is dropped from the command.
+      # Cargo publishes the dialogue IR crate, then the core, then the plugin,
+      # waiting for the index between; a crate already published is dropped
+      # from the command.
       - id: probe
         run: |
           crates=""
+          [ "$(sh tools/release/probe.sh dialogue "$TAG")" = absent ] && crates="$crates -p lingara-dialogue-ir"
           [ "$(sh tools/release/probe.sh core "$TAG")" = absent ] && crates="$crates -p lingara-embed"
           [ "$(sh tools/release/probe.sh bevy "$TAG")" = absent ] && crates="$crates -p bevy_lingara"
           echo "crates=$crates" >> "$GITHUB_OUTPUT"
@@ -522,6 +526,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: cargo +1.98.1 publish --locked ${{ steps.probe.outputs.crates }}
       - run: |
+          sh tools/release/prove-install.sh dialogue "$TAG" --deadline 15m
           sh tools/release/prove-install.sh core "$TAG" --deadline 15m
           sh tools/release/prove-install.sh bevy "$TAG" --deadline 15m
 
@@ -646,7 +651,7 @@ jobs:
 
   publish-maven:
     needs: [manifest, github-release]
-    if: github.repository == 'Spinning-Cat-Studios/lingara_embeddable_sdk' && contains(fromJSON(needs.manifest.outputs.registries), 'maven-central')
+    if: github.repository == 'Spinning-Cat-Studios/lingara_embeddable_sdk' && contains(fromJSON(needs.manifest.outputs.registries), 'maven')
     runs-on: ubuntu-latest
     environment: release
     # Above the sum of the six proofs' deadlines, 60m each in the worst case.
@@ -675,25 +680,30 @@ jobs:
         run: |
           make release-pack ID=nativesdesktop
           make release-pack ID=nativesandroid
-      # Signs and uploads only the coordinates whose probe is 404. Central
-      # rejects a duplicate version, so a probe that races its propagation
-      # fails loudly and never publishes twice.
-      - name: Sign and upload to the Central Portal
+      # Signs and uploads only the coordinates whose probe is 404 (Generator
+      # ADR 23.10.26a §2). Unlike Central, R2 accepts an overwrite, so
+      # "written once" rests on this probe: it reads maven.getlingara.com
+      # through an edge that never caches a 4xx, and R2 reads are strongly
+      # consistent, so `absent` is never stale and a re-run after a publish
+      # reads `present`.
+      - name: Sign and upload to maven.getlingara.com
         env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+          R2_MAVEN_ACCESS_KEY_ID: ${{ secrets.R2_MAVEN_ACCESS_KEY_ID }}
+          R2_MAVEN_SECRET_ACCESS_KEY: ${{ secrets.R2_MAVEN_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
         run: |
-          for row in $(echo "$MATRIX" | jq -r '.include[] | select(.registry == "maven-central") | "\(.id):\(.dir)"'); do
+          for row in $(echo "$MATRIX" | jq -r '.include[] | select(.registry == "maven") | "\(.id):\(.dir)"'); do
             id=${row%%:*}; project=${row#*:}
             if [ "$(sh tools/release/probe.sh "$id" "$TAG")" = absent ]; then
-              ./gradlew ":$project:publishAndReleaseToMavenCentral"
+              ./gradlew ":$project:publishAllPublicationsToLingaraRepository" \
+                -Dorg.gradle.s3.endpoint="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
             fi
           done
       - name: Prove the install lines
         run: |
-          for id in $(echo "$MATRIX" | jq -r '.include[] | select(.registry == "maven-central") | .id'); do
+          for id in $(echo "$MATRIX" | jq -r '.include[] | select(.registry == "maven") | .id'); do
             sh tools/release/prove-install.sh "$id" "$TAG" --deadline 60m
           done
 
@@ -789,17 +799,24 @@ jobs:
           url=$(gh release view "$TAG" --json assets --jq ".assets[] | select(.name == \"$asset\") | .url")
           [ -n "$url" ] || { echo "✗ the Release holds no $asset"; exit 1; }
           floor=$(sed -n 's/^| Godot version | \([0-9.]*\).*/\1/p' godot/addon/ASSETLIB.md)
-          pre=""; [[ "$TAG" == *-* ]] && pre=" (pre-release)"
+          # The version string stays bare SemVer: examples-check's godot-assetlib
+          # reader compares it by SemVer. A pre-release is said in the description
+          # (1.10.26ag D8), so the note below is for the person.
+          pre=""; [[ "$TAG" == *-* ]] && pre="yes"
           {
             echo "## Godot Asset Library: submit this edit by hand"
             echo
             echo "| Field | Value |"
             echo "|---|---|"
-            echo "| Version string | ${TAG#v}$pre |"
+            echo "| Version string | ${TAG#v} |"
             echo "| Godot version | $floor |"
             echo "| Repository host | Custom |"
             echo "| Download URL | $url |"
             echo
+            if [ -n "$pre" ]; then
+              echo "**A pre-release:** keep the version string bare, and say \"Pre-release\" in the description; the Asset Library has no pre-release channel."
+              echo
+            fi
             echo "### Listing text (godot/addon/ASSETLIB.md)"
             echo
             cat godot/addon/ASSETLIB.md

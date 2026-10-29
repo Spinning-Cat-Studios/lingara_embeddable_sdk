@@ -5,9 +5,9 @@
 module Lingara
   module Embed
     # This kit release, SemVer: the default elementSrc reads it.
-    VERSION = "0.1.0-alpha.8"
+    VERSION = "0.2.0-alpha.1"
 
     # The same version in the RubyGems spelling the gemspec uses.
-    GEM_VERSION = "0.1.0.pre.alpha.8"
+    GEM_VERSION = "0.2.0.pre.alpha.1"
   end
 end

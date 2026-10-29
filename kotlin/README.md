@@ -12,6 +12,21 @@ Two lines: the kit, and the natives for the platform. In a libGDX project the
 desktop natives go in the `lwjgl3` module and the Android natives in the
 `android` module, where libGDX's own natives already sit.
 
+The kit is published to Lingara's own Maven repository,
+`https://maven.getlingara.com`, so the build names it beside the dependencies
+(in `settings.gradle.kts`, or each module's `repositories`). The versions
+published before the move stay on Maven Central too; new ones are only here.
+
+```kotlin
+repositories {
+    exclusiveContent {
+        forRepository { maven("https://maven.getlingara.com") }
+        filter { includeGroup("com.getlingara") }
+    }
+    mavenCentral()
+}
+```
+
 ```kotlin
 // core
 implementation("com.getlingara:lingara-embed-kotlin:<version>")

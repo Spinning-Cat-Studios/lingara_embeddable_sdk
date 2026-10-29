@@ -17,7 +17,8 @@ CORE_MSRV := 1.87
 # library are the bindings' artefacts: this crate only builds at each floor.
 CORE_TARGETS := x86_64-pc-windows-msvc aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu aarch64-linux-android aarch64-apple-ios
 
-.PHONY: codegen-core check-codegen-core test-core check-msrv-core check-package-core build-core-targets help-core
+.PHONY: codegen-core check-codegen-core test-core check-msrv-core check-package-core build-core-targets help-core \
+        test-dialogue check-package-dialogue
 
 ## Every EK case through the Rust surface. The recipe is make/conformance.mk's
 ## pattern rule; the name is spelled here so a shipped workflow may call it.
@@ -32,9 +33,17 @@ codegen-core:
 check-codegen-core:
 	@:
 
+## lingara-dialogue-ir (ADR 28.10.26f D11): clippy and its tests, with and
+## without `schema`, the doctests included.
+test-dialogue:
+	$(CARGO) clippy -p lingara-dialogue-ir --all-targets --features schema -- -D warnings
+	$(CARGO) test -p lingara-dialogue-ir
+	$(CARGO) test -p lingara-dialogue-ir --features schema
+
 ## clippy, both TLS features, `schema`, `server`, the doctests, and the EK
 ## harness's own tests (the shape vector, the spec limits, the handoff vector).
-test-core:
+## The dialogue IR crate first, which the core will pin (D11).
+test-core: test-dialogue
 	$(CARGO) clippy -p lingara-embed -p lingara-embed-ek-harness -p lingara-embed-es-harness -p lingara-embed-server-snippets --all-targets --features lingara-embed/schema,lingara-embed/server -- -D warnings
 	$(CARGO) test -p lingara-embed
 	$(CARGO) test -p lingara-embed --features server
@@ -62,6 +71,17 @@ check-package-core:
 	  if [ -n "$$stray" ]; then echo "✗ the package carries: $$stray"; exit 1; fi; \
 	  echo "✓ lingara-embed packages src/**, README.md and LICENSE only"
 
+## lingara-dialogue-ir packages only src/**, predicate.ebnf, README.md and
+## LICENSE, and its non-dev dependencies are serde, serde_json and the
+## optional schemars (ADR 28.10.26f AC25): Backend links it, so it stays light.
+check-package-dialogue:
+	@stray=$$($(CARGO) package -p lingara-dialogue-ir --list --allow-dirty | grep -vE '^(src/|predicate\.ebnf$$|README\.md$$|LICENSE$$|Cargo\.toml$$|Cargo\.toml\.orig$$|Cargo\.lock$$|\.cargo_vcs_info\.json$$)'); \
+	  if [ -n "$$stray" ]; then echo "✗ the package carries: $$stray"; exit 1; fi
+	@deps=$$($(CARGO) tree -p lingara-dialogue-ir --edges normal --depth 1 --all-features --prefix none --format '{p}' | tail -n +2 | cut -d' ' -f1 | sort -u); \
+	  stray=$$(printf '%s\n' "$$deps" | grep -vxE 'serde|serde_json|schemars'); \
+	  if [ -n "$$stray" ]; then echo "✗ lingara-dialogue-ir depends on: $$stray"; exit 1; fi
+	@echo "✓ lingara-dialogue-ir packages src/**, predicate.ebnf, README.md and LICENSE, over serde, serde_json and schemars"
+
 ## One target of D11 (TARGET=<triple>); the CI matrix runs each on its runner.
 build-core-targets:
 	$(CARGO) build -p lingara-embed --release --target $(TARGET)
@@ -69,7 +89,9 @@ build-core-targets:
 help-core:
 	@echo ""
 	@echo "core (lingara-embed):"
-	@echo "  make test-core             - clippy, both TLS features, schema, doctests, harness tests"
+	@echo "  make test-dialogue         - lingara-dialogue-ir: clippy, its tests, with and without schema"
+	@echo "  make check-package-dialogue - Its package list and its three dependencies (AC25)"
+	@echo "  make test-core             - test-dialogue, then clippy, both TLS features, schema, doctests, harness tests"
 	@echo "  make conformance-ek-core   - Every EK case through the Rust surface"
 	@echo "  make conformance-es-core   - Every ES case through the server feature"
 	@echo "  make check-msrv-core       - The packaged crate on Rust $(CORE_MSRV), lock removed"

@@ -21,6 +21,24 @@ so a stalled network never delays a frame.
 3. Set **lingara/token_url** to your server's token route (below), or leave it
    empty and answer `token_needed` yourself.
 
+**macOS: a zip unzipped by hand may be quarantined.** The macOS library
+carries only an ad-hoc signature, not a Developer ID, so when a browser
+downloads the release zip and Finder unzips it, Gatekeeper refuses to load
+`liblingara_godot` ("Apple cannot check it for malicious software"). Installing
+from the Asset Library, or through the AssetLib tab's **Import…** with the
+zip itself, avoids it. If you copied the folder by hand, clear the flag and
+restart the editor:
+
+```sh
+xattr -dr com.apple.quarantine addons/lingara
+```
+
+**A working sample** is in the repository, not in this addon:
+[`godot/demo`](https://github.com/Spinning-Cat-Studios/lingara_embeddable_sdk/tree/main/godot/demo),
+a night market with two NPCs at two levels and a practice session. It runs
+beside the repository's demo token server, so it needs a clone, a Rust
+toolchain and a metered client; its README has the steps.
+
 Tested on Godot **4.5** and **4.7**. The floor is 4.5: the library is built
 against the 4.5 API, and GDExtension loads it on every later 4.x.
 

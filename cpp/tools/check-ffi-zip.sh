@@ -27,7 +27,9 @@ names="$("$py" -c 'import sys, zipfile; print("\n".join(zipfile.ZipFile(sys.argv
 missing=0
 for want in LICENSE include/lingara_embed.h include/lingara_embed.hpp \
             share/lingara-embed/lingara-embed-config.cmake share/lingara-embed/lingara-embed-config-version.cmake $libs; do
-  if ! printf '%s\n' "$names" | grep -qxF "$want"; then
+  # A here-string, not a pipe: grep -q exits on the first match, and under
+  # pipefail the writer's SIGPIPE would fail a path that is present.
+  if ! grep -qxF "$want" <<<"$names"; then
     echo "✗ $zip: no $want" >&2
     missing=1
   fi

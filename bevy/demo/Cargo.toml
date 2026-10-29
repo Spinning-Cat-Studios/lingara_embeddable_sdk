@@ -15,9 +15,10 @@ name = "bevy-lingara-demo"
 path = "src/main.rs"
 
 # Bevy with its default features: the demo draws (D10). The plugin itself
-# never does.
+# never does. `system_font_discovery` draws CJK through the OS's font
+# fallback (ADR 15.10.26p D1); on Linux it links fontconfig.
 [dependencies]
-bevy = "0.20"
+bevy = { version = "0.20", features = ["system_font_discovery"] }
 bevy_lingara = { path = ".." }
 
 [dev-dependencies]

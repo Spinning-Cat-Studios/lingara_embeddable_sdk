@@ -16,7 +16,7 @@
 # recorded (D1), with its changelog bullet and the README's install line.
 # `fab` is admitted below all the same, since admitting requires nothing.
 
-registries = ["crates.io", "npm", "nuget", "rubygems", "maven-central", "go", "packagist", "godot-assetlib", "fab"]
+registries = ["crates.io", "npm", "nuget", "rubygems", "maven", "go", "packagist", "godot-assetlib", "fab"]
 
 # The C ABI's per-platform zips (K3), written by `make release-ffi-zip` on each
 # natives leg: release assets with no entry of their own (W7).
@@ -28,6 +28,20 @@ extra_assets = [
   # registry ids, so they ride here rather than as entries.
   "lingara-embed-vcpkg-port-{version}.zip", "lingara-embed-conan-recipe-{version}.zip",
 ]
+
+# The dialogue IR crate (ADR 28.10.26f D11): dependency-light, so Backend can
+# link it. Published first, since the core will pin it exactly (Phase B).
+[[language]]
+id = "dialogue"
+dir = "dialogue-ir"
+registry = "crates.io"
+package = "lingara-dialogue-ir"
+snippets = "snippets/dialogue-ir"
+version_files = [
+  { path = "dialogue-ir/Cargo.toml", kind = "toml", keys = ["package.version"] },
+]
+artefact = { built = "target/package/lingara-dialogue-ir-{semver}.crate", uploaded = "lingara-embed-dialogue-{version}.crate" }
+since = "0.1.0-alpha.9"
 
 # The core crate. The two unpublished native crates report the version too
 # (K3's lingara_embed_version, K7's lingara_embed_uniffi_version), so their
@@ -95,12 +109,13 @@ version_files = [
 artefact = { built = "typescript/lingara-embed-{semver}.tgz", uploaded = "lingara-embed-typescript-{version}.tgz" }
 since = "0.1.0-alpha.1"
 
-# Six Maven Central coordinates from the one root Gradle build, versioned from
-# VERSION, so no version_files; Central serves the signed bundles, so no
+# Six coordinates on maven.getlingara.com (Generator ADR 23.10.26a) from the
+# one root Gradle build, versioned from VERSION, so no version_files; that
+# repository serves the signed files, so no
 # artefact. `manifest` names the root settings file publish/snapshot.toml reads.
 [[language]]
 id = "kotlin"
-registry = "maven-central"
+registry = "maven"
 package = "com.getlingara:lingara-embed-kotlin"
 manifest = "settings.gradle.kts"
 snippets = "snippets/player/kotlin"
@@ -108,7 +123,7 @@ since = "0.1.0-alpha.1"
 
 [[language]]
 id = "java"
-registry = "maven-central"
+registry = "maven"
 package = "com.getlingara:lingara-embed-java"
 manifest = "settings.gradle.kts"
 snippets = "snippets/player/java"
@@ -119,7 +134,7 @@ since = "0.1.0-alpha.1"
 [[language]]
 id = "nativesdesktop"
 dir = "natives-desktop"
-registry = "maven-central"
+registry = "maven"
 package = "com.getlingara:lingara-embed-natives-desktop"
 manifest = "settings.gradle.kts"
 snippets = "snippets/player/kotlin"
@@ -128,7 +143,7 @@ since = "0.1.0-alpha.1"
 [[language]]
 id = "nativesandroid"
 dir = "natives-android"
-registry = "maven-central"
+registry = "maven"
 package = "com.getlingara:lingara-embed-natives-android"
 manifest = "settings.gradle.kts"
 snippets = "snippets/player/kotlin"
@@ -137,7 +152,7 @@ since = "0.1.0-alpha.1"
 [[language]]
 id = "kotlinserver"
 dir = "kotlin-server"
-registry = "maven-central"
+registry = "maven"
 package = "com.getlingara:lingara-embed-server-kotlin"
 manifest = "settings.gradle.kts"
 snippets = "snippets/server/kotlin"
@@ -146,7 +161,7 @@ since = "0.1.0-alpha.1"
 [[language]]
 id = "javaserver"
 dir = "java-server"
-registry = "maven-central"
+registry = "maven"
 package = "com.getlingara:lingara-embed-server-java"
 manifest = "settings.gradle.kts"
 snippets = "snippets/server/java"

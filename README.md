@@ -29,23 +29,24 @@ Only a metered OAuth client may mint, and the usage is billed to it.
 
 ## Install
 
-Every package is a **pre-release** until `1.0.0`, and all fifteen share one
+Every package is a **pre-release** until `1.0.0`, and all sixteen share one
 version: install the newest `0.1.0-alpha.N` (npm's `next` tag).
 
 | Surface | Package |
 |---|---|
 | Rust (player core; server kit behind `server`) | crates.io `lingara-embed` |
 | Bevy | crates.io `bevy_lingara` |
+| The dialogue graph format (`dialogue.v1`: its types, checks and predicate language, for a server that validates one) | crates.io `lingara-dialogue-ir` |
 | Unity, Godot C# | NuGet `Lingara.Embed` |
 | Godot (GDScript) | the Godot Asset Library's **Lingara**, or this repository's release asset `lingara-embed-godot-<version>.zip` |
-| Kotlin, Java, libGDX, Android | Maven Central `com.getlingara:lingara-embed-kotlin` or `-java`, with `lingara-embed-natives-desktop` or `lingara-embed-natives-android` |
+| Kotlin, Java, libGDX, Android | `maven.getlingara.com` (the repository block is in each kit's README) `com.getlingara:lingara-embed-kotlin` or `-java`, with `lingara-embed-natives-desktop` or `lingara-embed-natives-android` |
 | Websites | npm `@lingara/embed` (also on jsDelivr) |
 | C and C++ | this repository's release assets: `lingara-embed-ffi-<version>-<platform>.zip` for `win-x64`, `osx`, `linux-x64`, `android-arm64` and `ios-arm64` (a CMake package: plain, or by CPM or FetchContent), a vcpkg overlay port, and a Conan recipe; all give `find_package(lingara-embed)`. See [cpp/](cpp/README.md) |
 | Unreal Engine 5 | **not released yet**: the plugin is built and tested without the engine, and ships once it has run inside one |
 | Server: TypeScript | npm `@lingara/embed`, `/server` |
 | Server: Rust | crates.io `lingara-embed`, feature `server` |
 | Server: Go | `github.com/Spinning-Cat-Studios/lingara_embeddable_sdk/go` |
-| Server: Java, Kotlin | Maven Central `com.getlingara:lingara-embed-server-java`, `lingara-embed-server-kotlin` |
+| Server: Java, Kotlin | `maven.getlingara.com` `com.getlingara:lingara-embed-server-java`, `lingara-embed-server-kotlin` |
 | Server: Ruby | RubyGems `lingara-embed` |
 | Server: PHP | Packagist `spinningcatstudios/lingara-embed` |
 | Server: C# | NuGet `Lingara.Embed.Server` |
