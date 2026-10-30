@@ -1,13 +1,13 @@
 PATH
   remote: ..
   specs:
-    lingara-embed (0.2.0.pre.alpha.1)
-      lingara (>= 0.2.0.pre.alpha.1, < 0.3)
+    lingara-embed (0.2.0.pre.alpha.5)
+      lingara (>= 0.2.0.pre.alpha.6, < 0.3)
 
 GEM
   remote: https://rubygems.org/
   specs:
-    lingara (0.2.0.pre.alpha.1)
+    lingara (0.2.0.pre.alpha.6)
     rack (3.2.7)
     rackup (2.3.1)
       rack (>= 3)

@@ -454,6 +454,68 @@
             "dialogue"
           ],
           "type": "object"
+        },
+        {
+          "properties": {
+            "session": {
+              "$ref": "#/$defs/GraphSession"
+            },
+            "source": {
+              "$ref": "#/$defs/DialogueSource"
+            },
+            "type": {
+              "const": "dialogue_load",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "source",
+            "session"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "key": {
+              "type": "string"
+            },
+            "type": {
+              "const": "dialogue_set_fact",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/FactValue"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue",
+            "key",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "ir_json": {
+              "type": "string"
+            },
+            "type": {
+              "const": "dialogue_validate",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "ir_json"
+          ],
+          "type": "object"
         }
       ]
     },
@@ -536,9 +598,25 @@
         }
       ]
     },
+    "CrossedVia": {
+      "description": "How a checkpoint was reached: the load, an edge with no `when`, or the judge.",
+      "enum": [
+        "start",
+        "auto",
+        "judge"
+      ],
+      "type": "string"
+    },
     "DialogueConfig": {
-      "description": "B3's request, held between turns (D8).",
+      "description": "B3's request, held between turns (D8), with N1's profile (ADR\n28.10.26f D7): both omitted from JSON when unset, so an existing\n`dialogue_open` reads and writes back byte-equal.",
       "properties": {
+        "languages": {
+          "description": "The NPC's languages: 1–8 entries with unique codes, or none.",
+          "items": {
+            "$ref": "#/$defs/NpcLanguage"
+          },
+          "type": "array"
+        },
         "level": {
           "format": "uint8",
           "maximum": 255,
@@ -547,6 +625,16 @@
         },
         "npc": {
           "$ref": "#/$defs/Npc"
+        },
+        "pedagogy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pedagogy"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "scene": {
           "default": null,
@@ -577,16 +665,39 @@
       ],
       "type": "object"
     },
+    "DialogueOutcome": {
+      "description": "The reserved `to` names a story ends on.",
+      "enum": [
+        "success",
+        "failure",
+        "abandoned"
+      ],
+      "type": "string"
+    },
     "DialoguePhase": {
+      "description": "`Ended` once a graph dialogue crosses an edge to an outcome (ADR\n28.10.26f D4); `Loading` while a stored one is fetched (ADR 28.10.26i D2).",
       "enum": [
         "idle",
         "sending",
-        "streaming"
+        "streaming",
+        "ended",
+        "loading"
       ],
       "type": "string"
     },
     "DialogueSnapshot": {
       "properties": {
+        "graph": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GraphSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where a graph dialogue's story is; omitted for a free-form one."
+        },
         "level": {
           "format": "uint8",
           "maximum": 255,
@@ -619,6 +730,45 @@
         "window"
       ],
       "type": "object"
+    },
+    "DialogueSource": {
+      "description": "Where a graph dialogue comes from.",
+      "oneOf": [
+        {
+          "description": "A `dialogue.v1` document, as text.",
+          "properties": {
+            "ir_json": {
+              "type": "string"
+            },
+            "type": {
+              "const": "ir",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "ir_json"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The active revision of a dialogue saved on Lingara, by its store\nid (a UUID, never the IR's own `id`), fetched with the player's\ntoken (ADR 28.10.26i D2).",
+          "properties": {
+            "dialogue_id": {
+              "type": "string"
+            },
+            "type": {
+              "const": "stored",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue_id"
+          ],
+          "type": "object"
+        }
+      ]
     },
     "EmbedConfig": {
       "properties": {
@@ -898,6 +1048,122 @@
         },
         {
           "properties": {
+            "checkpoint": {
+              "type": "string"
+            },
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "edge": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "checkpoint_reached",
+              "type": "string"
+            },
+            "via": {
+              "$ref": "#/$defs/CrossedVia"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue",
+            "checkpoint",
+            "via"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "checkpoint": {
+              "type": "string"
+            },
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "edge": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "outcome": {
+              "$ref": "#/$defs/DialogueOutcome"
+            },
+            "type": {
+              "const": "dialogue_ended",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue",
+            "outcome",
+            "checkpoint"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A stored dialogue's revision `rev` is loaded; `CheckpointReached { via: start }` follows.",
+          "properties": {
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "dialogue_id": {
+              "type": "string"
+            },
+            "rev": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "dialogue_loaded",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue",
+            "dialogue_id",
+            "rev"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A stored dialogue could not load; its id is gone.",
+          "properties": {
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "error": {
+              "$ref": "#/$defs/EmbedError"
+            },
+            "type": {
+              "const": "dialogue_load_failed",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue",
+            "error"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
             "error": {
               "$ref": "#/$defs/EmbedError"
             },
@@ -999,6 +1265,119 @@
         "internal"
       ],
       "type": "string"
+    },
+    "FactValue": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "A fact's value: a declaration's `default`, or what the game sets.\n\nA number is held as the [`Number`] it was written as, so `0` stays `0` and\n`0.4` stays `0.4` when the IR is written back."
+    },
+    "GraphSession": {
+      "description": "One run of a graph: which cast member speaks, the learner's settings,\nand, to resume a saved story, its checkpoint, facts and window.",
+      "properties": {
+        "checkpoint": {
+          "default": null,
+          "description": "Resume here instead of at the IR's `start`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "facts": {
+          "additionalProperties": {
+            "$ref": "#/$defs/FactValue"
+          },
+          "default": {},
+          "description": "Values set before the first auto-crossing, each checked as `DialogueSetFact` checks it.",
+          "type": "object"
+        },
+        "level": {
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "npc": {
+          "default": null,
+          "description": "A cast member's id; may be omitted only when the cast has one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scene": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_lang": {
+          "type": "string"
+        },
+        "target_lang": {
+          "type": "string"
+        },
+        "window": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/WindowEntry"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_lang",
+        "target_lang",
+        "level"
+      ],
+      "type": "object"
+    },
+    "GraphSnapshot": {
+      "description": "A graph dialogue's story, for the game to save. `facts` holds only\nthe values the game set, never defaults. Fed back as a\n[`GraphSession`] with the same IR, it restores the story.",
+      "properties": {
+        "checkpoint": {
+          "type": "string"
+        },
+        "facts": {
+          "additionalProperties": {
+            "$ref": "#/$defs/FactValue"
+          },
+          "type": "object"
+        },
+        "id": {
+          "description": "The IR's own `id`.",
+          "type": "string"
+        },
+        "npc": {
+          "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DialogueOutcome"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "npc",
+        "checkpoint",
+        "facts"
+      ],
+      "type": "object"
     },
     "Header": {
       "description": "One header the Http token source sends. The value is a secret: a game\nsession is a credential too.",
@@ -1150,6 +1529,33 @@
       ],
       "type": "object"
     },
+    "NpcLanguage": {
+      "additionalProperties": false,
+      "description": "One entry of an NPC's language profile (N1).",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "comprehension": {
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "speaking": {
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code",
+        "speaking",
+        "comprehension"
+      ],
+      "type": "object"
+    },
     "NpcTurnUpdate": {
       "oneOf": [
         {
@@ -1228,6 +1634,21 @@
             "type"
           ],
           "type": "object"
+        }
+      ]
+    },
+    "Pedagogy": {
+      "description": "How much the NPC adapts its speech to the learner (N1). Per dialogue.",
+      "oneOf": [
+        {
+          "const": "subtle",
+          "description": "The speech level is `min(NPC speaking, learner level)`.",
+          "type": "string"
+        },
+        {
+          "const": "none",
+          "description": "The NPC's own level decides.",
+          "type": "string"
         }
       ]
     },

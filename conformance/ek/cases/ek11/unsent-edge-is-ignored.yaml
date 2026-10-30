@@ -1,0 +1,35 @@
+id: ek11.unsent-edge-is-ignored
+behaviours: [EK11]
+tier: ek
+# `explained` is closed (trust is 0), so the turn did not send it: a
+# transition over it is dropped, and the next turn is still at `intro`.
+serve:
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      body:
+        edges: [{ id: hello, to: ask, when: the player greets her }]
+    respond:
+      sse:
+        - { event: delta, data: { text: Hola } }
+        - { event: transition, data: { edge: explained, to: ask } }
+        - { event: done, data: {} }
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      body: { checkpoint: { id: intro } }
+    respond: { sse: [{ event: delta, data: { text: Hola } }, { event: done, data: {} }] }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command:
+      type: dialogue_load
+      source:
+        type: ir
+        ir_json: '{"schema":"dialogue.v1","id":"ek11","npcs":[{"id":"elena","name":"Elena"}],"facts":[{"key":"trust","type":"number","default":0}],"start":"intro","checkpoints":[{"id":"intro","goal":"Elena is wary","edges":[{"id":"explained","to":"ask","predicate":"trust >= 0.4","when":"the player explains"},{"id":"hello","to":"ask","when":"the player greets her"}]},{"id":"ask","goal":"Admit she saw soldiers"}]}'
+      session: { source_lang: en, target_lang: es, level: 2 }
+  - command: { type: dialogue_say, dialogue: $last, line: hola }
+  - poll_until: { event: npc_turn, match: { update: { type: finished, text: Hola } }, within_ms: 2000 }
+  - expect_no_event: { event: checkpoint_reached, match: { via: judge }, for_ms: 300 }
+  - command: { type: dialogue_say, dialogue: $last, line: hola otra vez }
+  - poll_until: { event: npc_turn, match: { update: { type: finished, text: Hola } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 2 }

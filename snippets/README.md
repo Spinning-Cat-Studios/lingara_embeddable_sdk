@@ -6,7 +6,8 @@ tests. Two tiers, by role rather than by package:
 ```
 snippets/
 ├── player/<surface>/   bevy · unity · godot-csharp · gdscript · unreal · kotlin · java · web
-└── server/<lang>/      typescript · rust · go · java · kotlin · ruby · php · csharp
+├── server/<lang>/      typescript · rust · go · java · kotlin · ruby · php · csharp
+└── dialogue/           missing-brother.json, the worked dialogue's IR
 ```
 
 - **A surface is a product a developer recognises,** not a package directory:
@@ -43,5 +44,16 @@ Each directory carries the regions the docs page for that surface reads. The
 player surfaces: `install`, `tokenSource`, `poll` (`gdscript` and `unreal`
 have no `install`: they install from a store by hand). The server languages:
 `install`, `mint`, `deletePlayer`, `webhook`, `widgetSnippet` (ADR 1.10.26af D13).
+
+The four surfaces with a dialogue builder (`bevy`, `unity`, `godot-csharp`,
+`gdscript`) also carry `dialogueGraph`: the worked missing-brother dialogue,
+built with that kit's builder and loaded with `DialogueLoad` (ADR 28.10.26g
+D8). `unreal`, `kotlin`, `java` and `web` have no builder and no such key.
+
+`dialogue/missing-brother.json` is that dialogue's IR, shown whole like an
+`install.*` file: byte-equal to
+`conformance/vectors/dialogue/missing-brother.comparison.json`
+(`make check-dialogue-snippet`), and the Bevy region's bytes are tested
+against it.
 
 Each kit writes its own surfaces' snippets in the change that lands it.

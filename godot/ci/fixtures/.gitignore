@@ -1,0 +1,3 @@
+# Godot 4.4+ writes a .uid beside each script it loads. Nothing here is
+# referenced by uid.
+*.gd.uid

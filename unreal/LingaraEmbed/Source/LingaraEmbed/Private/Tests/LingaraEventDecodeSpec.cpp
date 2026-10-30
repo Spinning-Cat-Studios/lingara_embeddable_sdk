@@ -55,6 +55,10 @@ BEGIN_DEFINE_SPEC(FLingaraEventDecodeSpec, "LingaraEmbed.EventDecode",
 		else if (Type == TEXT("error")) { ExpectError(O->GetObjectField(TEXT("error")), E.Error); }
 		else if (Type == TEXT("log")) { TestEqual(TEXT("level"), E.LogLevel, ELingaraLogLevel::Warn); TestEqual(TEXT("target"), E.LogTarget, O->GetStringField(TEXT("target"))); TestEqual(TEXT("message"), E.LogMessage, O->GetStringField(TEXT("message"))); }
 		else if (Type == TEXT("closed")) { TestEqual(TEXT("reason"), E.CloseReason, ELingaraCloseReason::Requested); }
+		else if (Type == TEXT("checkpoint_reached")) { TestEqual(TEXT("checkpoint"), E.Graph.Checkpoint, O->GetStringField(TEXT("checkpoint"))); TestEqual(TEXT("edge"), E.Graph.Edge, O->GetStringField(TEXT("edge"))); TestEqual(TEXT("via"), E.Graph.Via, FString(TEXT("judge"))); }
+		else if (Type == TEXT("dialogue_ended")) { TestEqual(TEXT("dialogue"), E.Graph.Dialogue, int64{4}); TestEqual(TEXT("outcome"), E.Graph.Outcome, FString(TEXT("success"))); TestEqual(TEXT("edge"), E.Graph.Edge, O->GetStringField(TEXT("edge"))); }
+		else if (Type == TEXT("dialogue_loaded")) { TestEqual(TEXT("dialogue"), E.Graph.Dialogue, int64{4}); TestEqual(TEXT("dialogue_id"), E.Graph.StoreId, O->GetStringField(TEXT("dialogue_id"))); TestEqual(TEXT("rev"), E.Graph.Rev, int64{4}); }
+		else if (Type == TEXT("dialogue_load_failed")) { TestEqual(TEXT("dialogue"), E.Graph.Dialogue, int64{4}); ExpectError(O->GetObjectField(TEXT("error")), E.Error); }
 		else { AddError(FString::Printf(TEXT("json-shape.json has an event type this spec does not check: %s"), *Type)); }
 	}
 END_DEFINE_SPEC(FLingaraEventDecodeSpec)
@@ -71,7 +75,7 @@ void FLingaraEventDecodeSpec::Define()
 	It("every event example decodes into its struct", [this]()
 	{
 		const TArray<TSharedPtr<FJsonObject>> Events = LingaraSpec::Examples(Shape, TEXT("EmbedEvent"));
-		TestEqual(TEXT("K1's nine event types"), Events.Num(), 9);
+		TestEqual(TEXT("K1's eleven event types"), Events.Num(), 11);
 		for (const TSharedPtr<FJsonObject>& Example : Events)
 		{
 			FLingaraDecodedEvent Decoded;

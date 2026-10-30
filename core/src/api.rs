@@ -58,6 +58,8 @@ pub(crate) enum PlanFrame {
 pub(crate) enum TurnFrame {
     Delta(String),
     Notice { code: String, message: String },
+    /// N2's judged crossing, before `done`: held, and applied only after it.
+    Transition { edge: String, to: String },
     Other,
 }
 
@@ -72,10 +74,18 @@ pub(crate) trait Tail: Send {
     fn cursor(&self) -> Option<String>;
 }
 
+/// `exportDialogue`'s answer (ADR 28.10.26i D3, D6): the canonical body as
+/// text with its revision and `ETag`, or `NotModified` on a `304`.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum Exported {
+    Body { rev: u64, etag: String, ir_json: String },
+    NotModified { rev: u64, etag: String },
+}
+
 pub(crate) type PlanStream = Box<dyn Frames<PlanFrame>>;
 pub(crate) type TurnStream = Box<dyn Frames<TurnFrame>>;
 
-/// The six operations a player kit calls. Request bodies are JSON in the
+/// The seven operations a player kit calls. Request bodies are JSON in the
 /// published schema's shape, validated locally before they get here.
 pub(crate) trait Api: Send + Sync + 'static {
     fn tail(&self, cursor: Option<String>, types: Vec<String>) -> Box<dyn Tail>;
@@ -85,4 +95,7 @@ pub(crate) trait Api: Send + Sync + 'static {
     fn create_plan(&self, body: Value) -> BoxFuture<'_, Result<PlanStream, EmbedError>>;
     fn stream_plan(&self, id: String) -> BoxFuture<'_, Result<PlanStream, EmbedError>>;
     fn dialogue_turn(&self, body: Value) -> BoxFuture<'_, Result<TurnStream, EmbedError>>;
+    /// The active revision of a stored dialogue, by its lowercased id, with
+    /// `If-None-Match` when the cache holds an `etag`.
+    fn export_dialogue(&self, dialogue_id: String, if_none_match: Option<String>) -> BoxFuture<'_, Result<Exported, EmbedError>>;
 }

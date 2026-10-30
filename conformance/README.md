@@ -123,6 +123,57 @@ kit's unit tests from the repository root:
 | `snippet.json` | `{description, cases: [{name, options, expect: {html} \| {refused: <field>}}]}`; `{{version}}` in `html` is the kit's `VERSION` | ES4, every server kit's `widgetSnippet` |
 | `token-handoff.json` | `[{name, input: {token, expires_at}, body}]`, `body` the exact text | ES6, every server kit's `handoffBody`; K1's reader |
 | `json-shape.json` | the core's message shapes | EK bindings |
+| `dialogue/` | the dialogue IR's golden vectors (*Dialogue IR*, below) | every dialogue builder; Backend's export |
+
+## Dialogue IR
+
+A `dialogue.v1` document has one **canonical form**: RFC 8785, the JSON
+Canonicalization Scheme (JCS), applied to the IR's normal form (ADR
+28.10.26g D2). Every key outside an `x-` member is ASCII, so it is six rules:
+
+1. **Normal form first.** No member is ever `null`. Always written, empty or
+   not: `schema`, `id`, `pedagogy` (`subtle` when the author set none),
+   `npcs`, `facts` (`[]` when none), `start`, `checkpoints`, and every
+   checkpoint's `id`, `goal`, `may_disclose` and `edges`. Omitted when
+   absent: `title`, an NPC's `persona` and `languages`, a fact's `default`,
+   an edge's `predicate` and `when`. Arrays keep author order.
+2. **Keys** sort by UTF-16 code unit, at every level.
+3. **Integers** (a level, or any number with no fractional part and magnitude
+   below 1e21) are decimal with no fraction and no exponent: `0`, never
+   `0.0`; `-0` is `0`. A builder writes at most 2^53 − 1 and refuses more.
+4. **Other numbers** are written as JCS does: the shortest decimal that
+   round-trips the `f64`, with no exponent when `1e-6 ≤ |x| < 1e21`. A
+   builder writes a non-integral `default` only within `1e-4 ≤ |x| < 1e9`,
+   with at most four decimal places, and refuses anything else.
+5. **Strings** are UTF-8. Only `"` → `\"`, `\` → `\\` and U+0000–U+001F are
+   escaped: `\b`, `\t`, `\n`, `\f`, `\r`, and `\u00` + two lowercase hex
+   digits for every other one. Everything else is raw, `/`, U+007F, U+2028
+   and U+2029 included. A lone surrogate is refused.
+6. **No whitespace** between tokens, no BOM, no trailing newline.
+
+**Comparison form.** Two IRs are the *same dialogue* when their canonical
+forms are byte-equal after every member whose name starts `x-` is removed, at
+every depth. The kits' builders, the platform canvas's export and the
+Backend's `layout=omit` export are compared in this form. The schema's
+131 072-byte cap (`x-maxBytes`) is measured on the canonical form, `x-` keys
+included.
+
+`conformance/vectors/dialogue/` (no file ends in a newline, so a test
+compares bytes with no trimming):
+
+| File | Holds | Read by |
+|---|---|---|
+| `two-keepers.canonical.json` | the schema's `two-keepers.json` example, canonical, `x-layout` kept | the Rust writer |
+| `two-keepers.comparison.json` | the same, comparison form | every builder |
+| `missing-brother.comparison.json` | two NPCs on one graph, a `0.4` and a `0` default, every outcome, a judged cycle, a quote, an accent and CJK | every builder |
+| `canonical-strings.json` | `strings`: `{input, canonical}` pairs over every escape class, CJK, an astral emoji, a combining sequence; `keys`: objects whose keys sort differently by UTF-16 unit than by UTF-8 byte | every writer (`keys`: those that meet `x-` members) |
+| `canonical-numbers.json` | `builder` and `full` lists of `{input, canonical}`, each `input` the number's text | `builder`: every writer; `full`: the Rust writer |
+| `level-labels.json` | CEFR (1–6), JLPT (`N5` 1 … `N1` 5) and `native` (9) | every kit's level helpers |
+
+`canonical-strings.json` and `canonical-numbers.json` are shared fixtures:
+**Backend** (its dialogue export, ADR 28.10.26h) vendors them, so its writer
+and the kits' cannot part. A Godot `String` cannot hold U+0000, so the
+GDScript writer's test skips that one string pair.
 
 ## What the server judges
 

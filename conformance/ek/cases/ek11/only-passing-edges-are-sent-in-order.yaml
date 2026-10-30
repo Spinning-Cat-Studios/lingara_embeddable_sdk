@@ -1,0 +1,36 @@
+id: ek11.only-passing-edges-are-sent-in-order
+behaviours: [EK11]
+tier: ek
+# With trust 0.5, `doubted` (trust < 0.4) is closed and `alarm` has no
+# `when`: the turn offers `explained` then `hello`, in IR order, and never a
+# predicate. The body is matched whole, so a predicate would fail it.
+serve:
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      body_equals:
+        npc: { name: Elena, languages: [{ code: es, speaking: 9, comprehension: 9 }] }
+        source_lang: en
+        target_lang: es
+        level: 2
+        line: hola
+        pedagogy: none
+        checkpoint: { id: intro, goal: Elena is wary, may_disclose: [trust] }
+        edges:
+          - { id: explained, to: ask, when: the player explains }
+          - { id: hello, to: ask, when: the player greets her }
+        facts: { trust: 0.5 }
+    respond: { sse: [{ event: delta, data: { text: Hola } }, { event: done, data: {} }] }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command:
+      type: dialogue_load
+      source:
+        type: ir
+        ir_json: '{"schema":"dialogue.v1","id":"ek11","pedagogy":"none","npcs":[{"id":"elena","name":"Elena","languages":[{"code":"es","speaking":9,"comprehension":9}]}],"facts":[{"key":"trust","type":"number","default":0},{"key":"alarm","type":"boolean","default":false}],"start":"intro","checkpoints":[{"id":"intro","goal":"Elena is wary","may_disclose":["trust"],"edges":[{"id":"alarm","to":"failure","predicate":"alarm"},{"id":"explained","to":"ask","predicate":"trust >= 0.4","when":"the player explains"},{"id":"doubted","to":"ask","predicate":"trust < 0.4","when":"the player is vague"},{"id":"hello","to":"ask","when":"the player greets her"}]},{"id":"ask","goal":"Admit she saw soldiers","edges":[{"id":"gate","to":"success","when":"the player asks where"}]}]}'
+      session: { source_lang: en, target_lang: es, level: 2, facts: { trust: 0.5 } }
+  - poll_until: { event: checkpoint_reached, match: { checkpoint: intro, via: start }, within_ms: 2000 }
+  - command: { type: dialogue_say, dialogue: $last, line: hola }
+  - poll_until: { event: npc_turn, match: { update: { type: finished, text: Hola } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

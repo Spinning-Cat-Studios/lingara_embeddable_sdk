@@ -644,15 +644,21 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_close(
     ): Short
+    external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_load(
+    ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_open(
     ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_say(
+    ): Short
+    external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_set_fact(
     ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_set_level(
     ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_set_scene(
     ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_snapshot(
+    ): Short
+    external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_validate(
     ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_drain(
     ): Short
@@ -726,16 +732,22 @@ external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_cancel(`
 ): Unit
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_close(`ptr`: Long,`dialogue`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
+external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_load(`ptr`: Long,`source`: RustBuffer.ByValue,`session`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Long
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_open(`ptr`: Long,`config`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Long
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_say(`ptr`: Long,`dialogue`: Long,`line`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Long
+external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_set_fact(`ptr`: Long,`dialogue`: Long,`key`: RustBuffer.ByValue,`value`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_set_level(`ptr`: Long,`dialogue`: Long,`level`: Int,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_set_scene(`ptr`: Long,`dialogue`: Long,`scene`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_snapshot(`ptr`: Long,`dialogue`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
+external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_validate(`ptr`: Long,`irJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_drain(`ptr`: Long,`max`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_execute(`ptr`: Long,`command`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -913,10 +925,16 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_close() != 29248.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_load() != 15836.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_open() != 49491.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_say() != 17919.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_set_fact() != 29533.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_set_level() != 59728.toShort()) {
@@ -926,6 +944,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_snapshot() != 16745.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_validate() != 28224.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_drain() != 7543.toShort()) {
@@ -1200,6 +1221,29 @@ public object FfiConverterLong: FfiConverter<Long, Long> {
 /**
  * @suppress
  */
+public object FfiConverterDouble: FfiConverter<Double, Double> {
+    override fun lift(value: Double): Double {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Double {
+        return buf.getDouble()
+    }
+
+    override fun lower(value: Double): Double {
+        return value
+    }
+
+    override fun allocationSize(value: Double) = 8UL
+
+    override fun write(value: Double, buf: ByteBuffer) {
+        buf.putDouble(value)
+    }
+}
+
+/**
+ * @suppress
+ */
 public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
     override fun lift(value: Byte): Boolean {
         return value.toInt() != 0
@@ -1384,6 +1428,12 @@ public interface EmbedHandleInterface {
     fun `dialogueClose`(`dialogue`: kotlin.Long)
     
     /**
+     * Loads a `dialogue.v1` graph and opens a run of it; its dialogue id
+     * (ADR 28.10.26f). `CheckpointReached` follows.
+     */
+    fun `dialogueLoad`(`source`: DialogueSource, `session`: GraphSession): kotlin.Long
+    
+    /**
      * Opens a conversation with an NPC; its id.
      */
     fun `dialogueOpen`(`config`: DialogueConfig): kotlin.Long
@@ -1393,11 +1443,21 @@ public interface EmbedHandleInterface {
      */
     fun `dialogueSay`(`dialogue`: kotlin.Long, `line`: kotlin.String): kotlin.Long
     
+    /**
+     * Sets a fact the graph declared.
+     */
+    fun `dialogueSetFact`(`dialogue`: kotlin.Long, `key`: kotlin.String, `value`: FactValue)
+    
     fun `dialogueSetLevel`(`dialogue`: kotlin.Long, `level`: kotlin.Int)
     
     fun `dialogueSetScene`(`dialogue`: kotlin.Long, `scene`: kotlin.String?)
     
     fun `dialogueSnapshot`(`dialogue`: kotlin.Long): DialogueSnapshot?
+    
+    /**
+     * Checks a `dialogue.v1` document as `dialogue_load` would, creating nothing.
+     */
+    fun `dialogueValidate`(`irJson`: kotlin.String)
     
     /**
      * At most `max` events, in queue order, in one crossing.
@@ -1609,6 +1669,24 @@ open class EmbedHandle: Disposable, AutoCloseable, EmbedHandleInterface
 
     
     /**
+     * Loads a `dialogue.v1` graph and opens a run of it; its dialogue id
+     * (ADR 28.10.26f). `CheckpointReached` follows.
+     */
+    @Throws(EmbedException::class)override fun `dialogueLoad`(`source`: DialogueSource, `session`: GraphSession): kotlin.Long {
+            return FfiConverterLong.lift(
+    callWithHandle {
+    uniffiRustCallWithError(EmbedException) { _status ->
+    UniffiLib.uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_load(
+        it,
+        FfiConverterTypeDialogueSource.lower(`source`),FfiConverterTypeGraphSession.lower(`session`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * Opens a conversation with an NPC; its id.
      */
     @Throws(EmbedException::class)override fun `dialogueOpen`(`config`: DialogueConfig): kotlin.Long {
@@ -1639,6 +1717,22 @@ open class EmbedHandle: Disposable, AutoCloseable, EmbedHandleInterface
     }
     )
     }
+    
+
+    
+    /**
+     * Sets a fact the graph declared.
+     */
+    @Throws(EmbedException::class)override fun `dialogueSetFact`(`dialogue`: kotlin.Long, `key`: kotlin.String, `value`: FactValue)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EmbedException) { _status ->
+    UniffiLib.uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_set_fact(
+        it,
+        FfiConverterLong.lower(`dialogue`),FfiConverterString.lower(`key`),FfiConverterTypeFactValue.lower(`value`),_status)
+}
+    }
+    
     
 
     
@@ -1679,6 +1773,22 @@ open class EmbedHandle: Disposable, AutoCloseable, EmbedHandleInterface
     }
     )
     }
+    
+
+    
+    /**
+     * Checks a `dialogue.v1` document as `dialogue_load` would, creating nothing.
+     */
+    @Throws(EmbedException::class)override fun `dialogueValidate`(`irJson`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EmbedException) { _status ->
+    UniffiLib.uniffi_lingara_embed_uniffi_fn_method_embedhandle_dialogue_validate(
+        it,
+        FfiConverterString.lower(`irJson`),_status)
+}
+    }
+    
     
 
     
@@ -2117,6 +2227,10 @@ data class DialogueConfig (
     var `level`: kotlin.Int
     , 
     var `window`: List<WindowEntry>
+    , 
+    var `languages`: List<NpcLanguage> = listOf() 
+    , 
+    var `pedagogy`: Pedagogy? = null 
     
 ){
     
@@ -2139,6 +2253,8 @@ public object FfiConverterTypeDialogueConfig: FfiConverterRustBuffer<DialogueCon
             FfiConverterString.read(buf),
             FfiConverterInt.read(buf),
             FfiConverterSequenceTypeWindowEntry.read(buf),
+            FfiConverterSequenceTypeNpcLanguage.read(buf),
+            FfiConverterOptionalTypePedagogy.read(buf),
         )
     }
 
@@ -2148,7 +2264,9 @@ public object FfiConverterTypeDialogueConfig: FfiConverterRustBuffer<DialogueCon
             FfiConverterString.allocationSize(value.`sourceLang`) +
             FfiConverterString.allocationSize(value.`targetLang`) +
             FfiConverterInt.allocationSize(value.`level`) +
-            FfiConverterSequenceTypeWindowEntry.allocationSize(value.`window`)
+            FfiConverterSequenceTypeWindowEntry.allocationSize(value.`window`) +
+            FfiConverterSequenceTypeNpcLanguage.allocationSize(value.`languages`) +
+            FfiConverterOptionalTypePedagogy.allocationSize(value.`pedagogy`)
     )
 
     override fun write(value: DialogueConfig, buf: ByteBuffer) {
@@ -2158,6 +2276,8 @@ public object FfiConverterTypeDialogueConfig: FfiConverterRustBuffer<DialogueCon
             FfiConverterString.write(value.`targetLang`, buf)
             FfiConverterInt.write(value.`level`, buf)
             FfiConverterSequenceTypeWindowEntry.write(value.`window`, buf)
+            FfiConverterSequenceTypeNpcLanguage.write(value.`languages`, buf)
+            FfiConverterOptionalTypePedagogy.write(value.`pedagogy`, buf)
     }
 }
 
@@ -2173,6 +2293,11 @@ data class DialogueSnapshot (
     var `level`: kotlin.Int
     , 
     var `window`: List<WindowEntry>
+    , 
+    /**
+     * A graph dialogue's story; null for a free-form one.
+     */
+    var `graph`: GraphSnapshot? = null 
     
 ){
     
@@ -2194,6 +2319,7 @@ public object FfiConverterTypeDialogueSnapshot: FfiConverterRustBuffer<DialogueS
             FfiConverterOptionalString.read(buf),
             FfiConverterInt.read(buf),
             FfiConverterSequenceTypeWindowEntry.read(buf),
+            FfiConverterOptionalTypeGraphSnapshot.read(buf),
         )
     }
 
@@ -2202,7 +2328,8 @@ public object FfiConverterTypeDialogueSnapshot: FfiConverterRustBuffer<DialogueS
             FfiConverterTypeNpc.allocationSize(value.`npc`) +
             FfiConverterOptionalString.allocationSize(value.`scene`) +
             FfiConverterInt.allocationSize(value.`level`) +
-            FfiConverterSequenceTypeWindowEntry.allocationSize(value.`window`)
+            FfiConverterSequenceTypeWindowEntry.allocationSize(value.`window`) +
+            FfiConverterOptionalTypeGraphSnapshot.allocationSize(value.`graph`)
     )
 
     override fun write(value: DialogueSnapshot, buf: ByteBuffer) {
@@ -2211,6 +2338,7 @@ public object FfiConverterTypeDialogueSnapshot: FfiConverterRustBuffer<DialogueS
             FfiConverterOptionalString.write(value.`scene`, buf)
             FfiConverterInt.write(value.`level`, buf)
             FfiConverterSequenceTypeWindowEntry.write(value.`window`, buf)
+            FfiConverterOptionalTypeGraphSnapshot.write(value.`graph`, buf)
     }
 }
 
@@ -2441,6 +2569,134 @@ public object FfiConverterTypeEmbedStatus: FfiConverterRustBuffer<EmbedStatus> {
 
 
 /**
+ * One run of a graph: the cast member, the learner's settings, and
+ * what a saved story resumes with.
+ */
+data class GraphSession (
+    var `npc`: kotlin.String?
+    , 
+    var `sourceLang`: kotlin.String
+    , 
+    var `targetLang`: kotlin.String
+    , 
+    var `level`: kotlin.Int
+    , 
+    var `scene`: kotlin.String?
+    , 
+    var `facts`: Map<kotlin.String, FactValue>
+    , 
+    var `checkpoint`: kotlin.String?
+    , 
+    var `window`: List<WindowEntry>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeGraphSession: FfiConverterRustBuffer<GraphSession> {
+    override fun read(buf: ByteBuffer): GraphSession {
+        return GraphSession(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterMapStringTypeFactValue.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceTypeWindowEntry.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: GraphSession) = (
+            FfiConverterOptionalString.allocationSize(value.`npc`) +
+            FfiConverterString.allocationSize(value.`sourceLang`) +
+            FfiConverterString.allocationSize(value.`targetLang`) +
+            FfiConverterInt.allocationSize(value.`level`) +
+            FfiConverterOptionalString.allocationSize(value.`scene`) +
+            FfiConverterMapStringTypeFactValue.allocationSize(value.`facts`) +
+            FfiConverterOptionalString.allocationSize(value.`checkpoint`) +
+            FfiConverterSequenceTypeWindowEntry.allocationSize(value.`window`)
+    )
+
+    override fun write(value: GraphSession, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`npc`, buf)
+            FfiConverterString.write(value.`sourceLang`, buf)
+            FfiConverterString.write(value.`targetLang`, buf)
+            FfiConverterInt.write(value.`level`, buf)
+            FfiConverterOptionalString.write(value.`scene`, buf)
+            FfiConverterMapStringTypeFactValue.write(value.`facts`, buf)
+            FfiConverterOptionalString.write(value.`checkpoint`, buf)
+            FfiConverterSequenceTypeWindowEntry.write(value.`window`, buf)
+    }
+}
+
+
+
+/**
+ * A graph dialogue's story: only the facts the game set.
+ */
+data class GraphSnapshot (
+    var `id`: kotlin.String
+    , 
+    var `npc`: kotlin.String
+    , 
+    var `checkpoint`: kotlin.String
+    , 
+    var `facts`: Map<kotlin.String, FactValue>
+    , 
+    var `outcome`: DialogueOutcome?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeGraphSnapshot: FfiConverterRustBuffer<GraphSnapshot> {
+    override fun read(buf: ByteBuffer): GraphSnapshot {
+        return GraphSnapshot(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterMapStringTypeFactValue.read(buf),
+            FfiConverterOptionalTypeDialogueOutcome.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: GraphSnapshot) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`npc`) +
+            FfiConverterString.allocationSize(value.`checkpoint`) +
+            FfiConverterMapStringTypeFactValue.allocationSize(value.`facts`) +
+            FfiConverterOptionalTypeDialogueOutcome.allocationSize(value.`outcome`)
+    )
+
+    override fun write(value: GraphSnapshot, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`npc`, buf)
+            FfiConverterString.write(value.`checkpoint`, buf)
+            FfiConverterMapStringTypeFactValue.write(value.`facts`, buf)
+            FfiConverterOptionalTypeDialogueOutcome.write(value.`outcome`, buf)
+    }
+}
+
+
+
+/**
  * One header the Http token source sends. The value is a secret: a game
  * session is a credential too.
  */
@@ -2571,6 +2827,52 @@ public object FfiConverterTypeNpc: FfiConverterRustBuffer<Npc> {
     override fun write(value: Npc, buf: ByteBuffer) {
             FfiConverterString.write(value.`name`, buf)
             FfiConverterOptionalString.write(value.`persona`, buf)
+    }
+}
+
+
+
+/**
+ * One of an NPC's languages: levels 1–9.
+ */
+data class NpcLanguage (
+    var `code`: kotlin.String
+    , 
+    var `speaking`: kotlin.Int
+    , 
+    var `comprehension`: kotlin.Int
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNpcLanguage: FfiConverterRustBuffer<NpcLanguage> {
+    override fun read(buf: ByteBuffer): NpcLanguage {
+        return NpcLanguage(
+            FfiConverterString.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NpcLanguage) = (
+            FfiConverterString.allocationSize(value.`code`) +
+            FfiConverterInt.allocationSize(value.`speaking`) +
+            FfiConverterInt.allocationSize(value.`comprehension`)
+    )
+
+    override fun write(value: NpcLanguage, buf: ByteBuffer) {
+            FfiConverterString.write(value.`code`, buf)
+            FfiConverterInt.write(value.`speaking`, buf)
+            FfiConverterInt.write(value.`comprehension`, buf)
     }
 }
 
@@ -3206,6 +3508,36 @@ sealed class Command {
         companion object
     }
     
+    data class DialogueLoad(
+        val `source`: com.getlingara.embed.DialogueSource, 
+        val `session`: com.getlingara.embed.GraphSession) : Command()
+        
+    {
+        
+
+        companion object
+    }
+    
+    data class DialogueSetFact(
+        val `dialogue`: kotlin.Long, 
+        val `key`: kotlin.String, 
+        val `value`: com.getlingara.embed.FactValue) : Command()
+        
+    {
+        
+
+        companion object
+    }
+    
+    data class DialogueValidate(
+        val `irJson`: kotlin.String) : Command()
+        
+    {
+        
+
+        companion object
+    }
+    
 
     
 
@@ -3292,6 +3624,18 @@ public object FfiConverterTypeCommand : FfiConverterRustBuffer<Command>{
                 )
             22 -> Command.DialogueSnapshot(
                 FfiConverterLong.read(buf),
+                )
+            23 -> Command.DialogueLoad(
+                FfiConverterTypeDialogueSource.read(buf),
+                FfiConverterTypeGraphSession.read(buf),
+                )
+            24 -> Command.DialogueSetFact(
+                FfiConverterLong.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterTypeFactValue.read(buf),
+                )
+            25 -> Command.DialogueValidate(
+                FfiConverterString.read(buf),
                 )
             else -> throw RuntimeException("invalid enum value, something is very wrong!!")
         }
@@ -3459,6 +3803,30 @@ public object FfiConverterTypeCommand : FfiConverterRustBuffer<Command>{
                 + FfiConverterLong.allocationSize(value.`dialogue`)
             )
         }
+        is Command.DialogueLoad -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterTypeDialogueSource.allocationSize(value.`source`)
+                + FfiConverterTypeGraphSession.allocationSize(value.`session`)
+            )
+        }
+        is Command.DialogueSetFact -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterLong.allocationSize(value.`dialogue`)
+                + FfiConverterString.allocationSize(value.`key`)
+                + FfiConverterTypeFactValue.allocationSize(value.`value`)
+            )
+        }
+        is Command.DialogueValidate -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`irJson`)
+            )
+        }
     }
 
     override fun write(value: Command, buf: ByteBuffer) {
@@ -3578,6 +3946,24 @@ public object FfiConverterTypeCommand : FfiConverterRustBuffer<Command>{
             is Command.DialogueSnapshot -> {
                 buf.putInt(22)
                 FfiConverterLong.write(value.`dialogue`, buf)
+                Unit
+            }
+            is Command.DialogueLoad -> {
+                buf.putInt(23)
+                FfiConverterTypeDialogueSource.write(value.`source`, buf)
+                FfiConverterTypeGraphSession.write(value.`session`, buf)
+                Unit
+            }
+            is Command.DialogueSetFact -> {
+                buf.putInt(24)
+                FfiConverterLong.write(value.`dialogue`, buf)
+                FfiConverterString.write(value.`key`, buf)
+                FfiConverterTypeFactValue.write(value.`value`, buf)
+                Unit
+            }
+            is Command.DialogueValidate -> {
+                buf.putInt(25)
+                FfiConverterString.write(value.`irJson`, buf)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -3712,12 +4098,90 @@ public object FfiConverterTypeCommandOutcome : FfiConverterRustBuffer<CommandOut
 
 
 
+/**
+ * How a checkpoint was reached.
+ */
+
+enum class CrossedVia {
+    
+    START,
+    AUTO,
+    JUDGE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeCrossedVia: FfiConverterRustBuffer<CrossedVia> {
+    override fun read(buf: ByteBuffer) = try {
+        CrossedVia.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: CrossedVia) = 4UL
+
+    override fun write(value: CrossedVia, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * The reserved names a story ends on.
+ */
+
+enum class DialogueOutcome {
+    
+    SUCCESS,
+    FAILURE,
+    ABANDONED;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDialogueOutcome: FfiConverterRustBuffer<DialogueOutcome> {
+    override fun read(buf: ByteBuffer) = try {
+        DialogueOutcome.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: DialogueOutcome) = 4UL
+
+    override fun write(value: DialogueOutcome, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
 
 enum class DialoguePhase {
     
     IDLE,
     SENDING,
-    STREAMING;
+    STREAMING,
+    ENDED,
+    LOADING;
 
     
 
@@ -3740,6 +4204,93 @@ public object FfiConverterTypeDialoguePhase: FfiConverterRustBuffer<DialoguePhas
 
     override fun write(value: DialoguePhase, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * Where a graph dialogue comes from: a `dialogue.v1` document, as
+ * text, or a dialogue saved on Lingara by its store id (ADR 28.10.26i).
+ */
+sealed class DialogueSource {
+    
+    data class Ir(
+        val `irJson`: kotlin.String) : DialogueSource()
+        
+    {
+        
+
+        companion object
+    }
+    
+    data class Stored(
+        val `dialogueId`: kotlin.String) : DialogueSource()
+        
+    {
+        
+
+        companion object
+    }
+    
+
+    
+
+    
+    
+
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDialogueSource : FfiConverterRustBuffer<DialogueSource>{
+    override fun read(buf: ByteBuffer): DialogueSource {
+        return when(buf.getInt()) {
+            1 -> DialogueSource.Ir(
+                FfiConverterString.read(buf),
+                )
+            2 -> DialogueSource.Stored(
+                FfiConverterString.read(buf),
+                )
+            else -> throw RuntimeException("invalid enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: DialogueSource) = when(value) {
+        is DialogueSource.Ir -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`irJson`)
+            )
+        }
+        is DialogueSource.Stored -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`dialogueId`)
+            )
+        }
+    }
+
+    override fun write(value: DialogueSource, buf: ByteBuffer) {
+        when(value) {
+            is DialogueSource.Ir -> {
+                buf.putInt(1)
+                FfiConverterString.write(value.`irJson`, buf)
+                Unit
+            }
+            is DialogueSource.Stored -> {
+                buf.putInt(2)
+                FfiConverterString.write(value.`dialogueId`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
     }
 }
 
@@ -3807,6 +4358,57 @@ sealed class EmbedEvent {
         val `dialogue`: kotlin.Long, 
         val `request`: kotlin.Long, 
         val `update`: com.getlingara.embed.NpcTurnUpdate) : EmbedEvent()
+        
+    {
+        
+
+        companion object
+    }
+    
+    data class CheckpointReached(
+        val `dialogue`: kotlin.Long, 
+        val `checkpoint`: kotlin.String, 
+        val `edge`: kotlin.String?, 
+        val `via`: com.getlingara.embed.CrossedVia) : EmbedEvent()
+        
+    {
+        
+
+        companion object
+    }
+    
+    data class DialogueEnded(
+        val `dialogue`: kotlin.Long, 
+        val `outcome`: com.getlingara.embed.DialogueOutcome, 
+        val `checkpoint`: kotlin.String, 
+        val `edge`: kotlin.String?) : EmbedEvent()
+        
+    {
+        
+
+        companion object
+    }
+    
+    /**
+     * A stored dialogue's revision `rev` is loaded (ADR 28.10.26i); `CheckpointReached` follows.
+     */
+    data class DialogueLoaded(
+        val `dialogue`: kotlin.Long, 
+        val `dialogueId`: kotlin.String, 
+        val `rev`: kotlin.Long) : EmbedEvent()
+        
+    {
+        
+
+        companion object
+    }
+    
+    /**
+     * A stored dialogue could not load; its id is gone.
+     */
+    data class DialogueLoadFailed(
+        val `dialogue`: kotlin.Long, 
+        val `error`: com.getlingara.embed.EmbedError) : EmbedEvent()
         
     {
         
@@ -3894,18 +4496,39 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
                 FfiConverterLong.read(buf),
                 FfiConverterTypeNpcTurnUpdate.read(buf),
                 )
-            7 -> EmbedEvent.Error(
+            7 -> EmbedEvent.CheckpointReached(
+                FfiConverterLong.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterOptionalString.read(buf),
+                FfiConverterTypeCrossedVia.read(buf),
+                )
+            8 -> EmbedEvent.DialogueEnded(
+                FfiConverterLong.read(buf),
+                FfiConverterTypeDialogueOutcome.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterOptionalString.read(buf),
+                )
+            9 -> EmbedEvent.DialogueLoaded(
+                FfiConverterLong.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterLong.read(buf),
+                )
+            10 -> EmbedEvent.DialogueLoadFailed(
+                FfiConverterLong.read(buf),
                 FfiConverterTypeEmbedError.read(buf),
                 )
-            8 -> EmbedEvent.Log(
+            11 -> EmbedEvent.Error(
+                FfiConverterTypeEmbedError.read(buf),
+                )
+            12 -> EmbedEvent.Log(
                 FfiConverterTypeLogLevel.read(buf),
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 )
-            9 -> EmbedEvent.Closed(
+            13 -> EmbedEvent.Closed(
                 FfiConverterTypeCloseReason.read(buf),
                 )
-            10 -> EmbedEvent.Unknown(
+            14 -> EmbedEvent.Unknown(
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 )
@@ -3961,6 +4584,43 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
                 + FfiConverterLong.allocationSize(value.`dialogue`)
                 + FfiConverterLong.allocationSize(value.`request`)
                 + FfiConverterTypeNpcTurnUpdate.allocationSize(value.`update`)
+            )
+        }
+        is EmbedEvent.CheckpointReached -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterLong.allocationSize(value.`dialogue`)
+                + FfiConverterString.allocationSize(value.`checkpoint`)
+                + FfiConverterOptionalString.allocationSize(value.`edge`)
+                + FfiConverterTypeCrossedVia.allocationSize(value.`via`)
+            )
+        }
+        is EmbedEvent.DialogueEnded -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterLong.allocationSize(value.`dialogue`)
+                + FfiConverterTypeDialogueOutcome.allocationSize(value.`outcome`)
+                + FfiConverterString.allocationSize(value.`checkpoint`)
+                + FfiConverterOptionalString.allocationSize(value.`edge`)
+            )
+        }
+        is EmbedEvent.DialogueLoaded -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterLong.allocationSize(value.`dialogue`)
+                + FfiConverterString.allocationSize(value.`dialogueId`)
+                + FfiConverterLong.allocationSize(value.`rev`)
+            )
+        }
+        is EmbedEvent.DialogueLoadFailed -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterLong.allocationSize(value.`dialogue`)
+                + FfiConverterTypeEmbedError.allocationSize(value.`error`)
             )
         }
         is EmbedEvent.Error -> {
@@ -4035,25 +4695,54 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
                 FfiConverterTypeNpcTurnUpdate.write(value.`update`, buf)
                 Unit
             }
-            is EmbedEvent.Error -> {
+            is EmbedEvent.CheckpointReached -> {
                 buf.putInt(7)
+                FfiConverterLong.write(value.`dialogue`, buf)
+                FfiConverterString.write(value.`checkpoint`, buf)
+                FfiConverterOptionalString.write(value.`edge`, buf)
+                FfiConverterTypeCrossedVia.write(value.`via`, buf)
+                Unit
+            }
+            is EmbedEvent.DialogueEnded -> {
+                buf.putInt(8)
+                FfiConverterLong.write(value.`dialogue`, buf)
+                FfiConverterTypeDialogueOutcome.write(value.`outcome`, buf)
+                FfiConverterString.write(value.`checkpoint`, buf)
+                FfiConverterOptionalString.write(value.`edge`, buf)
+                Unit
+            }
+            is EmbedEvent.DialogueLoaded -> {
+                buf.putInt(9)
+                FfiConverterLong.write(value.`dialogue`, buf)
+                FfiConverterString.write(value.`dialogueId`, buf)
+                FfiConverterLong.write(value.`rev`, buf)
+                Unit
+            }
+            is EmbedEvent.DialogueLoadFailed -> {
+                buf.putInt(10)
+                FfiConverterLong.write(value.`dialogue`, buf)
+                FfiConverterTypeEmbedError.write(value.`error`, buf)
+                Unit
+            }
+            is EmbedEvent.Error -> {
+                buf.putInt(11)
                 FfiConverterTypeEmbedError.write(value.`error`, buf)
                 Unit
             }
             is EmbedEvent.Log -> {
-                buf.putInt(8)
+                buf.putInt(12)
                 FfiConverterTypeLogLevel.write(value.`level`, buf)
                 FfiConverterString.write(value.`target`, buf)
                 FfiConverterString.write(value.`message`, buf)
                 Unit
             }
             is EmbedEvent.Closed -> {
-                buf.putInt(9)
+                buf.putInt(13)
                 FfiConverterTypeCloseReason.write(value.`reason`, buf)
                 Unit
             }
             is EmbedEvent.Unknown -> {
-                buf.putInt(10)
+                buf.putInt(14)
                 FfiConverterString.write(value.`typeTag`, buf)
                 FfiConverterString.write(value.`json`, buf)
                 Unit
@@ -4174,6 +4863,116 @@ public object FfiConverterTypeErrorKind: FfiConverterRustBuffer<ErrorKind> {
 
     override fun write(value: ErrorKind, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * A fact's value: what the game sets, and what a snapshot holds.
+ */
+sealed class FactValue {
+    
+    data class Boolean(
+        val `value`: kotlin.Boolean) : FactValue()
+        
+    {
+        
+
+        companion object
+    }
+    
+    data class Number(
+        val `value`: kotlin.Double) : FactValue()
+        
+    {
+        
+
+        companion object
+    }
+    
+    data class Text(
+        val `value`: kotlin.String) : FactValue()
+        
+    {
+        
+
+        companion object
+    }
+    
+
+    
+
+    
+    
+
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFactValue : FfiConverterRustBuffer<FactValue>{
+    override fun read(buf: ByteBuffer): FactValue {
+        return when(buf.getInt()) {
+            1 -> FactValue.Boolean(
+                FfiConverterBoolean.read(buf),
+                )
+            2 -> FactValue.Number(
+                FfiConverterDouble.read(buf),
+                )
+            3 -> FactValue.Text(
+                FfiConverterString.read(buf),
+                )
+            else -> throw RuntimeException("invalid enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: FactValue) = when(value) {
+        is FactValue.Boolean -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterBoolean.allocationSize(value.`value`)
+            )
+        }
+        is FactValue.Number -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterDouble.allocationSize(value.`value`)
+            )
+        }
+        is FactValue.Text -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`value`)
+            )
+        }
+    }
+
+    override fun write(value: FactValue, buf: ByteBuffer) {
+        when(value) {
+            is FactValue.Boolean -> {
+                buf.putInt(1)
+                FfiConverterBoolean.write(value.`value`, buf)
+                Unit
+            }
+            is FactValue.Number -> {
+                buf.putInt(2)
+                FfiConverterDouble.write(value.`value`, buf)
+                Unit
+            }
+            is FactValue.Text -> {
+                buf.putInt(3)
+                FfiConverterString.write(value.`value`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
     }
 }
 
@@ -4477,6 +5276,43 @@ public object FfiConverterTypeNpcTurnUpdate : FfiConverterRustBuffer<NpcTurnUpda
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+}
+
+
+
+
+
+/**
+ * How much the NPC adapts its speech to the learner.
+ */
+
+enum class Pedagogy {
+    
+    SUBTLE,
+    NONE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePedagogy: FfiConverterRustBuffer<Pedagogy> {
+    override fun read(buf: ByteBuffer) = try {
+        Pedagogy.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: Pedagogy) = 4UL
+
+    override fun write(value: Pedagogy, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
     }
 }
 
@@ -5198,6 +6034,38 @@ public object FfiConverterOptionalTypeEmbedError: FfiConverterRustBuffer<EmbedEr
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeGraphSnapshot: FfiConverterRustBuffer<GraphSnapshot?> {
+    override fun read(buf: ByteBuffer): GraphSnapshot? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeGraphSnapshot.read(buf)
+    }
+
+    override fun allocationSize(value: GraphSnapshot?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeGraphSnapshot.allocationSize(value)
+        }
+    }
+
+    override fun write(value: GraphSnapshot?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeGraphSnapshot.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeNpc: FfiConverterRustBuffer<Npc?> {
     override fun read(buf: ByteBuffer): Npc? {
         if (buf.get().toInt() == 0) {
@@ -5358,6 +6226,38 @@ public object FfiConverterOptionalTypeReaction: FfiConverterRustBuffer<Reaction?
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeDialogueOutcome: FfiConverterRustBuffer<DialogueOutcome?> {
+    override fun read(buf: ByteBuffer): DialogueOutcome? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeDialogueOutcome.read(buf)
+    }
+
+    override fun allocationSize(value: DialogueOutcome?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeDialogueOutcome.allocationSize(value)
+        }
+    }
+
+    override fun write(value: DialogueOutcome?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeDialogueOutcome.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeEmbedEvent: FfiConverterRustBuffer<EmbedEvent?> {
     override fun read(buf: ByteBuffer): EmbedEvent? {
         if (buf.get().toInt() == 0) {
@@ -5412,6 +6312,38 @@ public object FfiConverterOptionalTypeLogLevel: FfiConverterRustBuffer<LogLevel?
         } else {
             buf.put(1)
             FfiConverterTypeLogLevel.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypePedagogy: FfiConverterRustBuffer<Pedagogy?> {
+    override fun read(buf: ByteBuffer): Pedagogy? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypePedagogy.read(buf)
+    }
+
+    override fun allocationSize(value: Pedagogy?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypePedagogy.allocationSize(value)
+        }
+    }
+
+    override fun write(value: Pedagogy?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypePedagogy.write(value, buf)
         }
     }
 }
@@ -5574,6 +6506,34 @@ public object FfiConverterSequenceTypeHeader: FfiConverterRustBuffer<List<Header
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeNpcLanguage: FfiConverterRustBuffer<List<NpcLanguage>> {
+    override fun read(buf: ByteBuffer): List<NpcLanguage> {
+        val len = buf.getInt()
+        return List<NpcLanguage>(len) {
+            FfiConverterTypeNpcLanguage.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<NpcLanguage>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeNpcLanguage.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<NpcLanguage>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeNpcLanguage.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypePlanWord: FfiConverterRustBuffer<List<PlanWord>> {
     override fun read(buf: ByteBuffer): List<PlanWord> {
         val len = buf.getInt()
@@ -5648,6 +6608,45 @@ public object FfiConverterSequenceTypeEmbedEvent: FfiConverterRustBuffer<List<Em
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeEmbedEvent.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterMapStringTypeFactValue: FfiConverterRustBuffer<Map<kotlin.String, FactValue>> {
+    override fun read(buf: ByteBuffer): Map<kotlin.String, FactValue> {
+        val len = buf.getInt()
+        return buildMap<kotlin.String, FactValue>(len) {
+            repeat(len) {
+                val k = FfiConverterString.read(buf)
+                val v = FfiConverterTypeFactValue.read(buf)
+                this[k] = v
+            }
+        }
+    }
+
+    override fun allocationSize(value: Map<kotlin.String, FactValue>): ULong {
+        val spaceForMapSize = 4UL
+        val spaceForChildren = value.map { (k, v) ->
+            FfiConverterString.allocationSize(k) +
+            FfiConverterTypeFactValue.allocationSize(v)
+        }.sum()
+        return spaceForMapSize + spaceForChildren
+    }
+
+    override fun write(value: Map<kotlin.String, FactValue>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        // The parens on `(k, v)` here ensure we're calling the right method,
+        // which is important for compatibility with older android devices.
+        // Ref https://blog.danlew.net/2017/03/16/kotlin-puzzler-whose-line-is-it-anyways/
+        value.forEach { (k, v) ->
+            FfiConverterString.write(k, buf)
+            FfiConverterTypeFactValue.write(v, buf)
         }
     }
 }

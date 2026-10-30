@@ -93,6 +93,60 @@ fn every_variant_matches_the_shape_vector() {
     every_command_is_its_flat_method(&v);
 }
 
+fn round_trip<T: DeserializeOwned + Serialize>(example: &Value) -> T {
+    let value: T = serde_json::from_value(example.clone()).unwrap_or_else(|e| panic!("{example}: {e}"));
+    assert_eq!(without_nulls(&serde_json::to_value(&value).unwrap()), without_nulls(example), "{example}");
+    value
+}
+
+// 28.10.26f AC14
+#[test]
+fn graph_variants_match_the_shape_vector() {
+    let v = vector();
+    // The graph's own types; its commands and events ride the three
+    // enums above, whose tag sets this pins.
+    tagged::<DialogueSource>("DialogueSource", &v);
+    words::<CrossedVia>("CrossedVia", &v);
+    words::<DialogueOutcome>("DialogueOutcome", &v);
+    words::<Pedagogy>("Pedagogy", &v);
+    let tags = |name: &str| v["tagged"][name].as_array().unwrap().iter().map(|e| e["type"].as_str().unwrap().to_owned()).collect::<BTreeSet<_>>();
+    for tag in ["dialogue_load", "dialogue_set_fact", "dialogue_validate"] {
+        assert!(tags("Command").contains(tag), "{tag}");
+    }
+    for tag in ["checkpoint_reached", "dialogue_ended"] {
+        assert!(tags("EmbedEvent").contains(tag), "{tag}");
+    }
+    // A tag has one example, so the graph's struct-level shapes live apart.
+    let config: DialogueConfig = round_trip(&v["structs"]["DialogueConfig"][0]);
+    assert_eq!((config.languages.len(), config.pedagogy), (2, Some(Pedagogy::None)));
+    let snapshot: DialogueSnapshot = round_trip(&v["structs"]["DialogueSnapshot"][0]);
+    assert_eq!(snapshot.graph.and_then(|g| g.outcome), Some(DialogueOutcome::Success));
+    every_command_is_its_flat_method(&v);
+
+    // The C ABI's committed message schema is schemars' over these types
+    // (`make check-ffi-schema` holds it byte-equal); it names every new tag.
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../ffi/schema/messages.schema.json");
+    let committed = std::fs::read_to_string(path).expect("messages.schema.json");
+    for tag in ["dialogue_load", "dialogue_set_fact", "dialogue_validate", "checkpoint_reached", "dialogue_ended", "ended"] {
+        assert!(committed.contains(&format!("\"{tag}\"")), "messages.schema.json lacks {tag}: run make ffi-schema");
+    }
+}
+
+// 28.10.26i AC7
+#[test]
+fn stored_variants_match_the_shape_vector() {
+    let v = vector();
+    let tags = |name: &str| v["tagged"][name].as_array().unwrap().iter().map(|e| e["type"].as_str().unwrap().to_owned()).collect::<BTreeSet<_>>();
+    assert!(tags("DialogueSource").contains("stored"));
+    assert!(tags("EmbedEvent").contains("dialogue_loaded") && tags("EmbedEvent").contains("dialogue_load_failed"));
+    assert!(v["words"]["DialoguePhase"].as_array().unwrap().contains(&Value::from("loading")));
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../ffi/schema/messages.schema.json");
+    let committed = std::fs::read_to_string(path).expect("messages.schema.json");
+    for tag in ["stored", "dialogue_loaded", "dialogue_load_failed", "loading"] {
+        assert!(committed.contains(&format!("\"{tag}\"")), "messages.schema.json lacks {tag}: run make ffi-schema");
+    }
+}
+
 /// What a call answered: the outcome's tag, or the error's kind.
 fn shape(result: Result<CommandOutcome, EmbedError>) -> String {
     match result {
@@ -152,6 +206,9 @@ fn flat_dialogue(e: &Embed, command: Command) -> Result<CommandOutcome, EmbedErr
         Command::DialogueCancel { dialogue } => done(e.dialogue_cancel(dialogue)),
         Command::DialogueClose { dialogue } => done(e.dialogue_close(dialogue)),
         Command::DialogueSnapshot { dialogue } => Ok(CommandOutcome::Dialogue { snapshot: e.dialogue_snapshot(dialogue) }),
+        Command::DialogueLoad { source, session } => e.dialogue_load(source, session).map(|id| CommandOutcome::Id { id }),
+        Command::DialogueSetFact { dialogue, key, value } => done(e.dialogue_set_fact(dialogue, &key, value)),
+        Command::DialogueValidate { ir_json } => done(e.dialogue_validate(&ir_json)),
         other => panic!("no flat method for {other:?}: add it to this table"),
     }
 }

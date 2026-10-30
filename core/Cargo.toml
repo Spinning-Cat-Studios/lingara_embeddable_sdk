@@ -1,7 +1,7 @@
 [package]
 name = "lingara-embed"
 # The trio's one VERSION (roadmap D10); the release tooling writes both.
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.5"
 edition = "2024"
 # The `lingara` library's floor, which a dependent cannot go below.
 rust-version = "1.87"
@@ -23,12 +23,15 @@ rustls = ["lingara/rustls", "reqwest/rustls-tls"]
 native-tls = ["lingara/native-tls", "reqwest/native-tls"]
 # Derives `schemars::JsonSchema` on every public type, for a binding's
 # committed message schema.
-schema = ["dep:schemars"]
+schema = ["dep:schemars", "lingara-dialogue-ir/schema"]
 # The server tier (ADR 1.10.26af): mint, handoff, widget snippet, webhook
 # routing. It adds no dependency: `lingara` is already the core's.
 server = []
 
 [dependencies]
+# The dialogue.v1 IR and its predicate language (ADR 28.10.26f D11), packaged
+# with this crate and pinned exactly, as bevy pins this one.
+lingara-dialogue-ir = { path = "../dialogue-ir", version = "=0.2.0-alpha.5" }
 log = "0.4"
 schemars = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"] }
@@ -41,9 +44,10 @@ tokio = { version = "1", features = ["rt", "sync", "time", "macros"] }
 # here, wasm32 meets that refusal and nothing else.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 getrandom = "0.4"
-# LIBRARY_FLOOR: the first release carrying world.practice_completed and
-# send_dialogue_turn. tools/library-floor/check.sh holds the two equal.
-lingara = { version = "0.2.0-alpha.1", default-features = false }
+# LIBRARY_FLOOR: the first release carrying the dialogue graph's turn fields
+# and its `transition` frame (ADR 28.10.26f D9). tools/library-floor/check.sh
+# holds the two equal.
+lingara = { version = "0.2.0-alpha.6", default-features = false }
 # The Http token source only, at the library's major.
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 

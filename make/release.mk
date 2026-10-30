@@ -42,13 +42,16 @@ RELEASE_PACK_dialogue = $(CARGO) package -p lingara-dialogue-ir --locked
 
 RELEASE_BUILD_core := check-codegen-core test-core check-msrv-core check-package-core
 RELEASE_TIER_core := ek es
-RELEASE_PACK_core = $(CARGO) package -p lingara-embed --locked
+# Packaged with the dialogue IR crate it pins (ADR 28.10.26f D11), so the core
+# resolves against an unpublished lingara-dialogue-ir.
+RELEASE_PACK_core = $(CARGO) package -p lingara-dialogue-ir -p lingara-embed --locked
 
-# Packaged with the core, so bevy_lingara resolves against the unpublished
-# lingara-embed (Cargo >= 1.90's multi-package packaging).
+# Packaged with the core (and the core's dialogue IR crate), so bevy_lingara
+# resolves against the unpublished lingara-embed (Cargo >= 1.90's
+# multi-package packaging).
 RELEASE_BUILD_bevy := check-codegen-bevy test-bevy clippy-bevy check-package-bevy
 RELEASE_TIER_bevy := ek
-RELEASE_PACK_bevy = $(BEVY_CARGO) package -p lingara-embed -p bevy_lingara --locked
+RELEASE_PACK_bevy = $(BEVY_CARGO) package -p lingara-dialogue-ir -p lingara-embed -p bevy_lingara --locked
 
 RELEASE_BUILD_dotnet := check-codegen-dotnet test-dotnet
 RELEASE_TIER_dotnet := ek

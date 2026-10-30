@@ -109,7 +109,7 @@ internal class Host(
     /** A Command in its JSON shape; any value `"$last"` is the latest opened session or dialogue id. */
     private fun command(body: JsonElement) {
         val command = commandFromJson(substitute(body).toString())
-        val opens = command is Command.PracticeStart || command is Command.DialogueOpen
+        val opens = command is Command.PracticeStart || command is Command.DialogueOpen || command is Command.DialogueLoad
         refusing {
             val outcome = embed().execute(command)
             if (opens && outcome is CommandOutcome.Id) lastId = outcome.id

@@ -12,6 +12,13 @@
 # first time a recipe expands $(GODOT), never when this file is read, so
 # `make help` downloads nothing. Any other host passes its own:
 # `make test-godot GODOT=/Applications/Godot.app/Contents/MacOS/Godot`.
+#
+# Every `--script` run goes through godot/ci/run-script.sh (ADR 30.10.26b),
+# which passes a run only on exit 0 and the script's LINGARA_GODOT_SCRIPT_OK
+# line, and kills one that outlives GODOT_SCRIPT_TIMEOUT seconds: Godot
+# exits 0 on a parse error and hangs on a runtime error. GODOT must be the
+# binary itself, never a wrapper script, since the runner kills the pid it
+# started. `godot-import` and `godot-demo` call $(GODOT) directly.
 
 EK_LANGS += godot
 GODOT_TOOLCHAIN ?= 1.98.1
@@ -24,6 +31,10 @@ GODOT_RID_PATTERN := win-x64|osx|linux-x64|android-arm64|ios-arm64
 GODOT_DEMO := godot/demo
 GODOT_SNIPPET := snippets/player/gdscript
 GDLINT ?= gdlint
+# run-script.sh's bound, in seconds: about 5x the slowest real run, measured
+# (ADR 30.10.26b As built). Exported, so run-headless-demo.sh sees it too.
+GODOT_SCRIPT_TIMEOUT ?= 120
+export GODOT_SCRIPT_TIMEOUT
 
 ifeq ($(GODOT),)
 GODOT = $(eval GODOT := $$(shell $(MAKE) -s --no-print-directory godot-fetch))$(GODOT)
@@ -42,7 +53,7 @@ GODOT_OSX_ARCHS ?= aarch64 x86_64
 GODOT_HOST_RID := $(if $(filter Darwin,$(shell uname -s)),osx,$(if $(filter Linux,$(shell uname -s)),linux-x64,win-x64))
 GODOT_HOST_ARCH := $(subst arm64,aarch64,$(shell uname -m))
 
-.PHONY: codegen-godot check-codegen-godot godot-dist godot-addon godot-addon-zip check-godot-addon-zip check-godot-dist godot-fetch godot-demo-addon godot-import \
+.PHONY: codegen-godot check-codegen-godot godot-dist godot-addon godot-addon-zip check-godot-addon-zip check-godot-run-script check-godot-dist godot-fetch godot-demo-addon godot-import \
         test-godot godot-headless godot-demo godot-ek-harness help-godot
 
 ## The plugin's version is plugin.cfg's, written by release-manifest bump: nothing to generate.
@@ -105,6 +116,10 @@ godot-addon-zip:
 check-godot-addon-zip:
 	bash godot/ci/addon_zip_test.sh
 
+## run-script.sh's contract over a fixture project: needs a real Godot.
+check-godot-run-script:
+	GODOT="$(GODOT)" bash godot/ci/run_script_test.sh
+
 ## The Linux binary for GODOT_VERSION, SHA-256 checked; prints its path only.
 godot-fetch:
 	@bash godot/ci/fetch-godot.sh godot/ci/godot-versions.toml $(GODOT_VERSION) godot/.cache
@@ -124,7 +139,7 @@ godot-import: godot-demo-addon
 	for project in $(GODOT_DEMO) $(GODOT_SNIPPET); do \
 	  $(GODOT) --headless --path $$project --import || $(GODOT) --headless --path $$project --import || exit 1; done
 
-## The crate's tests, gdlint, the snippet's regions, and --check-only over the snippet.
+## The crate's tests, gdlint, the snippet's regions, the dialogue builder, and --check-only over the snippet.
 test-godot: godot-import
 	$(GODOT_CARGO) test -p lingara_godot
 	@# gdlint reads gdlintrc from its cwd upward, never beside the files, so
@@ -132,14 +147,21 @@ test-godot: godot-import
 	@# gdtoolkit's defaults).
 	cd godot && $(GDLINT) $(CURDIR)/$(GODOT_ADDON) $(CURDIR)/$(GODOT_DEMO)/*.gd $(CURDIR)/$(GODOT_DEMO)/tests \
 	  $(CURDIR)/$(GODOT_SNIPPET)/lingara_snippet.gd
-	$(GODOT) --headless --path $(GODOT_DEMO) --script res://tests/snippet_regions_test.gd
-	$(GODOT) --headless --path $(GODOT_SNIPPET) --check-only --script res://lingara_snippet.gd
+	@# The runner's own contract first: a broken runner fails here, by name,
+	@# rather than passing the tests below through.
+	@$(MAKE) -s --no-print-directory check-godot-run-script GODOT="$(GODOT)"
+	GODOT="$(GODOT)" bash godot/ci/run-script.sh -- --path $(GODOT_DEMO) --script res://tests/snippet_regions_test.gd
+	@# The builder against the dialogue vectors (ADR 28.10.26g), which sit
+	@# outside the demo's res://, so their directory is a user argument.
+	GODOT="$(GODOT)" bash godot/ci/run-script.sh -- --path $(GODOT_DEMO) --script res://tests/dialogue_builder_test.gd \
+	  -- --vectors=$(CURDIR)/conformance/vectors/dialogue
+	GODOT="$(GODOT)" bash godot/ci/run-script.sh --check-only -- --path $(GODOT_SNIPPET) --script res://lingara_snippet.gd
 
 ## Every EK case through LingaraEmbed. The recipe is make/conformance.mk's.
 conformance-ek-godot: godot-import
 
 godot-ek-harness:
-	$(GODOT) --headless --path $(GODOT_DEMO) --script res://tests/ek_runner.gd
+	GODOT="$(GODOT)" bash godot/ci/run-script.sh -- --path $(GODOT_DEMO) --script res://tests/ek_runner.gd
 
 ## The demo headless against `conformance-server serve` and the --fake token server.
 godot-headless: godot-import
@@ -158,6 +180,7 @@ help-godot:
 	@echo "  make godot-addon              - The host's library, the inner loop"
 	@echo "  make godot-addon-zip          - The release zip (every rid present)"
 	@echo "  make check-godot-addon-zip    - The zip's rules, over a fixture"
+	@echo "  make check-godot-run-script   - run-script.sh's contract, over a fixture"
 	@echo "  make test-godot               - Crate tests, gdlint, the snippet's regions and parse"
 	@echo "  make conformance-ek-godot     - Every EK case through LingaraEmbed"
 	@echo "  make godot-headless           - The demo's headless test"

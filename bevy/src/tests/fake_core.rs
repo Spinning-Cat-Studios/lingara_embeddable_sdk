@@ -112,7 +112,7 @@ impl Core for Fake {
             return Err(error.clone());
         }
         Ok(match command {
-            Command::SendContext { .. } | Command::PracticeStart { .. } | Command::DialogueOpen { .. } | Command::DialogueSay { .. } => {
+            Command::SendContext { .. } | Command::PracticeStart { .. } | Command::DialogueOpen { .. } | Command::DialogueLoad { .. } | Command::DialogueSay { .. } => {
                 state.next_id += 1;
                 CommandOutcome::Id { id: state.next_id }
             }

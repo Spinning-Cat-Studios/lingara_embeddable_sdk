@@ -109,15 +109,14 @@ fn type_name(kind: FactType) -> &'static str {
     }
 }
 
-/// Rule 7, on the compact `serde_json` form of the parsed IR: K2's normal
-/// form, which differs from the JCS form only where a number is spelt
-/// differently (`2.0` against `2`). K2 moves this onto its canonical writer.
+/// Rule 7, on the canonical form (ADR 28.10.26g D2), `x-` members
+/// included: the form `x-maxBytes` is defined over.
 fn size(ir: &DialogueIr) -> Result<(), IrError> {
-    let bytes = serde_json::to_vec(ir).map_err(|err| IrError::new("", err.to_string()))?.len();
+    let bytes = ir.to_canonical_json().len();
     if bytes <= MAX_IR_BYTES {
         return Ok(());
     }
-    Err(IrError::new("", format!("is {bytes} bytes in normal form; at most {MAX_IR_BYTES}")))
+    Err(IrError::new("", format!("is {bytes} bytes in canonical form; at most {MAX_IR_BYTES}")))
 }
 
 fn warnings(ir: &DialogueIr) -> Vec<Warning> {

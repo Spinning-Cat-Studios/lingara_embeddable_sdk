@@ -87,8 +87,17 @@ namespace Lingara.Embed.Tests
 
         public void Free(IntPtr handle) => FreeCalls++;
 
-        public int Execute(IntPtr handle, byte* commandJson, UIntPtr commandLen, byte* buf, UIntPtr cap, UIntPtr* outLen) =>
-            Write(Encoding.UTF8.GetBytes("{\"type\":\"done\"}"), buf, cap, outLen, NativeStatus.Ok);
+        /// <summary>Every command's JSON, in order (ADR 28.10.26g AC12).</summary>
+        public List<string> Commands { get; } = new List<string>();
+
+        /// <summary>What every command answers.</summary>
+        public string Answer { get; set; } = "{\"type\":\"done\"}";
+
+        public int Execute(IntPtr handle, byte* commandJson, UIntPtr commandLen, byte* buf, UIntPtr cap, UIntPtr* outLen)
+        {
+            Commands.Add(Encoding.UTF8.GetString(commandJson, (int)commandLen));
+            return Write(Encoding.UTF8.GetBytes(Answer), buf, cap, outLen, NativeStatus.Ok);
+        }
 
         public int Poll(IntPtr handle, byte* buf, UIntPtr cap, UIntPtr* outLen)
         {

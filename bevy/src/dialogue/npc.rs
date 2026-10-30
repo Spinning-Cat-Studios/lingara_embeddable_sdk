@@ -1,9 +1,15 @@
 //! `NpcDialogue` (D7): K1's `DialogueConfig` fields on an entity, bounded at
 //! construction with K1's own `limits`, so an over-long persona fails in the
 //! game's code rather than at the server.
+//!
+//! A graph NPC (ADR 28.10.26g D6) is the same component opened with K1's
+//! `DialogueLoad` instead of `DialogueOpen`, so the lifecycle is shared.
+
+use std::collections::BTreeMap;
 
 use bevy::ecs::component::Component;
-use lingara_embed::{DialogueConfig, EmbedError, ErrorKind, Npc, WindowEntry, limits};
+use lingara_embed::dialogue_ir::DialogueIr;
+use lingara_embed::{Command, DialogueConfig, DialogueSource, EmbedError, ErrorKind, GraphSession, Npc, WindowEntry, limits};
 
 /// An NPC the player can talk to. Only `level` and `scene` change on a live
 /// NPC; a different persona or language is a different NPC, so insert a new
@@ -16,6 +22,15 @@ pub struct NpcDialogue {
     source_lang: Option<String>,
     level: u8,
     window: Vec<WindowEntry>,
+    graph: Option<Graph>,
+}
+
+/// A graph NPC's dialogue, as the canonical text `DialogueLoad` sends, and
+/// the cast member this entity is.
+#[derive(Debug, Clone, PartialEq)]
+struct Graph {
+    ir_json: String,
+    npc_id: String,
 }
 
 /// 1 to `max` Unicode scalar values, not blank: K1's own rule.
@@ -42,7 +57,21 @@ impl NpcDialogue {
         let name = name.into();
         text("npc.name", limits::NPC_NAME_MAX_CHARS, &name)?;
         let npc = Npc { name, persona: None };
-        Ok(Self { npc, scene: None, target_lang: target_lang.into(), source_lang: None, level: check_level(level)?, window: Vec::new() })
+        Ok(Self { npc, scene: None, target_lang: target_lang.into(), source_lang: None, level: check_level(level)?, window: Vec::new(), graph: None })
+    }
+
+    /// The cast member `npc_id` of `ir` (built or parsed), speaking
+    /// `target_lang` to a learner at `level`, as in [`NpcDialogue::new`].
+    /// The plugin opens it with `DialogueLoad`, sending `ir`'s canonical
+    /// text; K1 validates it there, with its JSON paths.
+    pub fn graph(ir: &DialogueIr, npc_id: impl Into<String>, target_lang: impl Into<String>, level: u8) -> Result<Self, EmbedError> {
+        let npc_id = npc_id.into();
+        let Some(profile) = ir.npcs.iter().find(|n| n.id == npc_id) else {
+            return Err(EmbedError::new(ErrorKind::InvalidInput, format!("the dialogue's cast has no NPC \"{npc_id}\"")));
+        };
+        let npc = Npc { name: profile.name.clone(), persona: profile.persona.clone() };
+        let graph = Some(Graph { ir_json: ir.to_canonical_json(), npc_id });
+        Ok(Self { npc, scene: None, target_lang: target_lang.into(), source_lang: None, level: check_level(level)?, window: Vec::new(), graph })
     }
 
     /// Who the NPC is, in 1–120 characters.
@@ -102,10 +131,20 @@ impl NpcDialogue {
         &self.target_lang
     }
 
-    /// K1's open request; an unset source language falls back to the config's.
-    pub(crate) fn config(&self, default_source: Option<&str>) -> DialogueConfig {
+    /// K1's open request, `DialogueLoad` for a graph NPC; an unset source
+    /// language falls back to the config's.
+    pub(crate) fn open_command(&self, default_source: Option<&str>) -> Command {
         let source_lang = self.source_lang.as_deref().or(default_source).unwrap_or_default().to_owned();
-        let (npc, scene, window) = (self.npc.clone(), self.scene.clone(), self.window.clone());
-        DialogueConfig { npc, scene, source_lang, target_lang: self.target_lang.clone(), level: self.level, window }
+        let (scene, window, target_lang, level) = (self.scene.clone(), self.window.clone(), self.target_lang.clone(), self.level);
+        if let Some(graph) = &self.graph {
+            let source = DialogueSource::Ir { ir_json: graph.ir_json.clone() };
+            let npc = Some(graph.npc_id.clone());
+            let session = GraphSession { npc, source_lang, target_lang, level, scene, facts: BTreeMap::new(), checkpoint: None, window };
+            return Command::DialogueLoad { source, session };
+        }
+        // N1's profile on a free-form NPC is not this component's: a graph
+        // NPC carries it in its IR.
+        let config = DialogueConfig { npc: self.npc.clone(), scene, source_lang, target_lang, level, window, languages: Vec::new(), pedagogy: None };
+        Command::DialogueOpen { config }
     }
 }

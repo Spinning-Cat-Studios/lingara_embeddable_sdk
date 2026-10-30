@@ -112,6 +112,25 @@ Every binding over the core replays every case through its own surface.
   token, then `lingara-embed/<version>`, then at most one kit token (a
   binding's, such as `lingara-godot/<version>`), then the host's suffix.
   `Lingara-Version` is sent when the kit is pinned.
+- **EK11 — a graph dialogue sends only passing edges, in order, and crosses
+  exactly one** (ADR 28.10.26f). A turn on a `dialogue_load`ed graph carries
+  its `checkpoint`, the open edges that have a `when` in IR order (never a
+  `predicate`), and values only for keys in the checkpoint's `may_disclose`.
+  An edge with no `when` is crossed with no turn (`checkpoint_reached`,
+  `via: auto`). A `transition` is applied after `done`, and only for an edge
+  the turn sent (`via: judge`); an error after it, or a
+  `transition_unavailable` notice, leaves the checkpoint. An edge to an
+  outcome ends the dialogue (`dialogue_ended`), and a further line is
+  `invalid_state`.
+- **EK12 — a stored dialogue is fetched with the embed token, at most once
+  per id per freshness window** (ADR 28.10.26i). A `dialogue_load` with
+  `source: { type: stored, dialogue_id }` sends `exportDialogue` with the
+  embed bearer and no `revision` query, and answers `dialogue_loaded` with
+  the `Lingara-Dialogue-Revision` header's `rev` before `checkpoint_reached`
+  (`via: start`). A second load of the same id within 300 s sends nothing.
+  `404 not_found` and `404 dialogue_not_active` fail the load
+  (`dialogue_load_failed`) as `not_found` with no retry, a `403` as
+  `forbidden`, and a body the IR's validation refuses as `invalid_input`.
 
 ## The host script
 
@@ -122,7 +141,7 @@ binding already maps. Every step and field is closed.
 |---|---|---|
 | `start` | `initial_token`: `none` or a token; `config`: a subset of `EmbedConfig` (`queue_capacity`, `api_version`, `user_agent_suffix`, `event_types`, `resume_cursor`, `stream_on_start`, `stream_idle_timeout_ms`, `log_level`). `base_url` is always the server's | `start`, then `provide_token_for(token, 900)` if a token is given |
 | `provide_token` | `token`, and exactly one of `expires_at` or `expires_in_secs` | `provide_token` or `provide_token_for` |
-| `command` | a `Command` in its JSON shape. A value `"$last"` is the id the latest `practice_start` or `dialogue_open` answered | `execute`, or the binding's flat method |
+| `command` | a `Command` in its JSON shape. A value `"$last"` is the id the latest `practice_start`, `dialogue_open` or `dialogue_load` answered | `execute`, or the binding's flat method |
 | `poll_until` | `event`: an event `type` tag (`stream`, `npc_turn`, …); `match`: an optional object the event must contain, compared after dropping nulls; `within_ms` | drain until a match, failing at `within_ms` |
 | `expect_no_event` | `event`, optional `match`, `for_ms` | drain for `for_ms`; fail on a match |
 | `stop_polling` | `for_ms` | do not drain for `for_ms` |

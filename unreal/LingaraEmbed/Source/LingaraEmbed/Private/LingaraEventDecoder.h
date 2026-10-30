@@ -10,7 +10,23 @@
 
 enum class ELingaraDecodedType : uint8
 {
-	TokenNeeded, Stream, Lingara, WorldSent, Practice, NpcTurn, Error, Log, Closed, Unknown
+	TokenNeeded, Stream, Lingara, WorldSent, Practice, NpcTurn, CheckpointReached, DialogueEnded, DialogueLoaded, DialogueLoadFailed, Error, Log, Closed, Unknown
+};
+
+// A graph dialogue's story step (ADR 28.10.26f): `checkpoint_reached` sets
+// Via, `dialogue_ended` sets Outcome; an absent edge is empty. A stored
+// dialogue's `dialogue_loaded` sets StoreId and Rev, and its
+// `dialogue_load_failed` sets Dialogue and the event's Error (ADR 28.10.26i).
+// No delegate carries it until K2 types it.
+struct FLingaraGraphStep
+{
+	int64 Dialogue = 0;
+	FString Checkpoint;
+	FString Edge;
+	FString Via;
+	FString Outcome;
+	FString StoreId;
+	int64 Rev = 0;
 };
 
 // One polled event. Only the member its Type names is filled.
@@ -24,6 +40,7 @@ struct FLingaraDecodedEvent
 	FLingaraWorldSent WorldSent;
 	FLingaraPracticeUpdate Practice;
 	FLingaraNpcTurn NpcTurn;
+	FLingaraGraphStep Graph;
 	FLingaraEmbedError Error;
 	ELingaraLogLevel LogLevel = ELingaraLogLevel::Info;
 	FString LogTarget;

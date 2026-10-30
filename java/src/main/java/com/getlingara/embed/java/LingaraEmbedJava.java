@@ -4,10 +4,13 @@ import com.getlingara.embed.Command;
 import com.getlingara.embed.CommandOutcome;
 import com.getlingara.embed.DialogueConfig;
 import com.getlingara.embed.DialogueSnapshot;
+import com.getlingara.embed.DialogueSource;
 import com.getlingara.embed.EmbedConfig;
 import com.getlingara.embed.EmbedEvent;
 import com.getlingara.embed.EmbedException;
 import com.getlingara.embed.EmbedStatus;
+import com.getlingara.embed.FactValue;
+import com.getlingara.embed.GraphSession;
 import com.getlingara.embed.Header;
 import com.getlingara.embed.KitSurface;
 import com.getlingara.embed.LingaraEmbed;
@@ -173,6 +176,21 @@ public final class LingaraEmbedJava implements AutoCloseable {
   public Optional<DialogueSnapshot> dialogueSnapshot(long dialogue) {
     return Optional.ofNullable(
         Calls.call(() -> LingaraEmbedDialogue.dialogueSnapshot(embed, dialogue)));
+  }
+
+  /** Loads a {@code dialogue.v1} graph and opens a run of it (ADR 28.10.26f); its id. */
+  public long dialogueLoad(DialogueSource source, GraphSession session) {
+    return Calls.call(() -> LingaraEmbedDialogue.dialogueLoad(embed, source, session));
+  }
+
+  /** Sets a fact the graph declared. */
+  public void dialogueSetFact(long dialogue, String key, FactValue value) {
+    Calls.run(() -> LingaraEmbedDialogue.dialogueSetFact(embed, dialogue, key, value));
+  }
+
+  /** Checks a {@code dialogue.v1} document as {@link #dialogueLoad} would, creating nothing. */
+  public void dialogueValidate(String irJson) {
+    Calls.run(() -> LingaraEmbedDialogue.dialogueValidate(embed, irJson));
   }
 
   /**

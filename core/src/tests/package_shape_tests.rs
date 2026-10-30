@@ -17,8 +17,10 @@ fn sources(dir: &Path, out: &mut Vec<PathBuf>) {
 }
 
 /// The names a file imports from the library: `use lingara::{A, b::C}`.
+/// `lingara_dialogue_ir` is this trio's own crate (ADR 28.10.26f D11), not
+/// the library, so its imports do not count.
 fn imported(text: &str) -> BTreeSet<String> {
-    let uses = text.lines().filter(|l| l.starts_with("use lingara"));
+    let uses = text.lines().filter(|l| l.starts_with("use lingara::"));
     let words = uses.flat_map(|l| l.split(|c: char| !c.is_alphanumeric() && c != '_').map(str::to_owned).collect::<Vec<_>>());
     words.filter(|w| w.chars().next().is_some_and(char::is_uppercase)).collect()
 }
@@ -28,7 +30,7 @@ fn imported(text: &str) -> BTreeSet<String> {
 fn no_library_type_crosses_the_public_api() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let lib = std::fs::read_to_string(root.join("lib.rs")).unwrap();
-    assert!(!lib.contains("pub use lingara"), "lib.rs re-exports nothing from the library");
+    assert!(!lib.contains("pub use lingara::") && !lib.contains("pub use lingara;"), "lib.rs re-exports nothing from the library");
     let mut files = Vec::new();
     sources(&root, &mut files);
     let mut found = Vec::new();
@@ -54,12 +56,14 @@ fn dependencies_and_default_features_are_d1s() {
     let mut deps = manifest["dependencies"].as_table().unwrap().clone();
     deps.extend(manifest["target"]["cfg(not(target_arch = \"wasm32\"))"]["dependencies"].as_table().unwrap().clone());
     let required: BTreeSet<&str> = deps.iter().filter(|(_, v)| !v.get("optional").and_then(toml::Value::as_bool).unwrap_or(false)).map(|(k, _)| k.as_str()).collect();
-    let d1: BTreeSet<&str> = ["getrandom", "lingara", "log", "reqwest", "serde", "serde_json", "thiserror", "tokio"].into();
+    // D1's set, plus the dialogue IR crate this trio publishes (ADR 28.10.26f D11).
+    let d1: BTreeSet<&str> = ["getrandom", "lingara", "lingara-dialogue-ir", "log", "reqwest", "serde", "serde_json", "thiserror", "tokio"].into();
     assert_eq!(required, d1);
+    assert!(deps["lingara-dialogue-ir"]["version"].as_str().is_some_and(|v| v.starts_with('=')), "pinned exactly, as bevy pins the core");
     assert!(deps["lingara"]["default-features"].as_bool() == Some(false) && deps["reqwest"]["default-features"].as_bool() == Some(false));
     let features = manifest["features"].as_table().unwrap();
     assert_eq!(features["default"].as_array().unwrap(), &[toml::Value::from("rustls")]);
-    assert_eq!(features["schema"].as_array().unwrap(), &[toml::Value::from("dep:schemars")]);
+    assert_eq!(features["schema"].as_array().unwrap(), &[toml::Value::from("dep:schemars"), toml::Value::from("lingara-dialogue-ir/schema")]);
     assert!(features.keys().all(|k| ["default", "rustls", "native-tls", "schema", "server"].contains(&k.as_str())), "the server half is V1's feature, not a default");
     assert_eq!(features["server"].as_array().map(Vec::len), Some(0), "the server feature enables nothing (1.10.26af AC27)");
 }

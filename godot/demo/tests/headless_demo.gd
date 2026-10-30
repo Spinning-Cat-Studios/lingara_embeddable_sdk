@@ -16,6 +16,8 @@ var _main: Node
 var _http: HTTPRequest
 var _replies: Array = []
 var _finished: Variant = null
+## The names of the NPCs a story signal came from.
+var _story := {}
 
 
 func _initialize() -> void:
@@ -24,6 +26,7 @@ func _initialize() -> void:
 		printerr("✗ ", problem)
 	if problems.is_empty():
 		print("✓ the demo talked at levels 2, 6 and 3, practised to reported, and %s passed" % CASE)
+		print("LINGARA_GODOT_SCRIPT_OK")
 	quit(1 if not problems.is_empty() else 0)
 
 
@@ -41,6 +44,9 @@ func test_demo_talks_at_two_levels_and_practises() -> Array:
 	_main = (load("res://main.tscn") as PackedScene).instantiate()
 	root.add_child(_main)
 	var problems := []
+	var elena := _graph_npc()
+	if not await _until(func() -> bool: return _story.has(elena.name)):
+		problems.append("the graph-mode NPC reached no checkpoint")
 	var levels := [await _talk("你好！"), await _talk_to_tanaka(), await _talk_to_mei_at(3)]
 	if levels != [2, 6, 3]:
 		problems.append("turns at levels %s, not [2, 6, 3]" % [levels])
@@ -52,7 +58,37 @@ func test_demo_talks_at_two_levels_and_practises() -> Array:
 	var verdict: Variant = await _control(api, "finish")
 	if not (verdict is Dictionary) or verdict.get("result") != "pass":
 		problems.append("%s: %s" % [CASE, verdict])
+	var heard: Array = _story.keys()
+	if heard != [elena.name]:
+		problems.append("story signals from %s, not only %s" % [heard, elena.name])
 	return problems
+
+
+## ADR 28.10.26g AC13: a second LingaraNpc, in graph mode over the worked
+## dialogue's IR, beside the free-form ones main.tscn holds. Every NPC's story
+## signals are logged with its name, so the log shows the graph NPC's lines
+## and none from the free-form NPCs.
+func _graph_npc() -> LingaraNpc:
+	for npc: Node in _main.find_children("*", "LingaraNpc"):
+		_listen(npc)
+	var elena := LingaraNpc.new()
+	elena.name = "elena"
+	elena.dialogue_file = ProjectSettings.globalize_path("res://").path_join("../../snippets/dialogue/missing-brother.json")
+	elena.dialogue_npc = "elena"
+	elena.target_lang = "es"
+	elena.level = 2
+	_listen(elena)
+	_main.add_child(elena)
+	return elena
+
+
+func _listen(npc: LingaraNpc) -> void:
+	npc.checkpoint_reached.connect(func(checkpoint: String, edge: String, via: String) -> void:
+		print("checkpoint_reached %s: %s (edge %s, via %s)" % [npc.name, checkpoint, edge, via])
+		_story[npc.name] = true)
+	npc.ended.connect(func(outcome: String) -> void:
+		print("ended %s: %s" % [npc.name, outcome])
+		_story[npc.name] = true)
 
 
 ## The autoload, supplied by path when --script mode has not: main.gd and

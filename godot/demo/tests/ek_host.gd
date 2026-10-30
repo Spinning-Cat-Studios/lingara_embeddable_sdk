@@ -32,6 +32,9 @@ const FLAT := {
 	"dialogue_cancel": ["dialogue"],
 	"dialogue_close": ["dialogue"],
 	"dialogue_snapshot": ["dialogue"],
+	"dialogue_load": ["source", "session"],
+	"dialogue_set_fact": ["dialogue", "key", "value"],
+	"dialogue_validate": ["ir_json"],
 }
 const CLOSE_WITHIN_MS := 2000
 
@@ -163,7 +166,7 @@ func _command(body: Dictionary) -> String:
 		return ""
 	var answer: Variant = _node.callv(kind, _arguments(kind, command))
 	_refused()
-	if kind in ["practice_start", "dialogue_open"] and answer is int and answer >= 0:
+	if kind in ["practice_start", "dialogue_open", "dialogue_load"] and answer is int and answer >= 0:
 		_last_id = answer
 	return ""
 

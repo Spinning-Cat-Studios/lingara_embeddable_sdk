@@ -60,6 +60,31 @@ namespace
 			&& ReadNpcTurnUpdate(OptObject(O, TEXT("update")), Out.NpcTurn.Update);
 	}
 
+	bool CheckpointReached(const FObjectPtr& O, FLingaraDecodedEvent& Out)
+	{
+		Out.Graph.Edge = OptString(O, TEXT("edge"));
+		Out.Graph.Via = OptString(O, TEXT("via"));
+		return ReadId(O, TEXT("dialogue"), Out.Graph.Dialogue) && O->TryGetStringField(TEXT("checkpoint"), Out.Graph.Checkpoint);
+	}
+
+	bool DialogueEnded(const FObjectPtr& O, FLingaraDecodedEvent& Out)
+	{
+		Out.Graph.Edge = OptString(O, TEXT("edge"));
+		Out.Graph.Outcome = OptString(O, TEXT("outcome"));
+		return ReadId(O, TEXT("dialogue"), Out.Graph.Dialogue) && O->TryGetStringField(TEXT("checkpoint"), Out.Graph.Checkpoint);
+	}
+
+	bool DialogueLoaded(const FObjectPtr& O, FLingaraDecodedEvent& Out)
+	{
+		return ReadId(O, TEXT("dialogue"), Out.Graph.Dialogue) && O->TryGetStringField(TEXT("dialogue_id"), Out.Graph.StoreId)
+			&& ReadId(O, TEXT("rev"), Out.Graph.Rev);
+	}
+
+	bool DialogueLoadFailed(const FObjectPtr& O, FLingaraDecodedEvent& Out)
+	{
+		return ReadId(O, TEXT("dialogue"), Out.Graph.Dialogue) && ReadError(OptObject(O, TEXT("error")), Out.Error);
+	}
+
 	bool Error(const FObjectPtr& O, FLingaraDecodedEvent& Out)
 	{
 		return ReadError(OptObject(O, TEXT("error")), Out.Error);
@@ -92,6 +117,10 @@ namespace
 		{TEXT("world_sent"), ELingaraDecodedType::WorldSent, &WorldSent},
 		{TEXT("practice"), ELingaraDecodedType::Practice, &Practice},
 		{TEXT("npc_turn"), ELingaraDecodedType::NpcTurn, &NpcTurn},
+		{TEXT("checkpoint_reached"), ELingaraDecodedType::CheckpointReached, &CheckpointReached},
+		{TEXT("dialogue_ended"), ELingaraDecodedType::DialogueEnded, &DialogueEnded},
+		{TEXT("dialogue_loaded"), ELingaraDecodedType::DialogueLoaded, &DialogueLoaded},
+		{TEXT("dialogue_load_failed"), ELingaraDecodedType::DialogueLoadFailed, &DialogueLoadFailed},
 		{TEXT("error"), ELingaraDecodedType::Error, &Error},
 		{TEXT("log"), ELingaraDecodedType::Log, &Log},
 		{TEXT("closed"), ELingaraDecodedType::Closed, &Closed},

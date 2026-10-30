@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::{DialoguePhase, EmbedError, PracticeOutcome, PracticePhase, Speaker, StreamState};
+use crate::types::{DialoguePhase, EmbedError, GraphSnapshot, NpcLanguage, Pedagogy, PracticeOutcome, PracticePhase, Speaker, StreamState};
 
 macro_rules! record {
     ($($item:item)*) => { $(
@@ -112,6 +112,13 @@ record! {
         pub level: i32,
         #[serde(default)]
         pub window: Vec<WindowEntry>,
+        // Defaulted on the Kotlin side too, so an existing call site compiles.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[uniffi(default)]
+        pub languages: Vec<NpcLanguage>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[uniffi(default)]
+        pub pedagogy: Option<Pedagogy>,
     }
 
     pub struct WindowEntry {
@@ -125,6 +132,10 @@ record! {
         pub scene: Option<String>,
         pub level: i32,
         pub window: Vec<WindowEntry>,
+        /// A graph dialogue's story; null for a free-form one.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[uniffi(default)]
+        pub graph: Option<GraphSnapshot>,
     }
 
     pub struct EmbedStatus {

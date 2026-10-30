@@ -147,7 +147,9 @@ final class Host {
       throw new IllegalStateException("not a Command: " + e.getMessage(), e);
     }
     boolean opens =
-        command instanceof Command.PracticeStart || command instanceof Command.DialogueOpen;
+        command instanceof Command.PracticeStart
+            || command instanceof Command.DialogueOpen
+            || command instanceof Command.DialogueLoad;
     refusing(
         () -> {
           CommandOutcome outcome = embed().execute(command);

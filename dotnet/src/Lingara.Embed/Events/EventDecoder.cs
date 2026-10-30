@@ -37,6 +37,31 @@ namespace Lingara.Embed.Events
                 Request = new RequestId(v.Long("request")),
                 Update = TypeDecoders.TurnUpdate(v.Obj("update")),
             },
+            ["checkpoint_reached"] = v => new EmbedEvent.CheckpointReached
+            {
+                Dialogue = new DialogueId(v.Long("dialogue")),
+                Checkpoint = v.Str("checkpoint"),
+                Edge = v.OptStr("edge"),
+                Via = GraphWords.CrossedVias.Parse(v.Str("via")),
+            },
+            ["dialogue_ended"] = v => new EmbedEvent.DialogueEnded
+            {
+                Dialogue = new DialogueId(v.Long("dialogue")),
+                Outcome = GraphWords.Outcomes.Parse(v.Str("outcome")),
+                Checkpoint = v.Str("checkpoint"),
+                Edge = v.OptStr("edge"),
+            },
+            ["dialogue_loaded"] = v => new EmbedEvent.DialogueLoaded
+            {
+                Dialogue = new DialogueId(v.Long("dialogue")),
+                StoreId = v.Str("dialogue_id"),
+                Rev = v.Long("rev"),
+            },
+            ["dialogue_load_failed"] = v => new EmbedEvent.DialogueLoadFailed
+            {
+                Dialogue = new DialogueId(v.Long("dialogue")),
+                Error = TypeDecoders.Error(v.Obj("error")),
+            },
             ["error"] = v => new EmbedEvent.Failed { Error = TypeDecoders.Error(v.Obj("error")) },
             ["log"] = v => new EmbedEvent.Log
             {

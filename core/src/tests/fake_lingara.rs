@@ -22,6 +22,7 @@ use tokio::sync::mpsc;
 pub struct Seen {
     pub method: String,
     pub path: String,
+    pub query: Option<String>,
     pub headers: BTreeMap<String, String>,
     pub body: Value,
 }
@@ -54,6 +55,8 @@ pub enum Reply {
     /// A non-JSON body: a maintenance page.
     Text(u16, &'static str),
     JsonHeaders(u16, Value, Vec<(&'static str, String)>),
+    /// No body, with headers: a `304`.
+    Empty(u16, Vec<(&'static str, String)>),
     Sse(Vec<String>, After),
 }
 
@@ -107,6 +110,7 @@ async fn answer(State(inner): State<Arc<Inner>>, method: Method, uri: Uri, heade
     let seen = Seen {
         method: method.to_string(),
         path: uri.path().to_owned(),
+        query: uri.query().map(str::to_owned),
         headers: headers.iter().map(|(n, v)| (n.as_str().to_owned(), v.to_str().unwrap_or_default().to_owned())).collect(),
         body: serde_json::from_slice(&body).unwrap_or(Value::Null),
     };
@@ -119,6 +123,10 @@ async fn answer(State(inner): State<Arc<Inner>>, method: Method, uri: Uri, heade
         Reply::Json(status, json) => json_response(status, &json, Vec::new()),
         Reply::Text(status, text) => Response::builder().status(status).header("content-type", "text/html").body(Body::from(text)).unwrap(),
         Reply::JsonHeaders(status, json, extra) => json_response(status, &json, extra),
+        Reply::Empty(status, extra) => {
+            let builder = extra.into_iter().fold(Response::builder().status(status), |b, (name, value)| b.header(name, value));
+            builder.body(Body::empty()).unwrap()
+        }
         Reply::Sse(frames, after) => sse_response(&inner, frames, after),
     }
 }
@@ -189,4 +197,26 @@ pub fn event_frame(id: &str, kind: &str, data: Value) -> String {
 /// One named frame with no id: a plan or dialogue stream's.
 pub fn frame(event: &str, data: Value) -> String {
     format!("event: {event}\ndata: {data}\n\n")
+}
+
+/// N2 §6's judged crossing, before `done` (ADR 28.10.26f D5).
+pub fn transition(edge: &str, to: &str) -> String {
+    frame("transition", serde_json::json!({ "edge": edge, "to": to }))
+}
+
+/// N3 D5's export (ADR 28.10.26i): the IR as its body, with its revision
+/// and `ETag`.
+pub fn exported(ir: &Value, rev: u64, etag: &str) -> Reply {
+    Reply::JsonHeaders(200, ir.clone(), vec![("lingara-dialogue-revision", rev.to_string()), ("etag", etag.to_owned())])
+}
+
+/// N3 D5's `304` to a matching `If-None-Match`: both headers, no body.
+pub fn not_modified(rev: u64, etag: &str) -> Reply {
+    Reply::Empty(304, vec![("lingara-dialogue-revision", rev.to_string()), ("etag", etag.to_owned())])
+}
+
+/// N2 §3's answer to a checkpointed turn while `enable_npc_dialogue_graphs`
+/// is dark for the integrator.
+pub fn graphs_dark() -> Reply {
+    Reply::Json(400, serde_json::json!({ "code": "invalid_request", "error": "`checkpoint` is not available to this client" }))
 }

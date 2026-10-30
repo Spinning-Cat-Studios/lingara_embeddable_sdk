@@ -79,6 +79,7 @@ fn send_systems() -> impl IntoScheduleConfigs<bevy::ecs::system::ScheduleSystem,
         dialogue::forward_changes,
         dialogue::say,
         dialogue::cancel,
+        dialogue::set_fact,
         lifecycle::disconnect,
         lifecycle::exit,
     )
@@ -102,5 +103,8 @@ fn add_messages(app: &mut App) {
         .add_message::<StartPractice>()
         .add_message::<PracticeInput>()
         .add_message::<NpcSay>()
-        .add_message::<NpcCancel>();
+        .add_message::<NpcCancel>()
+        .add_message::<CheckpointReached>()
+        .add_message::<DialogueEnded>()
+        .add_message::<NpcSetFact>();
 }

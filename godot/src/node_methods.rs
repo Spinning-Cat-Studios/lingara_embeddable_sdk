@@ -93,7 +93,9 @@ impl LingaraEmbed {
         self.flat("dialogue_close", vec![("dialogue", dialogue.into())], Returns::Bool).to()
     }
 
-    /// Its `window` can seed the next `dialogue_open`.
+    /// Its `window` can seed the next `dialogue_open`; a graph's `graph`,
+    /// the next `dialogue_load` (`node_graph.rs`). A stored graph still
+    /// being fetched answers `phase: "loading"` and no `graph`.
     #[func]
     pub fn dialogue_snapshot(&mut self, dialogue: i64) -> VarDictionary {
         self.flat("dialogue_snapshot", vec![("dialogue", dialogue.into())], Returns::Dialogue).to()

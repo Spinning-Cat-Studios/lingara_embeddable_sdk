@@ -35,4 +35,15 @@ namespace LingaraCommandEncoder
 	LINGARAEMBED_API FString DialogueCancel(int64 Dialogue);
 	LINGARAEMBED_API FString DialogueClose(int64 Dialogue);
 	LINGARAEMBED_API FString DialogueSnapshot(int64 Dialogue);
+
+	// A graph dialogue (ADR 28.10.26f): the IR as text, and K1's GraphSession
+	// as JSON text. K2 gives both a typed surface; until then they pass as written.
+	LINGARAEMBED_API FString DialogueLoad(const FString& IrJson, const FString& SessionJson);
+	// A dialogue saved on Lingara, by its store id (ADR 28.10.26i): DialogueLoaded follows.
+	LINGARAEMBED_API FString DialogueLoadStored(const FString& DialogueId, const FString& SessionJson);
+	// One per fact type, so a literal never picks the wrong overload.
+	LINGARAEMBED_API FString DialogueSetFactBool(int64 Dialogue, const FString& Key, bool bValue);
+	LINGARAEMBED_API FString DialogueSetFactNumber(int64 Dialogue, const FString& Key, double Value);
+	LINGARAEMBED_API FString DialogueSetFactText(int64 Dialogue, const FString& Key, const FString& Value);
+	LINGARAEMBED_API FString DialogueValidate(const FString& IrJson);
 }

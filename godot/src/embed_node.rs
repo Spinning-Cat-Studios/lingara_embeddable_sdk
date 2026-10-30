@@ -117,6 +117,14 @@ impl LingaraEmbed {
     #[signal]
     fn npc_turn_cancelled(dialogue: i64);
     #[signal]
+    fn checkpoint_reached(dialogue: i64, checkpoint: GString, edge: GString, via: GString);
+    #[signal]
+    fn dialogue_ended(dialogue: i64, outcome: GString, checkpoint: GString, edge: GString);
+    #[signal]
+    fn dialogue_loaded(dialogue: i64, dialogue_id: GString, rev: i64);
+    #[signal]
+    fn dialogue_load_failed(dialogue: i64, error: VarDictionary);
+    #[signal]
     fn error_raised(error: VarDictionary);
     #[signal]
     fn log_received(level: GString, target: GString, message: GString);

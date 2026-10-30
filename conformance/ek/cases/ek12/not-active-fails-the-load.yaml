@@ -1,0 +1,18 @@
+id: ek12.not-active-fails-the-load
+behaviours: [EK12]
+tier: ek
+# The dialogue exists, but nothing is activated: the code survives, so a
+# developer can tell it from a wrong id.
+serve:
+  - route: { operation: exportDialogue }
+    respond: { status: 404, json: { code: dialogue_not_active, error: the dialogue has no active revision } }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command:
+      type: dialogue_load
+      source: { type: stored, dialogue_id: 3f2a9c1e-7b4d-4e8a-9c0f-1a2b3c4d5e6f }
+      session: { npc: old_wei, source_lang: en, target_lang: zh, level: 2 }
+  - poll_until: { event: dialogue_load_failed, match: { error: { kind: not_found, code: dialogue_not_active, retryable: false } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

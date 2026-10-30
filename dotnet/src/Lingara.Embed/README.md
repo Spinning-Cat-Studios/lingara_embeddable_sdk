@@ -90,6 +90,45 @@ client.TokenUnavailable("offline");                       // your server call fa
 | World | `SendContext` | `WorldSent` |
 | Practice | `PracticeStart`, `PracticeAnswer`, `PracticeChoose`, `PracticeReveal`, `PracticeSelfGrade`, `PracticeNext`, `PracticeFinish`, `GetPracticeSnapshot` | the new snapshot, in the call; `Practice` for I/O |
 | Dialogue | `DialogueOpen`, `DialogueSay`, `DialogueSetLevel`, `DialogueSetScene`, `DialogueCancel`, `DialogueClose`, `GetDialogueSnapshot` | `NpcTurn` (`Opened`, `Fragment`, `Finished`) |
+| Dialogue graphs | `DialogueLoad`, `DialogueSetFact`, `DialogueValidate` | `CheckpointReached`, `DialogueEnded` |
+
+## Writing a dialogue
+
+`Lingara.Embed.Dialogues` writes a `dialogue.v1` graph in C#, for Unity and
+Godot C# alike. Parts keep the order you add them in (the core crosses the
+first open edge with no `when`; the judge takes the first match), and a
+predicate is text, never a lambda.
+
+```csharp
+using Lingara.Embed.Dialogues;
+
+var ir = new DialogueBuilder("missing_brother", start: "introduction")
+    .Title("The missing brother").Pedagogy(Pedagogy.None)
+    .Npc("elena", "Elena", n => n.Persona("a farmer who distrusts soldiers")
+        .Speaks("es", Level.Native, Level.Native)
+        .Speaks("en", Level.Cefr("A2"), Level.Cefr("B1")))
+    .Fact("trust", FactType.Number, defaultValue: 0)
+    .Fact("eastern_gate", FactType.String)
+    .Checkpoint("introduction", "Elena is wary and asks who the player is", c => c
+        .Discloses("eastern_gate")
+        .Edge("gate", Outcome.Success, predicate: "trust >= 0.4", when: "the player asks where soldiers might take a prisoner"))
+    .Build();
+var elena = client.DialogueLoad(ir, new GraphSession { Npc = "elena", SourceLang = "en", TargetLang = "es", Level = 2 });
+```
+
+`Build` checks the structure (ids, unique names, every `to` and disclosed
+fact declared, a `default` of the fact's type, levels 1–9, no loop of edges
+without `when`) and throws `ArgumentException` naming the JSON path; the
+predicate grammar, the length bounds and the byte cap are the core's, which
+`DialogueLoad` and `DialogueValidate` run. `ToCanonicalJson()` is the
+canonical text the Rust and GDScript builders write too, byte for byte.
+
+Levels run 1–9: `Level.Cefr("A1"…"C2")` is 1–6, `Level.Jlpt("N5"…"N1")` is
+1–5 (reversed), `Level.Native` is 9, and an HSK, TOPIK or General label is
+its number. A helper does not check the language. Under `subtle` the NPC
+speaks at the lower of its level and the learner's; under `none`, at its own.
+A builder's number `default` is an integer up to 2^53 − 1 or has at most four
+decimal places in `1e-4 ≤ |x| < 1e9`; set other values with `DialogueSetFact`.
 
 A demo plan must be started with `new PracticeSource.Plan { PlanId = …, Report = false }`,
 so playing it reports nothing.

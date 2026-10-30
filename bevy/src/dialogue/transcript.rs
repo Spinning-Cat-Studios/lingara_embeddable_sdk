@@ -32,6 +32,9 @@ pub struct NpcTranscript {
     pub notice: Option<(String, String)>,
     /// Every finished turn of the session, until the game clears it.
     pub turns: Vec<Turn>,
+    /// A graph NPC's checkpoint: the last `CheckpointReached`, or the one
+    /// its story ended at. `None` for a free-form NPC.
+    pub checkpoint: Option<String>,
     id: Option<DialogueId>,
     pub(crate) sent_level: u8,
     pub(crate) sent_scene: Option<String>,
@@ -41,8 +44,8 @@ pub struct NpcTranscript {
 impl NpcTranscript {
     /// Opened (or waiting for a Connect, with no id), keeping `kept`'s turns.
     pub(crate) fn opened(kept: Option<Self>, id: Option<DialogueId>, level: u8, scene: Option<String>) -> Self {
-        let turns = kept.map(|k| k.turns).unwrap_or_default();
-        Self { phase: DialoguePhase::Idle, streaming: None, notice: None, turns, id, sent_level: level, sent_scene: scene, in_flight: None }
+        let (turns, checkpoint) = kept.map(|k| (k.turns, k.checkpoint)).unwrap_or_default();
+        Self { phase: DialoguePhase::Idle, streaming: None, notice: None, turns, checkpoint, id, sent_level: level, sent_scene: scene, in_flight: None }
     }
 
     /// The `DialogueId`, for `Lingara::core()`; `None` while no handle is live.

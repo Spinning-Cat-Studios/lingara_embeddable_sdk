@@ -73,6 +73,59 @@ func _on_mei_replied(text: String) -> void:
 # lingara:end
 
 
+# lingara:begin dialogueGraph
+# A story as a graph: checkpoints joined by edges. An edge's "predicate" is a
+# game condition Lingara's core evaluates; its "when" is a conversational one
+# the server's judge reads. Two NPCs share this graph, each with their own
+# fluency (1-9; cefr("A2") is 2, NATIVE is 9).
+static func missing_brother() -> LingaraDialogue:
+	var d := LingaraDialogue.new("missing_brother", "introduction")
+	d.title("The missing brother").pedagogy("none")
+	d.npc("elena", "Elena", "a farmer who distrusts soldiers") \
+		.speaks("es", LingaraDialogue.NATIVE, LingaraDialogue.NATIVE) \
+		.speaks("en", LingaraDialogue.cefr("A2"), LingaraDialogue.cefr("B1"))
+	d.npc("tomas", "Tomás", "Elena's neighbour, a retired soldier") \
+		.speaks("es", LingaraDialogue.NATIVE, LingaraDialogue.NATIVE) \
+		.speaks("en", 6, 7)
+	d.fact("trust", "number", 0)
+	d.fact("suspicion", "number", 0.4)
+	d.fact("alarm_raised", "boolean", false)
+	d.fact("eastern_gate", "string")
+	d.checkpoint("introduction", "Elena is wary and asks who the player is") \
+		.edge("alarm", "failure", {"predicate": "alarm_raised"}) \
+		.edge("explained", "ask_about_brother", {"when": "the player says who they are and why they are here"})
+	d.checkpoint("ask_about_brother", "Admit she saw soldiers ride toward \"the old mill\"; reveal the gate only if she trusts the player") \
+		.discloses("eastern_gate") \
+		.edge("gate", "success", {"predicate": "trust >= 0.4", "when": "the player asks where soldiers might take a prisoner"}) \
+		.edge("neighbour", "ask_tomas", {"when": "the player asks who else saw the soldiers"}) \
+		.edge("leaves", "abandoned", {"when": "the player walks away"})
+	d.checkpoint("ask_tomas", "Tomás says the soldiers spoke of the road to 長安") \
+		.edge("suspicious", "failure", {"predicate": "suspicion > 0.5"}) \
+		.edge("back_to_elena", "ask_about_brother", {"when": "the player returns to Elena with what Tomás said"})
+	return d
+
+
+# A LingaraNpc in graph mode: set its dialogue (or dialogue_file to a saved
+# IR) and dialogue_npc before it enters the tree; it loads with
+# dialogue_load, and say() talks to her as to any NPC.
+func add_elena() -> LingaraNpc:
+	var elena := LingaraNpc.new()
+	elena.dialogue = missing_brother()
+	elena.dialogue_npc = "elena"
+	elena.target_lang = "es"
+	elena.level = 2
+	elena.checkpoint_reached.connect(func(checkpoint: String, _edge: String, _via: String) -> void: print("now at ", checkpoint))
+	elena.ended.connect(func(outcome: String) -> void: print("the story ended: ", outcome))
+	add_child(elena)
+	return elena
+
+
+# The game sets facts; a predicate that reads one may cross an edge.
+func raise_the_alarm(elena: LingaraNpc) -> void:
+	elena.set_fact("alarm_raised", true)
+# lingara:end
+
+
 # lingara:begin practice
 # A practice session over a plan Lingara makes for this player. Each answer
 # method returns the new snapshot and also emits practice_changed.

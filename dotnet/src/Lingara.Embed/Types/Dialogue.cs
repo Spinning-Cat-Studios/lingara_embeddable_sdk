@@ -17,6 +17,11 @@ namespace Lingara.Embed
         public byte Level { get; init; }
 
         public IReadOnlyList<WindowEntry> Window { get; init; } = Array.Empty<WindowEntry>();
+
+        /// <summary>N1's profile: 1–8 languages with unique codes, or none (ADR 28.10.26f D7).</summary>
+        public IReadOnlyList<NpcLanguage> Languages { get; init; } = Array.Empty<NpcLanguage>();
+
+        public Pedagogy? Pedagogy { get; init; }
     }
 
     public sealed class WindowEntry
@@ -37,6 +42,9 @@ namespace Lingara.Embed
         public byte Level { get; init; }
 
         public IReadOnlyList<WindowEntry> Window { get; init; } = Array.Empty<WindowEntry>();
+
+        /// <summary>A graph dialogue's story; null for a free-form one.</summary>
+        public GraphSnapshot? Graph { get; init; }
     }
 
     /// <summary>One step of an NPC's reply (K1 D8).</summary>

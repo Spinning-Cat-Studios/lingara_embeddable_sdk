@@ -1,0 +1,26 @@
+id: ek11.transition-crosses-after-done
+behaviours: [EK11]
+tier: ek
+# The `transition` arrives before `done` and is held: the host hears the
+# whole reply first, then the crossing it belongs to.
+serve:
+  - route: { operation: sendDialogueTurn }
+    respond:
+      sse:
+        - { event: delta, data: { text: Hola } }
+        - { event: transition, data: { edge: hello, to: ask } }
+        - { event: done, data: {} }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command:
+      type: dialogue_load
+      source:
+        type: ir
+        ir_json: '{"schema":"dialogue.v1","id":"ek11","npcs":[{"id":"elena","name":"Elena"}],"start":"intro","checkpoints":[{"id":"intro","goal":"Elena is wary","edges":[{"id":"hello","to":"ask","when":"the player greets her"}]},{"id":"ask","goal":"Admit she saw soldiers"}]}'
+      session: { source_lang: en, target_lang: es, level: 2 }
+  - command: { type: dialogue_say, dialogue: $last, line: hola }
+  - poll_until: { event: npc_turn, match: { update: { type: finished, text: Hola } }, within_ms: 2000 }
+  - poll_until: { event: checkpoint_reached, match: { checkpoint: ask, edge: hello, via: judge }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

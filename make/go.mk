@@ -38,7 +38,7 @@ GOLANGCI_LINT ?= golangci-lint
 
 CONFORMANCE_HARNESS_es_go = $(abspath $(GO_ES_HARNESS))
 
-.PHONY: codegen-go check-codegen-go test-go lint-go help-go $(GO_ES_HARNESS)
+.PHONY: codegen-go check-codegen-go test-go lint-go lock-go help-go $(GO_ES_HARNESS)
 
 # version_gen.go's text from VERSION, on stdout (D1): the only place the
 # kit's version lives.
@@ -89,6 +89,11 @@ lint-go:
 	cd $(GO_DIR)/conformance-es && $(GOLANGCI_LINT) run --config ../.golangci.yml ./...
 	cd $(GO_SNIPPETS) && $(GOLANGCI_LINT) run --config $(abspath $(GO_DIR))/.golangci.yml ./...
 
+## go.mod and go.sum of all three modules, after a require moved (the
+## library floor, ADR 30.10.26a). The kit first: the nested two replace onto it.
+lock-go:
+	@for m in $(GO_MODULES); do echo "go mod tidy: $$m"; $(GO) -C $$m mod tidy || exit 1; done
+
 $(GO_ES_HARNESS):
 	$(GO) -C $(GO_DIR)/conformance-es build -o $(abspath $(GO_ES_HARNESS)) .
 
@@ -101,6 +106,7 @@ help-go:
 	@echo "Go (lingaraembed):"
 	@echo "  make test-go             - gofmt, vet over the kit, harness and snippets; unit tests under -race; lint-go if installed"
 	@echo "  make lint-go             - golangci-lint: the budgets in go/.golangci.yml"
+	@echo "  make lock-go             - go mod tidy over the kit, harness and snippets (after a floor move)"
 	@echo "  make conformance-es-go   - Every ES case through the Go kit"
 	@echo "  make codegen-go          - Regenerate go/version_gen.go from VERSION"
 	@echo "  make check-codegen-go    - Fail when go/version_gen.go is stale"

@@ -1,0 +1,32 @@
+id: ek11.error-after-transition-keeps-the-checkpoint
+behaviours: [EK11]
+tier: ek
+# A failed turn drops its held transition with its partial reply: saying the
+# line again sends the same checkpoint and the same (empty) window.
+serve:
+  - route: { operation: sendDialogueTurn }
+    respond:
+      sse:
+        - { event: delta, data: { text: Ho } }
+        - { event: transition, data: { edge: hello, to: ask } }
+        - { event: error, data: { code: stream_interrupted, message: the provider stopped } }
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      body: { line: hola, checkpoint: { id: intro } }
+    respond: { sse: [{ event: delta, data: { text: Hola } }, { event: done, data: {} }] }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command:
+      type: dialogue_load
+      source:
+        type: ir
+        ir_json: '{"schema":"dialogue.v1","id":"ek11","npcs":[{"id":"elena","name":"Elena"}],"start":"intro","checkpoints":[{"id":"intro","goal":"Elena is wary","edges":[{"id":"hello","to":"ask","when":"the player greets her"}]},{"id":"ask","goal":"Admit she saw soldiers"}]}'
+      session: { source_lang: en, target_lang: es, level: 2 }
+  - command: { type: dialogue_say, dialogue: $last, line: hola }
+  - poll_until: { event: error, match: { error: { kind: unavailable, status: 200, code: stream_interrupted } }, within_ms: 2000 }
+  - expect_no_event: { event: checkpoint_reached, match: { via: judge }, for_ms: 300 }
+  - command: { type: dialogue_say, dialogue: $last, line: hola }
+  - poll_until: { event: npc_turn, match: { update: { type: finished, text: Hola } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 2 }

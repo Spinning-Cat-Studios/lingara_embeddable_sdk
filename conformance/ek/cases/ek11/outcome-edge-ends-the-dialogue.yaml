@@ -1,0 +1,32 @@
+id: ek11.outcome-edge-ends-the-dialogue
+behaviours: [EK11]
+tier: ek
+# Resumed at `ask`, the judge crosses `gate` to `success`: the story ends
+# after the reply, naming the checkpoint it left, and a further line is
+# refused locally with nothing sent.
+serve:
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      body: { checkpoint: { id: ask } }
+    respond:
+      sse:
+        - { event: delta, data: { text: Por la puerta del este } }
+        - { event: transition, data: { edge: gate, to: success } }
+        - { event: done, data: {} }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command:
+      type: dialogue_load
+      source:
+        type: ir
+        ir_json: '{"schema":"dialogue.v1","id":"ek11","npcs":[{"id":"elena","name":"Elena"}],"start":"intro","checkpoints":[{"id":"intro","goal":"Elena is wary","edges":[{"id":"hello","to":"ask","when":"the player greets her"}]},{"id":"ask","goal":"Admit she saw soldiers","edges":[{"id":"gate","to":"success","when":"the player asks where"}]}]}'
+      session: { source_lang: en, target_lang: es, level: 2, checkpoint: ask }
+  - poll_until: { event: checkpoint_reached, match: { checkpoint: ask, via: start }, within_ms: 2000 }
+  - command: { type: dialogue_say, dialogue: $last, line: donde }
+  - poll_until: { event: npc_turn, match: { update: { type: finished } }, within_ms: 2000 }
+  - poll_until: { event: dialogue_ended, match: { outcome: success, checkpoint: ask, edge: gate }, within_ms: 2000 }
+  - command: { type: dialogue_say, dialogue: $last, line: gracias }
+  - poll_until: { event: error, match: { error: { kind: invalid_state, retryable: false } }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

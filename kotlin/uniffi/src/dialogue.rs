@@ -5,7 +5,7 @@ use lingara_embed as core;
 
 use crate::convert::{fail, id_out, known, narrow, to_core};
 use crate::handle::{EmbedHandle, Outcome};
-use crate::types::{DialogueConfig, DialogueSnapshot};
+use crate::types::{DialogueConfig, DialogueSnapshot, DialogueSource, FactValue, GraphSession};
 
 #[uniffi::export]
 impl EmbedHandle {
@@ -39,5 +39,24 @@ impl EmbedHandle {
 
     pub fn dialogue_snapshot(&self, dialogue: i64) -> Outcome<Option<DialogueSnapshot>> {
         self.embed.dialogue_snapshot(narrow("dialogue", dialogue)?).as_ref().map(known).transpose()
+    }
+
+    /// Loads a `dialogue.v1` graph and opens a run of it; its dialogue id
+    /// (ADR 28.10.26f). `CheckpointReached` follows.
+    pub fn dialogue_load(&self, source: DialogueSource, session: GraphSession) -> Outcome<i64> {
+        let source: core::DialogueSource = to_core("source", &source)?;
+        let session: core::GraphSession = to_core("session", &session)?;
+        id_out(self.embed.dialogue_load(source, session).map_err(fail)?)
+    }
+
+    /// Sets a fact the graph declared.
+    pub fn dialogue_set_fact(&self, dialogue: i64, key: String, value: FactValue) -> Outcome<()> {
+        let value: core::FactValue = to_core("value", &value)?;
+        self.embed.dialogue_set_fact(narrow("dialogue", dialogue)?, &key, value).map_err(fail)
+    }
+
+    /// Checks a `dialogue.v1` document as `dialogue_load` would, creating nothing.
+    pub fn dialogue_validate(&self, ir_json: String) -> Outcome<()> {
+        self.embed.dialogue_validate(&ir_json).map_err(fail)
     }
 }

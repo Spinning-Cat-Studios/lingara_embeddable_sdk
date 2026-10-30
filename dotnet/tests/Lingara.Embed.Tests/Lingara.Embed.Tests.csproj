@@ -26,5 +26,7 @@
     <Content Include="$(RepoRoot)/conformance/vectors/json-shape.json" Link="vectors/json-shape.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="$(RepoRoot)/ffi/include/lingara_embed.h" Link="vectors/lingara_embed.h" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="$(RepoRoot)/ffi/schema/messages.schema.json" Link="vectors/messages.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- ADR 28.10.26g D4: the dialogue vectors every builder is held to. -->
+    <Content Include="$(RepoRoot)/conformance/vectors/dialogue/*.json" Link="vectors/dialogue/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

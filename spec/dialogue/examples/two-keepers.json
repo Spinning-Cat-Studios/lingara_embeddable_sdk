@@ -1,0 +1,32 @@
+{
+  "schema": "dialogue.v1",
+  "id": "night_market_keepers",
+  "title": "The two keepers",
+  "pedagogy": "none",
+  "npcs": [
+    { "id": "old_wei", "name": "Old Wei", "persona": "a retired ferryman who distrusts strangers",
+      "languages": [ { "code": "zh", "speaking": 9, "comprehension": 9 } ] }
+  ],
+  "facts": [
+    { "key": "trust", "type": "number", "default": 0 },
+    { "key": "eastern_gate", "type": "string" }
+  ],
+  "start": "suspicious_of_player",
+  "checkpoints": [
+    { "id": "suspicious_of_player",
+      "goal": "Size the stranger up; warm to them only if they explain why they are here",
+      "may_disclose": [],
+      "edges": [
+        { "id": "asks_about_brother", "to": "reveal_gate",
+          "predicate": "trust >= 0.4", "when": "the player has asked about their missing brother" },
+        { "id": "turns_hostile", "to": "failure", "when": "the player threatens or insults Old Wei" }
+      ] },
+    { "id": "reveal_gate", "goal": "Tell the player the eastern gate is guarded, reluctantly",
+      "may_disclose": ["eastern_gate"],
+      "edges": [ { "id": "thanks", "to": "success", "when": "the player thanks Old Wei or says goodbye" } ] }
+  ],
+  "x-layout": {
+    "checkpoints": { "suspicious_of_player": { "x": 0, "y": 0 }, "reveal_gate": { "x": 240, "y": 0 } },
+    "outcomes": { "success": { "x": 480, "y": 0 }, "failure": { "x": 240, "y": 160 } }
+  }
+}

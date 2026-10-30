@@ -3,7 +3,8 @@
 # `conformance-server serve` over the demo's own case, each on a port of its
 # own choosing, then the headless demo against both. Both servers are killed
 # however the run ends. Expects them built (the make target builds them) and
-# GODOT set.
+# GODOT and GODOT_SCRIPT_TIMEOUT set; the demo runs through run-script.sh
+# (ADR 30.10.26b).
 set -euo pipefail
 
 : "${GODOT:?set GODOT to a Godot binary}"
@@ -41,4 +42,4 @@ tokens=$(start lingara-demo-token-server "$work/tokens.log" --fake --port 0)
 
 LINGARA_DEMO_API_URL="http://127.0.0.1:$api" \
 LINGARA_DEMO_TOKEN_URL="http://127.0.0.1:$tokens/token" \
-  "$GODOT" --headless --path "$root/godot/demo" --script res://tests/headless_demo.gd
+  bash "$root/godot/ci/run-script.sh" -- --path "$root/godot/demo" --script res://tests/headless_demo.gd

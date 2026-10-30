@@ -18,7 +18,7 @@ CORE_MSRV := 1.87
 CORE_TARGETS := x86_64-pc-windows-msvc aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu aarch64-linux-android aarch64-apple-ios
 
 .PHONY: codegen-core check-codegen-core test-core check-msrv-core check-package-core build-core-targets help-core \
-        test-dialogue check-package-dialogue
+        test-dialogue check-package-dialogue check-dialogue-snippet
 
 ## Every EK case through the Rust surface. The recipe is make/conformance.mk's
 ## pattern rule; the name is spelled here so a shipped workflow may call it.
@@ -40,10 +40,16 @@ test-dialogue:
 	$(CARGO) test -p lingara-dialogue-ir
 	$(CARGO) test -p lingara-dialogue-ir --features schema
 
+## The worked dialogue the docs show whole is the golden vector, to the
+## byte (ADR 28.10.26g D8, AC15).
+check-dialogue-snippet:
+	@cmp snippets/dialogue/missing-brother.json conformance/vectors/dialogue/missing-brother.comparison.json
+	@echo "✓ snippets/dialogue/missing-brother.json is the missing-brother vector"
+
 ## clippy, both TLS features, `schema`, `server`, the doctests, and the EK
 ## harness's own tests (the shape vector, the spec limits, the handoff vector).
 ## The dialogue IR crate first, which the core will pin (D11).
-test-core: test-dialogue
+test-core: test-dialogue check-dialogue-snippet
 	$(CARGO) clippy -p lingara-embed -p lingara-embed-ek-harness -p lingara-embed-es-harness -p lingara-embed-server-snippets --all-targets --features lingara-embed/schema,lingara-embed/server -- -D warnings
 	$(CARGO) test -p lingara-embed
 	$(CARGO) test -p lingara-embed --features server
@@ -54,15 +60,19 @@ test-core: test-dialogue
 ## The packaged crate, its lock removed, builds and tests on Rust 1.87
 ## outside the workspace, under each TLS feature (D1).
 ## Unpacked outside the repo, so cargo cannot find the workspace above it.
+## lingara-dialogue-ir is packaged and unpacked beside it and patched in, so
+## the core's exact pin may name a version not yet on crates.io (ADR 28.10.26f D11).
 CORE_MSRV_DIR ?= $(or $(TMPDIR),/tmp)/lingara-embed-msrv
 
 check-msrv-core:
 	@rm -rf target/msrv-core $(CORE_MSRV_DIR) && mkdir -p $(CORE_MSRV_DIR)
-	$(CARGO) package -p lingara-embed --no-verify --allow-dirty --target-dir target/msrv-core
+	$(CARGO) package -p lingara-dialogue-ir -p lingara-embed --no-verify --allow-dirty --target-dir target/msrv-core
+	tar -xzf target/msrv-core/package/lingara-dialogue-ir-*.crate -C $(CORE_MSRV_DIR)
 	tar -xzf target/msrv-core/package/lingara-embed-*.crate -C $(CORE_MSRV_DIR)
 	cd $(CORE_MSRV_DIR)/lingara-embed-* && rm -f Cargo.lock && \
-	  cargo +$(CORE_MSRV) test --target-dir ../build && \
-	  cargo +$(CORE_MSRV) test --no-default-features --features native-tls --target-dir ../build
+	  patch="patch.crates-io.lingara-dialogue-ir.path=\"$$(cd ../lingara-dialogue-ir-* && pwd)\"" && \
+	  cargo +$(CORE_MSRV) test --config "$$patch" --target-dir ../build && \
+	  cargo +$(CORE_MSRV) test --config "$$patch" --no-default-features --features native-tls --target-dir ../build
 
 ## `cargo package --list` names nothing outside src/**, README.md, LICENSE
 ## and cargo's own files.

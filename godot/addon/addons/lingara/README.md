@@ -119,6 +119,44 @@ the last 12 lines; to carry a conversation across a reload, save
 `Lingara.dialogue_snapshot(mei.dialogue_id()).window` and set
 `initial_window` before the NPC opens.
 
+## Writing a dialogue
+
+`LingaraDialogue` writes a `dialogue.v1` graph (checkpoints joined by edges)
+in GDScript, in the order you add its parts; a predicate is text, never a
+Callable. Give it to a `LingaraNpc` as `dialogue` (or a saved file as
+`dialogue_file`) and the NPC loads it instead of opening a free-form chat:
+
+```gdscript
+var d := LingaraDialogue.new("missing_brother", "introduction")
+d.title("The missing brother").pedagogy("none")
+d.npc("elena", "Elena", "a farmer who distrusts soldiers") \
+	.speaks("es", LingaraDialogue.NATIVE, LingaraDialogue.NATIVE) \
+	.speaks("en", LingaraDialogue.cefr("A2"), LingaraDialogue.cefr("B1"))
+d.fact("trust", "number", 0)
+d.fact("eastern_gate", "string")
+d.checkpoint("introduction", "Elena is wary and asks who the player is") \
+	.discloses("eastern_gate") \
+	.edge("gate", "success", {"predicate": "trust >= 0.4", "when": "the player asks where soldiers might take a prisoner"})
+
+elena.dialogue = d
+elena.dialogue_npc = "elena"  # required when the cast has more than one
+elena.checkpoint_reached.connect(func(checkpoint, _edge, _via): print("now at ", checkpoint))
+elena.ended.connect(func(outcome): print("ended: ", outcome))
+elena.set_fact("trust", 0.5)  # an int or a float is a number
+```
+
+`to_canonical_json()` returns the canonical text, the same bytes the Rust and
+C# builders write, or `""` with `push_error` on a structural fault (a bad or
+repeated id, a `to` or disclosed fact that names nothing, a `default` of the
+wrong type, a level outside 1–9, a loop of edges without `when`). The
+predicate grammar and the length bounds are the core's, which
+`dialogue_load` and `dialogue_validate` run. `cefr("A1"…"C2")` is 1–6,
+`jlpt("N5"…"N1")` is 1–5 (reversed), `NATIVE` is 9, and an unknown label is
+`-1`; HSK, TOPIK and General labels are their number. Under `subtle` the NPC
+speaks at the lower of its level and the learner's; under `none`, at its own.
+A number `default` is an integer up to 2^53 − 1 or has at most four decimal
+places in `1e-4 ≤ |x| < 1e9`.
+
 ## Practice
 
 ```gdscript

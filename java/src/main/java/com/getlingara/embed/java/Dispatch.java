@@ -26,7 +26,20 @@ final class Dispatch {
   private static <R> R rest(EmbedEvent event, EmbedEventVisitor<R> visitor) {
     if (event instanceof EmbedEvent.NpcTurn e) {
       return visitor.npcTurn(e);
-    } else if (event instanceof EmbedEvent.Error e) {
+    } else if (event instanceof EmbedEvent.CheckpointReached e) {
+      return visitor.checkpointReached(e);
+    } else if (event instanceof EmbedEvent.DialogueEnded e) {
+      return visitor.dialogueEnded(e);
+    } else if (event instanceof EmbedEvent.DialogueLoaded e) {
+      return visitor.dialogueLoaded(e);
+    } else if (event instanceof EmbedEvent.DialogueLoadFailed e) {
+      return visitor.dialogueLoadFailed(e);
+    }
+    return last(event, visitor);
+  }
+
+  private static <R> R last(EmbedEvent event, EmbedEventVisitor<R> visitor) {
+    if (event instanceof EmbedEvent.Error e) {
       return visitor.error(e);
     } else if (event instanceof EmbedEvent.Log e) {
       return visitor.log(e);

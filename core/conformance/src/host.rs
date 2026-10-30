@@ -89,12 +89,12 @@ impl Run {
     }
 
     /// A `Command` in its JSON shape. Any value `"$last"` in it is the id
-    /// the latest `practice_start` or `dialogue_open` answered with.
+    /// the latest `practice_start`, `dialogue_open` or `dialogue_load` answered with.
     fn command(&mut self, body: &Value) -> Result<(), String> {
         let mut body = body.clone();
         substitute(&mut body, self.last_id);
         let command: Command = serde_json::from_value(body).map_err(|e| format!("not a Command: {e}"))?;
-        let opens = matches!(command, Command::PracticeStart { .. } | Command::DialogueOpen { .. });
+        let opens = matches!(command, Command::PracticeStart { .. } | Command::DialogueOpen { .. } | Command::DialogueLoad { .. });
         match self.embed()?.execute(command) {
             Ok(CommandOutcome::Id { id }) if opens => self.last_id = Some(id),
             Ok(_) => {}

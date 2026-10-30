@@ -2,6 +2,10 @@
 //! `NpcTranscript` beside it mirrors the turn. One turn is in flight per
 //! NPC; a line said while one is refused by K1 with `Busy`. The plugin keeps
 //! no queue and never retries: a turn is billed and has no idempotency key.
+//!
+//! A graph NPC (ADR 28.10.26g D6) adds its story: K1's `CheckpointReached`
+//! and `DialogueEnded` arrive as typed Messages on the entity, and
+//! `NpcSetFact` goes in as `DialogueSetFact`.
 
 mod npc;
 mod transcript;
@@ -13,14 +17,14 @@ use bevy::ecs::observer::On;
 use bevy::ecs::query::Changed;
 use bevy::ecs::system::{Commands, Query, Res, ResMut};
 use bevy::ecs::world::World;
-use lingara_embed::{Command, DialogueId, NpcTurnUpdate, RequestId};
+use lingara_embed::{Command, CrossedVia, DialogueId, DialogueOutcome, NpcTurnUpdate, RequestId};
 
 pub use npc::NpcDialogue;
 pub use transcript::{NpcTranscript, Turn};
 
 use crate::core::{Lingara, id_of};
 use crate::frame::{Link, Routes};
-use crate::messages::{LingaraError, NpcCancel, NpcReplied, NpcSay};
+use crate::messages::{CheckpointReached, DialogueEnded, LingaraError, NpcCancel, NpcReplied, NpcSay, NpcSetFact};
 use crate::plugin::Settings;
 
 /// Opens `entity`'s dialogue on the live handle, or leaves it for the next
@@ -29,9 +33,9 @@ use crate::plugin::Settings;
 pub(crate) fn open(world: &mut World, entity: Entity, fresh: bool) {
     let Some(dialogue) = world.get::<NpcDialogue>(entity) else { return };
     let (level, scene) = (dialogue.level(), dialogue.scene().map(str::to_owned));
-    let config = dialogue.config(world.resource::<Settings>().config.source_lang.as_deref());
+    let command = dialogue.open_command(world.resource::<Settings>().config.source_lang.as_deref());
     let opened = match world.get_resource::<Lingara>().filter(|l| l.is_live()) {
-        Some(lingara) => lingara.run(Command::DialogueOpen { config }).and_then(id_of).map(Some),
+        Some(lingara) => lingara.run(command).and_then(id_of).map(Some),
         None => Ok(None),
     };
     match opened {
@@ -114,6 +118,39 @@ pub(crate) fn cancel(mut cancels: MessageReader<NpcCancel>, transcripts: Query<&
             }
         }
     }
+}
+
+/// `NpcSetFact` → `DialogueSetFact`; K1 refuses an undeclared key or a
+/// value of the wrong type, and the refusal lands on the entity.
+pub(crate) fn set_fact(mut facts: MessageReader<NpcSetFact>, transcripts: Query<&NpcTranscript>, mut link: Link) {
+    for NpcSetFact { entity, key, value } in facts.read() {
+        match transcripts.get(*entity).ok().and_then(NpcTranscript::id) {
+            Some(id) => _ = link.run(Command::DialogueSetFact { dialogue: id, key: key.clone(), value: value.clone() }, Some(*entity)),
+            None => {
+                let error = transcript::no_dialogue(link.is_live());
+                link.fail(error, Some(*entity));
+            }
+        }
+    }
+}
+
+/// K1's `CheckpointReached`, onto the transcript and out as a Message.
+pub(crate) fn on_checkpoint(world: &mut World, dialogue: DialogueId, checkpoint: String, edge: Option<String>, via: CrossedVia) {
+    let Some(&entity) = world.resource::<Routes>().dialogues.get(&dialogue) else { return };
+    if let Some(mut transcript) = world.get_mut::<NpcTranscript>(entity) {
+        transcript.checkpoint = Some(checkpoint.clone());
+    }
+    world.write_message(CheckpointReached { entity, checkpoint, edge, via });
+}
+
+/// K1's `DialogueEnded`: the story is over; the dialogue stays open until
+/// the component goes, as a free-form one does.
+pub(crate) fn on_ended(world: &mut World, dialogue: DialogueId, outcome: DialogueOutcome, checkpoint: String) {
+    let Some(&entity) = world.resource::<Routes>().dialogues.get(&dialogue) else { return };
+    if let Some(mut transcript) = world.get_mut::<NpcTranscript>(entity) {
+        transcript.checkpoint = Some(checkpoint);
+    }
+    world.write_message(DialogueEnded { entity, outcome });
 }
 
 /// One K1 `NpcTurn` update onto its transcript.

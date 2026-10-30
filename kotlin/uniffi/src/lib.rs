@@ -18,6 +18,7 @@
 mod config;
 mod convert;
 mod dialogue;
+mod graph;
 mod handle;
 mod practice;
 mod records;

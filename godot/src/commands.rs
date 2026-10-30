@@ -13,6 +13,8 @@ use crate::convert::arg;
 /// lifetimes, and `u8` levels.
 fn narrowed(field: &str, value: Value) -> Result<Value, EmbedError> {
     match field {
+        // `dialogue_load`'s `session` is K1's `GraphSession`, not a practice id.
+        "session" if value.is_object() => Ok(value),
         "session" | "dialogue" => arg::<u64>(field, value.clone()).map(Value::from),
         "option" | "expires_in_secs" => arg::<u32>(field, value.clone()).map(Value::from),
         "level" => arg::<u8>(field, value.clone()).map(Value::from),

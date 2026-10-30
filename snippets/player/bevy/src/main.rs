@@ -5,6 +5,11 @@
 use bevy::prelude::*;
 use bevy_lingara::lingara_embed::PracticeSource;
 use bevy_lingara::*;
+// lingara:begin dialogueGraph
+use bevy_lingara::lingara_embed::dialogue_ir::build::{Checkpoint, Dialogue, Edge, Fact, Npc, Outcome};
+use bevy_lingara::lingara_embed::dialogue_ir::{DialogueIr, IrError, Level, Pedagogy};
+use bevy_lingara::lingara_embed::{DialogueOutcome, FactValue};
+// lingara:end
 
 // lingara:begin tokenSource
 /// The common case: the plugin POSTs to your own server's token route, with
@@ -41,8 +46,9 @@ fn main() {
         .add_plugins(LingaraPlugin::new(lingara_config(header)))
         .add_systems(Update, on_lingara_event)
     // lingara:end
-        .add_systems(Startup, spawn_seller)
+        .add_systems(Startup, (spawn_seller, spawn_elena))
         .add_systems(Update, (answer_token_requests, talk, show_reply, practise, on_practice_finished))
+        .add_systems(Update, (raise_the_alarm, follow_the_story))
         .run();
 }
 
@@ -114,6 +120,79 @@ fn practise(
 fn on_practice_finished(mut finished: MessageReader<PracticeFinished>) {
     for done in finished.read() {
         info!("practice ended in {:?}", done.snapshot.phase);
+    }
+}
+// lingara:end
+
+// lingara:begin dialogueGraph
+/// A story as a graph: checkpoints joined by edges. An edge's `predicate` is
+/// a game condition Lingara's core evaluates; its `when` is a conversational
+/// one the server's judge reads. Two NPCs share this one graph, each with
+/// their own fluency (1–9; `Level::cefr("A2")` is 2, `NATIVE` is 9).
+pub fn missing_brother() -> Result<DialogueIr, IrError> {
+    Dialogue::new("missing_brother", "introduction")
+        .title("The missing brother")
+        .pedagogy(Pedagogy::None)
+        .npc(
+            Npc::new("elena", "Elena")
+                .persona("a farmer who distrusts soldiers")
+                .speaks("es", Level::NATIVE, Level::NATIVE)
+                .speaks("en", Level::cefr("A2")?, Level::cefr("B1")?),
+        )
+        .npc(
+            Npc::new("tomas", "Tomás")
+                .persona("Elena's neighbour, a retired soldier")
+                .speaks("es", Level::NATIVE, Level::NATIVE)
+                .speaks("en", Level(6), Level(7)),
+        )
+        .fact(Fact::number("trust").default(0))
+        .fact(Fact::number("suspicion").default(0.4))
+        .fact(Fact::boolean("alarm_raised").default(false))
+        .fact(Fact::string("eastern_gate"))
+        .checkpoint(
+            Checkpoint::new("introduction", "Elena is wary and asks who the player is")
+                .edge(Edge::new("alarm", Outcome::Failure).predicate("alarm_raised"))
+                .edge(Edge::new("explained", "ask_about_brother").when("the player says who they are and why they are here")),
+        )
+        .checkpoint(
+            Checkpoint::new("ask_about_brother", "Admit she saw soldiers ride toward \"the old mill\"; reveal the gate only if she trusts the player")
+                .discloses("eastern_gate")
+                .edge(Edge::new("gate", Outcome::Success).predicate("trust >= 0.4").when("the player asks where soldiers might take a prisoner"))
+                .edge(Edge::new("neighbour", "ask_tomas").when("the player asks who else saw the soldiers"))
+                .edge(Edge::new("leaves", Outcome::Abandoned).when("the player walks away")),
+        )
+        .checkpoint(
+            Checkpoint::new("ask_tomas", "Tomás says the soldiers spoke of the road to 長安")
+                .edge(Edge::new("suspicious", Outcome::Failure).predicate("suspicion > 0.5"))
+                .edge(Edge::new("back_to_elena", "ask_about_brother").when("the player returns to Elena with what Tomás said")),
+        )
+        .build() // the core's own checks, so the load never refuses it
+}
+
+/// Elena on an entity: the plugin loads the graph with `DialogueLoad`, and
+/// `NpcSay` talks to her exactly as to a free-form NPC.
+fn spawn_elena(mut commands: Commands) {
+    let story = missing_brother().expect("a valid dialogue");
+    commands.spawn(NpcDialogue::graph(&story, "elena", "es", 2).expect("Elena is in the cast"));
+}
+
+/// The game sets facts; a predicate that reads one may cross an edge.
+fn raise_the_alarm(keys: Res<ButtonInput<KeyCode>>, npcs: Query<Entity, With<NpcDialogue>>, mut set: MessageWriter<NpcSetFact>) {
+    if keys.just_pressed(KeyCode::KeyA) {
+        for entity in &npcs {
+            set.write(NpcSetFact { entity, key: "alarm_raised".into(), value: FactValue::Boolean(true) });
+        }
+    }
+}
+
+fn follow_the_story(mut reached: MessageReader<CheckpointReached>, mut ended: MessageReader<DialogueEnded>) {
+    for step in reached.read() {
+        info!("now at {} (via {:?})", step.checkpoint, step.via);
+    }
+    for end in ended.read() {
+        if end.outcome == DialogueOutcome::Success {
+            info!("the player learned where the soldiers went");
+        }
     }
 }
 // lingara:end

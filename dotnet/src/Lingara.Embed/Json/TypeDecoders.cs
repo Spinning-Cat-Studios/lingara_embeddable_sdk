@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace Lingara.Embed.Json
 {
@@ -121,7 +122,36 @@ namespace Lingara.Embed.Json
             Scene = v.OptStr("scene"),
             Level = Byte(v, "level"),
             Window = List(v["window"], e => new WindowEntry { Speaker = Words.Speakers.Parse(e.Str("speaker")), Text = e.Str("text") }),
+            Graph = v["graph"].IsNull ? null : Graph(v["graph"]),
         };
+
+        /// <summary>A graph dialogue's story (ADR 28.10.26f D6).</summary>
+        public static GraphSnapshot Graph(JsonValue v) => new GraphSnapshot
+        {
+            Id = v.Str("id"),
+            Npc = v.Str("npc"),
+            Checkpoint = v.Str("checkpoint"),
+            Facts = Facts(v.Obj("facts")),
+            Outcome = v.OptStr("outcome") is string outcome ? GraphWords.Outcomes.Parse(outcome) : (DialogueOutcome?)null,
+        };
+
+        private static Dictionary<string, FactValue> Facts(JsonValue v)
+        {
+            var facts = new Dictionary<string, FactValue>();
+            foreach (var member in v.Members)
+            {
+                facts[member.Key] = member.Value.Kind switch
+                {
+                    JsonKind.True => FactValue.Of(true),
+                    JsonKind.False => FactValue.Of(false),
+                    JsonKind.String => FactValue.Of(member.Value.Text!),
+                    JsonKind.Number => FactValue.Of(double.Parse(member.Value.Text!, NumberStyles.Float, CultureInfo.InvariantCulture)),
+                    _ => throw new JsonFormatException($"fact `{member.Key}` is not a boolean, a number or a string"),
+                };
+            }
+
+            return facts;
+        }
 
         public static IReadOnlyList<T> List<T>(JsonValue v, Func<JsonValue, T> item)
         {

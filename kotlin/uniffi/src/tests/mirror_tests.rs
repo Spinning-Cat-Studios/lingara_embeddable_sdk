@@ -61,6 +61,27 @@ fn every_k1_variant_has_a_mirror() {
     }
 }
 
+// 28.10.26f D8: the graph's types have mirrors, its struct examples cross
+// both ways unchanged, and a whole fact number reaches K1 as an integer.
+#[test]
+fn graph_types_have_mirrors() {
+    let v = vector();
+    mirrored::<core::DialogueSource, DialogueSource>(&v, "tagged", "DialogueSource");
+    mirrored::<core::CrossedVia, CrossedVia>(&v, "words", "CrossedVia");
+    mirrored::<core::DialogueOutcome, DialogueOutcome>(&v, "words", "DialogueOutcome");
+    mirrored::<core::Pedagogy, Pedagogy>(&v, "words", "Pedagogy");
+    for config in mirrored::<core::DialogueConfig, DialogueConfig>(&v, "structs", "DialogueConfig") {
+        let back: core::DialogueConfig = to_core("config", &config).expect("into K1");
+        assert_eq!(serde_json::to_value(back).unwrap(), examples(&v, "structs", "DialogueConfig")[0]);
+    }
+    let snapshot = &mirrored::<core::DialogueSnapshot, DialogueSnapshot>(&v, "structs", "DialogueSnapshot")[0];
+    assert_eq!(snapshot.graph.as_ref().map(|g| g.facts["trust"].clone()), Some(FactValue::Number { value: 0.4 }));
+
+    let zero: core::FactValue = to_core("value", &FactValue::Number { value: 0.0 }).unwrap();
+    assert_eq!(serde_json::to_string(&zero).unwrap(), "0");
+    assert!(to_core::<_, core::FactValue>("value", &FactValue::Number { value: f64::NAN }).is_err(), "NaN is refused");
+}
+
 /// `serde_json::to_value` of a K1 value: its JSON, secrets redacted.
 fn k1_json<K: Serialize>(value: &K) -> Value {
     serde_json::to_value(value).expect("K1 serialises")

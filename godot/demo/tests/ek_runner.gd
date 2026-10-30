@@ -37,7 +37,9 @@ func _initialize() -> void:
 	out.close()
 	test_signal_argument_types_hold()
 	# A failing case is in the results, which the server judges; the exit
-	# code says only that every case was run and reported.
+	# code says only that every case was run and reported, and so does the
+	# success line run-script.sh waits for (ADR 30.10.26b D2).
+	print("LINGARA_GODOT_SCRIPT_OK")
 	quit(0)
 
 

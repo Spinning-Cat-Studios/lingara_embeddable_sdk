@@ -8,6 +8,7 @@ use std::sync::Arc;
 use crate::api::Api;
 use crate::config::EmbedConfig;
 use crate::dialogue::Dialogues;
+use crate::dialogue::graph::DialogueCache;
 use crate::error::{Diagnostics, EmbedError};
 use crate::events::StreamControl;
 use crate::ids::Ids;
@@ -29,6 +30,8 @@ pub(crate) struct Shared {
     pub stream: StreamControl,
     pub practice: Practice,
     pub dialogues: Dialogues,
+    /// Stored dialogues by store id (ADR 28.10.26i D3).
+    pub dialogue_cache: DialogueCache,
 }
 
 impl Shared {

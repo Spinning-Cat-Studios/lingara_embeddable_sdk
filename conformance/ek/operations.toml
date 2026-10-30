@@ -3,7 +3,8 @@
 # resumed tail replays from its cursor. sendEvent carries the world door and
 # world.practice_completed; streamLessonPlan is the reopen after a create
 # stream drops. Confirmed against the X1 release by ADR 1.10.26y, which adds
-# nothing: every entry has an EK case.
+# nothing: every entry has an EK case. exportDialogue is the stored
+# dialogue's load (ADR 28.10.26i, EK12).
 operations = [
   "streamEvents",
   "sendEvent",
@@ -11,5 +12,6 @@ operations = [
   "getLessonPlan",
   "streamLessonPlan",
   "sendDialogueTurn",
+  "exportDialogue",
 ]
 messages = []

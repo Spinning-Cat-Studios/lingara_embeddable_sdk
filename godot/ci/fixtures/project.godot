@@ -1,0 +1,13 @@
+; The fixture project run_script_test.sh points run-script.sh at (ADR
+; 30.10.26b D4): one script per way a Godot run can end. It sits outside
+; every path gdlint reads, so parse_error.gd's deliberate error fails
+; nothing but the row that expects it. bypass/ is not part of the project:
+; it holds copies of the call sites as they were before the runner, the
+; bypass check's known positive.
+
+config_version=5
+
+[application]
+
+config/name="run-script.sh fixtures"
+config/features=PackedStringArray("4.5")

@@ -1,6 +1,12 @@
 #![doc = include_str!("../README.md")]
 
+// The public name stays `build`; the files live under `builder/` because
+// scs-snapshot drops any path with a `build` component (publish/snapshot.toml).
+#[path = "builder/mod.rs"]
+pub mod build;
+pub mod canonical;
 pub mod ir;
+mod levels;
 pub mod limits;
 mod path;
 pub mod predicate;
@@ -18,6 +24,7 @@ use std::fmt;
 use serde_json::Value;
 
 pub use ir::{Checkpoint, DialogueIr, Edge, FactDecl, FactType, FactValue, NpcLanguage, NpcProfile, Pedagogy, SCHEMA_V1};
+pub use levels::Level;
 pub use validate::validate;
 
 /// Why a dialogue was refused. `path` is a dotted JSON path

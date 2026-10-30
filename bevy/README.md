@@ -91,6 +91,26 @@ is still billed. To carry a conversation across a restart, read
 `Lingara::core()`'s `dialogue_snapshot(id).window` and insert the NPC again
 `with_window`.
 
+## Graph NPCs
+
+A story as a graph (checkpoints joined by edges) is the same component,
+opened with `DialogueLoad` instead. Build the dialogue with
+`lingara_embed::dialogue_ir::build`, or parse a saved one with
+`dialogue_ir::from_json`, and name the cast member this entity is:
+
+```rust,ignore
+let story = missing_brother()?; // Dialogue::new(…)…build()
+commands.spawn(NpcDialogue::graph(&story, "elena", "es", 2)?);
+// the game sets facts; a predicate that reads one may cross an edge:
+set.write(NpcSetFact { entity, key: "alarm_raised".into(), value: FactValue::Boolean(true) });
+```
+
+`CheckpointReached { entity, checkpoint, edge, via }` follows the load and
+every crossing, and `DialogueEnded { entity, outcome }` the end of the story;
+`NpcTranscript::checkpoint` holds where it is. `NpcSay`, `with_scene`,
+`with_source_lang`, `set_level` and removal (which closes the dialogue) work
+as for a free-form NPC.
+
 ## Practice
 
 ```rust,ignore

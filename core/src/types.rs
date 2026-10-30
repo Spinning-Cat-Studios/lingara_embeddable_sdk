@@ -43,6 +43,10 @@ macro_rules! word {
     )* };
 }
 
+// After the two macros, which it uses (ADR 28.10.26f: the dialogue's types).
+mod dialogue_graph;
+pub use dialogue_graph::*;
+
 data! {
     /// Every command, as one serialisable enum (`execute`). The flat methods
     /// on `Embed` are thin wrappers over it.
@@ -71,6 +75,9 @@ data! {
         DialogueCancel { dialogue: DialogueId },
         DialogueClose { dialogue: DialogueId },
         DialogueSnapshot { dialogue: DialogueId },
+        DialogueLoad { source: DialogueSource, session: GraphSession },
+        DialogueSetFact { dialogue: DialogueId, key: String, value: FactValue },
+        DialogueValidate { ir_json: String },
     }
 
     /// What `execute` answers. `Id` carries a `RequestId`, `SessionId` or `DialogueId`.
@@ -93,6 +100,12 @@ data! {
         WorldSent { request: RequestId, event_id: String, reaction: Option<Reaction> },
         Practice { session: SessionId, snapshot: PracticeSnapshot },
         NpcTurn { dialogue: DialogueId, request: RequestId, update: NpcTurnUpdate },
+        CheckpointReached { dialogue: DialogueId, checkpoint: String, edge: Option<String>, via: CrossedVia },
+        DialogueEnded { dialogue: DialogueId, outcome: DialogueOutcome, checkpoint: String, edge: Option<String> },
+        /// A stored dialogue's revision `rev` is loaded; `CheckpointReached { via: start }` follows.
+        DialogueLoaded { dialogue: DialogueId, dialogue_id: String, rev: u64 },
+        /// A stored dialogue could not load; its id is gone.
+        DialogueLoadFailed { dialogue: DialogueId, error: EmbedError },
         Error { error: EmbedError },
         Log { level: LogLevel, target: String, message: String },
         Closed { reason: CloseReason },
@@ -228,29 +241,9 @@ data! {
         pub explanation: String,
     }
 
-    /// B3's request, held between turns (D8).
-    pub struct DialogueConfig {
-        pub npc: Npc,
-        #[serde(default)]
-        pub scene: Option<String>,
-        pub source_lang: String,
-        pub target_lang: String,
-        pub level: u8,
-        #[serde(default)]
-        pub window: Vec<WindowEntry>,
-    }
-
     pub struct WindowEntry {
         pub speaker: Speaker,
         pub text: String,
-    }
-
-    pub struct DialogueSnapshot {
-        pub phase: DialoguePhase,
-        pub npc: Npc,
-        pub scene: Option<String>,
-        pub level: u8,
-        pub window: Vec<WindowEntry>,
     }
 
     pub struct EmbedStatus {
@@ -277,7 +270,9 @@ word! {
     /// B2's six outcomes.
     pub enum PracticeOutcome { Correct, Incorrect, Revealed, SelfCorrect, SelfIncorrect, Skipped }
 
-    pub enum DialoguePhase { Idle, Sending, Streaming }
+    /// `Ended` once a graph dialogue crosses an edge to an outcome (ADR
+    /// 28.10.26f D4); `Loading` while a stored one is fetched (ADR 28.10.26i D2).
+    pub enum DialoguePhase { Idle, Sending, Streaming, Ended, Loading }
 
     pub enum Speaker { Player, Npc }
 }

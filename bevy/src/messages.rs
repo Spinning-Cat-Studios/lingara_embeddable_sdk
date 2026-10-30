@@ -5,8 +5,8 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::message::Message;
 use bevy::ecs::resource::Resource;
 use lingara_embed::{
-    CloseReason, EmbedError, EmbedEvent, EmbedStatus, Header, LingaraEvent, PracticeSnapshot, PracticeSource, Reaction, RequestId,
-    Secret, TokenReason, WorldContext,
+    CloseReason, CrossedVia, DialogueOutcome, EmbedError, EmbedEvent, EmbedStatus, FactValue, Header, LingaraEvent, PracticeSnapshot,
+    PracticeSource, Reaction, RequestId, Secret, TokenReason, WorldContext,
 };
 
 use crate::practice::PracticeAction;
@@ -45,6 +45,24 @@ pub struct NpcReplied {
     pub entity: Entity,
     pub text: String,
     pub level: u8,
+}
+
+/// A graph NPC's story reached `checkpoint`: by its load (`Start`), an
+/// edge with no `when` (`Auto`) or the judge (`Judge`), across `edge`.
+#[derive(Message, Debug, Clone, PartialEq, Eq)]
+pub struct CheckpointReached {
+    pub entity: Entity,
+    pub checkpoint: String,
+    pub edge: Option<String>,
+    pub via: CrossedVia,
+}
+
+/// A graph NPC's story ended on `outcome`. The component stays, and its
+/// removal closes the dialogue as it always does.
+#[derive(Message, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DialogueEnded {
+    pub entity: Entity,
+    pub outcome: DialogueOutcome,
 }
 
 /// A practice session reached a terminal phase. Written once per session.
@@ -134,6 +152,15 @@ pub struct PracticeInput {
 pub struct NpcSay {
     pub entity: Entity,
     pub line: String,
+}
+
+/// Sets a declared fact on the graph NPC on `entity` (`DialogueSetFact`).
+/// A predicate reading it is re-evaluated by K1, which may cross an edge.
+#[derive(Message, Debug, Clone, PartialEq)]
+pub struct NpcSetFact {
+    pub entity: Entity,
+    pub key: String,
+    pub value: FactValue,
 }
 
 /// Drops the reply in flight. The turn is still billed.

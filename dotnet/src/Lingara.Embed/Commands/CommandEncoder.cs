@@ -75,14 +75,51 @@ namespace Lingara.Embed.Commands
                 .Prop("source_lang", config.SourceLang)
                 .Prop("target_lang", config.TargetLang)
                 .Prop("level", config.Level)
-                .Name("window").BeginArray();
-            foreach (var entry in config.Window)
+                .Name("window");
+            Window(w, config.Window);
+            Profile(w, config);
+            return w.EndObject().EndObject().ToUtf8();
+        }
+
+        /// <summary>A graph dialogue (ADR 28.10.26f): the IR as text, and the run's session.</summary>
+        public static byte[] DialogueLoad(string irJson, GraphSession session) => DialogueLoad(DialogueSource.Ir(irJson), session);
+
+        /// <summary>A graph dialogue from either source (ADR 28.10.26i): inline text, or a stored id.</summary>
+        public static byte[] DialogueLoad(DialogueSource source, GraphSession session)
+        {
+            var w = Begin("dialogue_load").Name("source").BeginObject();
+            w = source switch
             {
-                w.BeginObject().Prop("speaker", Words.Speakers.Name(entry.Speaker)).Prop("text", entry.Text).EndObject();
+                DialogueSource.StoredSource s => w.Prop("type", "stored").Prop("dialogue_id", s.DialogueId),
+                DialogueSource.IrSource i => w.Prop("type", "ir").Prop("ir_json", i.IrJson),
+                _ => throw new System.ArgumentException("an unknown dialogue source", nameof(source)),
+            };
+            w.EndObject()
+                .Name("session").BeginObject()
+                .Prop("npc", session.Npc)
+                .Prop("source_lang", session.SourceLang)
+                .Prop("target_lang", session.TargetLang)
+                .Prop("level", session.Level)
+                .Prop("scene", session.Scene)
+                .Name("facts").BeginObject();
+            foreach (var fact in session.Facts)
+            {
+                Fact(w.Name(fact.Key), fact.Value);
             }
 
-            return w.EndArray().EndObject().EndObject().ToUtf8();
+            w.EndObject().Prop("checkpoint", session.Checkpoint).Name("window");
+            Window(w, session.Window);
+            return w.EndObject().EndObject().ToUtf8();
         }
+
+        public static byte[] DialogueSetFact(DialogueId dialogue, string key, FactValue value)
+        {
+            var w = Dialogue("dialogue_set_fact", dialogue).Prop("key", key).Name("value");
+            Fact(w, value);
+            return w.EndObject().ToUtf8();
+        }
+
+        public static byte[] DialogueValidate(string irJson) => Begin("dialogue_validate").Prop("ir_json", irJson).EndObject().ToUtf8();
 
         public static byte[] DialogueSay(DialogueId dialogue, string line) =>
             Dialogue("dialogue_say", dialogue).Prop("line", line).EndObject().ToUtf8();
@@ -144,6 +181,53 @@ namespace Lingara.Embed.Commands
             }
 
             w.BeginObject().Prop("name", npc.Name).Prop("persona", npc.Persona).EndObject();
+        }
+
+        private static void Window(JsonWriter w, IReadOnlyList<WindowEntry> window)
+        {
+            w.BeginArray();
+            foreach (var entry in window)
+            {
+                w.BeginObject().Prop("speaker", Words.Speakers.Name(entry.Speaker)).Prop("text", entry.Text).EndObject();
+            }
+
+            w.EndArray();
+        }
+
+        /// <summary>N1's profile, written only when set: K1 omits both when absent.</summary>
+        private static void Profile(JsonWriter w, DialogueConfig config)
+        {
+            if (config.Languages.Count > 0)
+            {
+                w.Name("languages").BeginArray();
+                foreach (var l in config.Languages)
+                {
+                    w.BeginObject().Prop("code", l.Code).Prop("speaking", l.Speaking).Prop("comprehension", l.Comprehension).EndObject();
+                }
+
+                w.EndArray();
+            }
+
+            if (config.Pedagogy is Pedagogy pedagogy)
+            {
+                w.Prop("pedagogy", GraphWords.Pedagogies.Name(pedagogy));
+            }
+        }
+
+        private static void Fact(JsonWriter w, FactValue value)
+        {
+            switch (value)
+            {
+                case FactValue.Flag b:
+                    w.Bool(b.Value);
+                    break;
+                case FactValue.Number n:
+                    w.Literal(n.Literal);
+                    break;
+                case FactValue.Text t:
+                    w.String(t.Value);
+                    break;
+            }
         }
 
         private static void Source(JsonWriter w, PracticeSource source)

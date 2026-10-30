@@ -4,7 +4,7 @@
 
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::Message;
-use bevy_lingara::lingara_embed::{Command, DialogueConfig, EmbedError};
+use bevy_lingara::lingara_embed::{Command, CommandOutcome, DialogueConfig, EmbedError};
 use bevy_lingara::{
     NpcCancel, NpcDialogue, NpcSay, NpcTranscript, PracticeAction, PracticeInput, PracticeSession, ProvideToken, SetTokenEndpoint,
     StartPractice, TokenUnavailable, WorldContextChanged,
@@ -34,6 +34,20 @@ fn npc(config: DialogueConfig) -> Result<NpcDialogue, EmbedError> {
     Ok(npc.with_source_lang(config.source_lang).with_window(config.window))
 }
 
+/// The dialogue a command addresses, when it addresses one.
+fn addressed(command: &Command) -> Option<u64> {
+    match command {
+        Command::DialogueSay { dialogue, .. }
+        | Command::DialogueSetLevel { dialogue, .. }
+        | Command::DialogueSetScene { dialogue, .. }
+        | Command::DialogueCancel { dialogue }
+        | Command::DialogueClose { dialogue }
+        | Command::DialogueSnapshot { dialogue }
+        | Command::DialogueSetFact { dialogue, .. } => Some(*dialogue),
+        _ => None,
+    }
+}
+
 fn practice(command: &Command) -> Option<(u64, PracticeAction)> {
     Some(match command.clone() {
         Command::PracticeAnswer { session, answer } => (session, PracticeAction::Answer(answer)),
@@ -48,11 +62,14 @@ fn practice(command: &Command) -> Option<(u64, PracticeAction)> {
 
 impl Run {
     /// A `Command` in its JSON shape; `"$last"` is the id the latest
-    /// `practice_start` or `dialogue_open` answered with.
+    /// `practice_start`, `dialogue_open` or `dialogue_load` answered with.
     pub fn command(&mut self, body: &Value) -> Result<(), String> {
         let mut body = body.clone();
         substitute(&mut body, self.last_id);
         let command: Command = serde_json::from_value(body).map_err(|e| format!("not a Command: {e}"))?;
+        if matches!(command, Command::DialogueLoad { .. }) || addressed(&command).is_some_and(|d| self.graphs.contains(&d)) {
+            return self.graph(command);
+        }
         if let Some((session, action)) = practice(&command) {
             let entity = self.entity(session);
             return self.send(PracticeInput { entity, action });
@@ -70,6 +87,20 @@ impl Run {
             Command::DialogueOpen { config } => self.open(config),
             other => self.dialogue(other),
         }
+    }
+
+    /// A graph dialogue's command, through `Lingara::core()` (ADR 28.10.26f D8).
+    fn graph(&mut self, command: Command) -> Result<(), String> {
+        let loads = matches!(command, Command::DialogueLoad { .. });
+        match self.core(|core| core.execute(command))? {
+            Ok(CommandOutcome::Id { id }) if loads => {
+                self.last_id = Some(id);
+                self.graphs.insert(id);
+            }
+            Ok(_) => {}
+            Err(e) => self.seen.push_back(refusal(&e)),
+        }
+        self.pump()
     }
 
     fn dialogue(&mut self, command: Command) -> Result<(), String> {

@@ -21,7 +21,7 @@ kotlin {
 }
 
 dependencies {
-    api("com.getlingara:lingara-kotlin:0.2.0-alpha.1")
+    api("com.getlingara:lingara-kotlin:0.2.0-alpha.6")
 }
 
 // The kit's version as a resource, from VERSION (D1: no kit writes its

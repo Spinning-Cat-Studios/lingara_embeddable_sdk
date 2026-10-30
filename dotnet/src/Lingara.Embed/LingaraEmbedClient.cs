@@ -150,6 +150,24 @@ namespace Lingara.Embed
 
         public DialogueSnapshot? GetDialogueSnapshot(DialogueId dialogue) => AnswerDecoder.Dialogue(Execute(CommandEncoder.DialogueSnapshot(dialogue)));
 
+        /// <summary>
+        /// Loads a <c>dialogue.v1</c> graph, as text, and opens a run of it (ADR 28.10.26f);
+        /// <c>CheckpointReached</c> follows.
+        /// </summary>
+        public DialogueId DialogueLoad(string irJson, GraphSession session) => new DialogueId(AnswerDecoder.Id(Execute(CommandEncoder.DialogueLoad(irJson, session))));
+
+        /// <summary>A dialogue built with <see cref="Dialogues.DialogueBuilder"/>, sent as its canonical text (ADR 28.10.26g D6).</summary>
+        public DialogueId DialogueLoad(Dialogues.Dialogue ir, GraphSession session) => DialogueLoad(ir.ToCanonicalJson(), session);
+
+        /// <summary>From either source (ADR 28.10.26i): a stored one answers its id in <c>Loading</c>, then <c>DialogueLoaded</c> or <c>DialogueLoadFailed</c>.</summary>
+        public DialogueId DialogueLoad(DialogueSource source, GraphSession session) => new DialogueId(AnswerDecoder.Id(Execute(CommandEncoder.DialogueLoad(source, session))));
+
+        /// <summary>Sets a fact the graph declared.</summary>
+        public void DialogueSetFact(DialogueId dialogue, string key, FactValue value) => AnswerDecoder.Done(Execute(CommandEncoder.DialogueSetFact(dialogue, key, value)));
+
+        /// <summary>Checks a <c>dialogue.v1</c> document as <see cref="DialogueLoad(string, GraphSession)"/> would, creating nothing.</summary>
+        public void DialogueValidate(string irJson) => AnswerDecoder.Done(Execute(CommandEncoder.DialogueValidate(irJson)));
+
         // ── The queue ─────────────────────────────────────────────────
 
         /// <summary>One event, or false when the queue is empty.</summary>

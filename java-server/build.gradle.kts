@@ -17,7 +17,7 @@ plugins {
 description = "The official Java server kit for embedding Lingara: mint, route, delete, snippet."
 
 dependencies {
-    api("com.getlingara:lingara-java:0.2.0-alpha.1")
+    api("com.getlingara:lingara-java:0.2.0-alpha.6")
 }
 
 // The kit's version as a resource, from VERSION (D1: no kit writes its

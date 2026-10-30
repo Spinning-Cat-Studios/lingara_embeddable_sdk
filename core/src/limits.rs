@@ -34,6 +34,15 @@ pub const DIALOGUE_LINE_MAX_CHARS: usize = 500;
 pub const DIALOGUE_HISTORY_MAX_ITEMS: usize = 12;
 /// Each `history` entry, and the cut an NPC reply is stored at.
 pub const DIALOGUE_TEXT_MAX_CHARS: usize = 500;
+/// N1's `npc.languages`: at most this many, with unique codes.
+pub const NPC_LANGUAGES_MAX_ITEMS: usize = 8;
+/// Each `npc.languages[].code`.
+pub const NPC_LANGUAGE_CODE_MAX_CHARS: usize = 16;
+
+// ── The dialogue graph (`dialogue.v1`, ADR 28.10.26f D1) ──
+
+/// The IR's frozen bounds, defined once in `lingara-dialogue-ir`.
+pub use lingara_dialogue_ir::limits::*;
 
 // ── Timeouts and defaults ──
 
@@ -55,5 +64,11 @@ pub const CLAMPED_LIFETIME_SECS: u64 = 300;
 pub const MAX_TRUSTED_LIFETIME_SECS: u64 = 3_600;
 /// The library's refresh margin: stale at `lifetime − min(60 s, lifetime / 2)`.
 pub const STALE_MARGIN_SECS: u64 = 60;
+/// A stored dialogue's cached revision is reused this long with no request,
+/// and is the bound on how soon an activation reaches a new conversation
+/// (ADR 28.10.26i D3).
+pub const DIALOGUE_ACTIVE_TTL_MS: u64 = 300_000;
+/// Stored dialogues a handle keeps parsed, the least recently used dropped first.
+pub const DIALOGUE_CACHE_MAX_ENTRIES: usize = 32;
 /// The only token a game binary may hold.
 pub const EMBED_TOKEN_PREFIX: &str = "lgr_et_";

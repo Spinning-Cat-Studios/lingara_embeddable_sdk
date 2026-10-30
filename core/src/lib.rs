@@ -33,6 +33,9 @@ pub(crate) use runtime::{ids, shared, sync};
 pub(crate) use token::{bridge as token_bridge, fetch as token_fetch, handoff, rfc3339};
 pub(crate) use types::secret;
 
+/// The `dialogue.v1` IR, its checks and its predicate language (ADR 28.10.26f D11).
+pub use lingara_dialogue_ir as dialogue_ir;
+
 pub use embed::Embed;
 pub use handoff::{BoxFuture, EmbedTokenSource, IssuedToken, stale_after};
 pub use secret::REDACTED;

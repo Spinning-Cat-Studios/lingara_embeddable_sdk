@@ -288,4 +288,60 @@ namespace LingaraCommandEncoder
 	FString DialogueClose(int64 Dialogue) { return DialogueCommand(TEXT("dialogue_close"), Dialogue); }
 
 	FString DialogueSnapshot(int64 Dialogue) { return DialogueCommand(TEXT("dialogue_snapshot"), Dialogue); }
+
+	FString DialogueLoad(const FString& IrJson, const FString& SessionJson)
+	{
+		FObject O(TEXT("dialogue_load"));
+		O.W->WriteObjectStart(TEXT("source"));
+		O.W->WriteValue(TEXT("type"), TEXT("ir"));
+		O.W->WriteValue(TEXT("ir_json"), IrJson);
+		O.W->WriteObjectEnd();
+		O.W->WriteRawJSONValue(TEXT("session"), SessionJson);
+		return O.Close();
+	}
+
+	FString DialogueLoadStored(const FString& DialogueId, const FString& SessionJson)
+	{
+		FObject O(TEXT("dialogue_load"));
+		O.W->WriteObjectStart(TEXT("source"));
+		O.W->WriteValue(TEXT("type"), TEXT("stored"));
+		O.W->WriteValue(TEXT("dialogue_id"), DialogueId);
+		O.W->WriteObjectEnd();
+		O.W->WriteRawJSONValue(TEXT("session"), SessionJson);
+		return O.Close();
+	}
+
+	FString DialogueSetFactBool(int64 Dialogue, const FString& Key, bool bValue)
+	{
+		FObject O(TEXT("dialogue_set_fact"));
+		O.W->WriteValue(TEXT("dialogue"), Dialogue);
+		O.W->WriteValue(TEXT("key"), Key);
+		O.W->WriteValue(TEXT("value"), bValue);
+		return O.Close();
+	}
+
+	FString DialogueSetFactNumber(int64 Dialogue, const FString& Key, double Value)
+	{
+		FObject O(TEXT("dialogue_set_fact"));
+		O.W->WriteValue(TEXT("dialogue"), Dialogue);
+		O.W->WriteValue(TEXT("key"), Key);
+		O.W->WriteValue(TEXT("value"), Value);
+		return O.Close();
+	}
+
+	FString DialogueSetFactText(int64 Dialogue, const FString& Key, const FString& Value)
+	{
+		FObject O(TEXT("dialogue_set_fact"));
+		O.W->WriteValue(TEXT("dialogue"), Dialogue);
+		O.W->WriteValue(TEXT("key"), Key);
+		O.W->WriteValue(TEXT("value"), Value);
+		return O.Close();
+	}
+
+	FString DialogueValidate(const FString& IrJson)
+	{
+		FObject O(TEXT("dialogue_validate"));
+		O.W->WriteValue(TEXT("ir_json"), IrJson);
+		return O.Close();
+	}
 }

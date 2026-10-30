@@ -1,6 +1,7 @@
 extends SceneTree
-## snippets/player/gdscript/ carries exactly P1's four player keys, no
-## install, and no region fails P1's two guards (ADR 1.10.26ab D12, AC11).
+## snippets/player/gdscript/ carries exactly P1's four player keys and K2's
+## dialogueGraph, no install, and no region fails P1's two guards (ADR
+## 1.10.26ab D12, AC11; ADR 28.10.26g AC18).
 ##
 ## It lives outside snippets/ and builds every marker and forbidden string
 ## by concatenation: P1's sync vendors every marked file of a surface, and a
@@ -8,7 +9,7 @@ extends SceneTree
 ## the guards. Run as
 ##   godot --headless --path godot/demo --script res://tests/snippet_regions_test.gd
 
-const KEYS := ["dialogue", "poll", "practice", "tokenSource"]
+const KEYS := ["dialogue", "dialogueGraph", "poll", "practice", "tokenSource"]
 const PREFIX := "lingara" + ":"
 
 
@@ -17,7 +18,8 @@ func _initialize() -> void:
 	for problem: String in problems:
 		printerr("✗ ", problem)
 	if problems.is_empty():
-		print("✓ the gdscript snippet: four keys, no install, both guards hold")
+		print("✓ the gdscript snippet: every key, no install, both guards hold")
+		print("LINGARA_GODOT_SCRIPT_OK")
 	quit(1 if not problems.is_empty() else 0)
 
 

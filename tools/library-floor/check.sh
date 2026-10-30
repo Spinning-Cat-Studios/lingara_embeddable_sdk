@@ -10,6 +10,8 @@
 # (RubyGems' `.pre.` form normalised).
 #
 # Usage: tools/library-floor/check.sh [root]   (root defaults to the repo)
+# After moving the floor, `make lock-library-floor` refreshes the lockfiles
+# that follow it (ADR 30.10.26a).
 set -euo pipefail
 
 root="${1:-$(cd "$(dirname "$0")/../.." && pwd)}"

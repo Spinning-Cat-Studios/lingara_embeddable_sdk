@@ -14,6 +14,7 @@ mod commands;
 mod config;
 mod convert;
 mod embed_node;
+mod node_graph;
 mod node_methods;
 mod node_practice;
 mod node_support;

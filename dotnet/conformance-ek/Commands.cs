@@ -39,6 +39,9 @@ namespace Lingara.Embed.Conformance
             ["dialogue_cancel"] = (c, o, _) => c.DialogueCancel(DialogueId(o)),
             ["dialogue_close"] = (c, o, _) => c.DialogueClose(DialogueId(o)),
             ["dialogue_snapshot"] = (c, o, _) => c.GetDialogueSnapshot(DialogueId(o)),
+            ["dialogue_load"] = (c, o, opened) => opened(c.DialogueLoad(GraphSource(Obj(o, "source")), GraphRun(Obj(o, "session"))).Value),
+            ["dialogue_set_fact"] = (c, o, _) => c.DialogueSetFact(DialogueId(o), Str(o, "key"), Fact(o["value"])),
+            ["dialogue_validate"] = (c, o, _) => c.DialogueValidate(Str(o, "ir_json")),
         };
 
         public static void Run(LingaraEmbedClient client, JsonObject command, Action<long> opened)
@@ -148,11 +151,39 @@ namespace Lingara.Embed.Conformance
             SourceLang = Str(o, "source_lang"),
             TargetLang = Str(o, "target_lang"),
             Level = (byte)Long(o, "level"),
-            Window = (o["window"] as JsonArray)?.Select(e => new WindowEntry
-            {
-                Speaker = Str(e!.AsObject(), "speaker") == "npc" ? Speaker.Npc : Speaker.Player,
-                Text = Str(e!.AsObject(), "text"),
-            }).ToList() ?? new List<WindowEntry>(),
+            Window = Window(o["window"] as JsonArray),
+        };
+
+        private static List<WindowEntry> Window(JsonArray? a) => a?.Select(e => new WindowEntry
+        {
+            Speaker = Str(e!.AsObject(), "speaker") == "npc" ? Speaker.Npc : Speaker.Player,
+            Text = Str(e!.AsObject(), "text"),
+        }).ToList() ?? new List<WindowEntry>();
+
+        /// <summary>Either source a load names: inline text, or a stored id (ADR 28.10.26i).</summary>
+        private static DialogueSource GraphSource(JsonObject o) =>
+            Str(o, "type") == "stored" ? DialogueSource.Stored(Str(o, "dialogue_id")) : DialogueSource.Ir(Str(o, "ir_json"));
+
+        /// <summary>A graph run's session (ADR 28.10.26f D6).</summary>
+        private static GraphSession GraphRun(JsonObject o) => new GraphSession
+        {
+            Npc = OptStr(o, "npc"),
+            SourceLang = Str(o, "source_lang"),
+            TargetLang = Str(o, "target_lang"),
+            Level = (byte)Long(o, "level"),
+            Scene = OptStr(o, "scene"),
+            Facts = (o["facts"] as JsonObject)?.ToDictionary(f => f.Key, f => Fact(f.Value)) ?? new Dictionary<string, FactValue>(),
+            Checkpoint = OptStr(o, "checkpoint"),
+            Window = Window(o["window"] as JsonArray),
+        };
+
+        private static FactValue Fact(JsonNode? n) => n?.GetValueKind() switch
+        {
+            System.Text.Json.JsonValueKind.True => FactValue.Of(true),
+            System.Text.Json.JsonValueKind.False => FactValue.Of(false),
+            System.Text.Json.JsonValueKind.String => FactValue.Of(n.GetValue<string>()),
+            System.Text.Json.JsonValueKind.Number => FactValue.Of(n.GetValue<double>()),
+            _ => throw new InvalidOperationException("a fact is a boolean, a number or a string"),
         };
     }
 }

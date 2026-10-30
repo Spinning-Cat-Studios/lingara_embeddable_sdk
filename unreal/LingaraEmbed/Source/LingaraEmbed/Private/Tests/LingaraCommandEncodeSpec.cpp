@@ -96,6 +96,9 @@ namespace
 		T.Add(TEXT("dialogue_cancel"), [](const FObj& O) { return DialogueCancel(Num(O, TEXT("dialogue"))); });
 		T.Add(TEXT("dialogue_close"), [](const FObj& O) { return DialogueClose(Num(O, TEXT("dialogue"))); });
 		T.Add(TEXT("dialogue_snapshot"), [](const FObj& O) { return DialogueSnapshot(Num(O, TEXT("dialogue"))); });
+		T.Add(TEXT("dialogue_load"), [](const FObj& O) { return DialogueLoad(Str(O->GetObjectField(TEXT("source")), TEXT("ir_json")), LingaraSpec::Serialize(O->GetObjectField(TEXT("session")))); });
+		T.Add(TEXT("dialogue_set_fact"), [](const FObj& O) { return DialogueSetFactNumber(Num(O, TEXT("dialogue")), Str(O, TEXT("key")), O->GetNumberField(TEXT("value"))); });
+		T.Add(TEXT("dialogue_validate"), [](const FObj& O) { return DialogueValidate(Str(O, TEXT("ir_json"))); });
 		return T;
 	}
 }

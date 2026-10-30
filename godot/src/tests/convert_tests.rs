@@ -35,6 +35,11 @@ fn expected(event: &Value) -> (&'static str, Vec<&'static str>) {
         "error" => ("error_raised", vec!["obj"]),
         "log" => ("log_received", vec!["str", "str", "str"]),
         "closed" => ("closed", vec!["str"]),
+        "checkpoint_reached" => ("checkpoint_reached", vec!["int", "str", "str", "str"]),
+        "dialogue_ended" => ("dialogue_ended", vec!["int", "str", "str", "str"]),
+        // 28.10.26i AC8
+        "dialogue_loaded" => ("dialogue_loaded", vec!["int", "str", "int"]),
+        "dialogue_load_failed" => ("dialogue_load_failed", vec!["int", "obj"]),
         _ => match event["update"]["type"].as_str().unwrap_or_default() {
             "opened" => ("npc_turn_opened", vec!["int", "int"]),
             "fragment" => ("npc_fragment", vec!["int", "str"]),
@@ -183,6 +188,30 @@ fn methods_build_k1_commands_and_refusals_surface() {
     assert_eq!(names(&signals), ["practice_changed", "practice_finished"]);
     assert_eq!(signals[0].args, vec![Value::from(7), snap.clone()], "returned and emitted");
     assert_eq!(snap["phase"], "reported");
+}
+
+/// 28.10.26f D8: the graph's three methods build K1's commands and answer
+/// as K1 does; its two events reach their signals with `""` for no edge.
+#[test]
+fn graph_methods_and_events() {
+    let ir = r#"{"schema":"dialogue.v1","id":"g","npcs":[{"id":"elena","name":"Elena"}],"start":"intro","checkpoints":[{"id":"intro","goal":"Wary"}]}"#;
+    let mut b = real_binding();
+    assert_eq!(b.call(build("dialogue_validate", vec![("ir_json", ir.into())]), Returns::Bool), json!(true));
+    assert_eq!(refused(&mut b, "dialogue_validate", vec![("ir_json", "{}".into())], Returns::Bool)["kind"], "invalid_input");
+    let source = json!({ "type": "ir", "ir_json": ir });
+    let session = json!({ "source_lang": "en", "target_lang": "es", "level": 2 });
+    let id = b.call(build("dialogue_load", vec![("source", source), ("session", session)]), Returns::Id);
+    assert!(id.as_i64().unwrap() > 0, "{id}");
+    let fact = vec![("dialogue", id.clone()), ("key", "trust".into()), ("value", 0.4.into())];
+    assert_eq!(refused(&mut b, "dialogue_set_fact", fact, Returns::Bool)["kind"], "invalid_input", "an undeclared fact");
+    b.stop();
+
+    let start = EmbedEvent::CheckpointReached { dialogue: 4, checkpoint: "intro".into(), edge: None, via: lingara_embed::CrossedVia::Start };
+    let calls = signals_for(&start, &mut Finished::default());
+    assert_eq!(calls[1], SignalCall::new("checkpoint_reached", vec![4.into(), "intro".into(), "".into(), "start".into()]));
+    let ended = EmbedEvent::DialogueEnded { dialogue: 4, outcome: lingara_embed::DialogueOutcome::Abandoned, checkpoint: "intro".into(), edge: None };
+    let calls = signals_for(&ended, &mut Finished::default());
+    assert_eq!(calls[1], SignalCall::new("dialogue_ended", vec![4.into(), "abandoned".into(), "intro".into(), "".into()]));
 }
 
 fn leaks(value: &Value, secret: &str) -> bool {

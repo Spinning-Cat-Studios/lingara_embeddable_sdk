@@ -27,5 +27,5 @@ Gem::Specification.new do |spec|
   spec.files = Dir[File.join(__dir__, "{lib/**/*.rb,sig/**/*.rbs}")].map { |path| path.delete_prefix("#{__dir__}/") } +
     %w[README.md LICENSE]
 
-  spec.add_dependency "lingara", ">= 0.2.0.pre.alpha.1", "< 0.3"
+  spec.add_dependency "lingara", ">= 0.2.0.pre.alpha.6", "< 0.3"
 end

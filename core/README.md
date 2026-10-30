@@ -151,6 +151,105 @@ conversation across a restart. Each turn spends one of the player's NPC
 cells (20 an hour, 50 a day) and is billed to you, so **the core never
 retries a turn**: say the line again if you want one.
 
+A config may carry the NPC's own fluency: `languages` (1–8 entries, unique
+codes, each with a `speaking` and a `comprehension` level of 1–9) and
+`pedagogy` (`subtle`, the default, keeps the NPC at or below the learner's
+level; `none` lets it speak at its own).
+
+## Dialogue graphs
+
+`dialogue_load` runs a `dialogue.v1` graph (`lingara_embed::dialogue_ir`
+holds its types, its checks and the predicate language): a cast of NPCs,
+the facts your game tracks, and checkpoints joined by edges. Lingara stays
+stateless, so the core holds where the story is.
+
+```rust,no_run
+# use lingara_embed::{DialogueSource, Embed, EmbedConfig, FactValue, GraphSession};
+# let embed = Embed::start(EmbedConfig::default())?;
+let ir_json = std::fs::read_to_string("missing_brother.json").expect("the dialogue");
+let session = GraphSession {
+    npc: Some("elena".into()), source_lang: "en".into(), target_lang: "es".into(), level: 2,
+    scene: None, facts: Default::default(), checkpoint: None, window: vec![],
+};
+let dialogue = embed.dialogue_load(DialogueSource::Ir { ir_json }, session)?;
+embed.dialogue_set_fact(dialogue, "alarm_raised", FactValue::Boolean(true))?;
+embed.dialogue_say(dialogue, "¿Quién es usted?")?;
+# Ok::<(), lingara_embed::EmbedError>(())
+```
+
+- **Facts and defaults.** A fact reads the game's last `dialogue_set_fact`,
+  else its declared `default`, else *unset*, and every comparison over an
+  unset fact is false. Declare a `default` and you never meet that rule.
+- **Edges.** At each turn the core sends the checkpoint, its goal, and the
+  edges whose `predicate` holds and that carry a `when`, **in the order the
+  dialogue lists them**: when several match, the first wins. A `predicate`
+  never leaves the device, and neither does a fact outside the checkpoint's
+  `may_disclose`. An edge with no `when` is crossed by the core alone, as
+  soon as its predicate holds and no turn is in flight.
+- **Two events.** `CheckpointReached { via }` (`start`, `auto` or `judge`)
+  follows the load and every crossing; a judged crossing comes after the
+  reply's `Finished`. `DialogueEnded { outcome }` follows an edge to
+  `success`, `failure` or `abandoned`, or a `dialogue_close` of a story that
+  had not ended; `dialogue_say` and `dialogue_set_fact` are then
+  `invalid_state`. A failed or cancelled turn leaves the checkpoint where it
+  was, and a `transition_unavailable` notice means the judge could not run.
+- **The flag.** Graphs need `enable_npc_dialogue_graphs` on your client.
+  While it is off, a graph turn is a non-retryable `invalid_input` error with
+  `status: 400`, `code: "invalid_request"` and the detail "`checkpoint` is
+  not available to this client"; the dialogue stays as it was.
+- **Saving a story.** `dialogue_snapshot().graph` holds the checkpoint and
+  the facts you set. Load the same dialogue again with them, the snapshot's
+  `npc` and its `window` as the `GraphSession` to carry on where it was;
+  `outcome` tells you the story already ended. `dialogue_validate` checks a
+  document without opening anything.
+- **Writing one in Rust.** `lingara_embed::dialogue_ir::build` writes the
+  same document from code (`Dialogue::new(…).npc(…).checkpoint(…).build()`),
+  and `to_canonical_json()` is the text `DialogueSource::Ir` takes: see that
+  crate's *Writing a dialogue*.
+
+### Loading a dialogue by id
+
+A dialogue a developer saves and activates on the Lingara platform loads
+by its store id, with no game update:
+`DialogueSource::Stored { dialogue_id }`. The core fetches the **active**
+revision with the player's embed token, and the story then runs exactly as
+an inline one.
+
+- **A player can read the whole graph.** The token reads any active
+  dialogue of your integrator, across every client of the same developer,
+  including checkpoints the player has not reached. A beat that must stay
+  secret stays out of the IR, as a fact the game sets at runtime.
+- **The scope.** Your client must hold `dialogues:read` for the mint to hand
+  it down. A server kit's mint with no explicit scopes hands every scope the
+  client holds, so you change no code. If you list scopes, add it. Without
+  it a load fails `forbidden` (`insufficient_scope`); inline dialogues keep
+  working.
+- **The load.** `dialogue_load` answers the id at once, in phase `loading`.
+  `DialogueLoaded { dialogue_id, rev }` follows, then
+  `CheckpointReached { via: start }`. A malformed id (not a UUID) is
+  refused at the call. While loading, `dialogue_say` and `dialogue_cancel`
+  are `invalid_state`, level and scene apply at once, `dialogue_set_fact` is
+  held and checked against the fetched IR, and `dialogue_close` emits
+  nothing.
+- **Failures.** `DialogueLoadFailed { error }` removes the dialogue, and the
+  core never retries. `not_found` covers an unknown id, another developer's,
+  and the feature off; `code: "dialogue_not_active"` means nothing is
+  activated yet. A `200` without `Lingara-Dialogue-Revision`, or a body the
+  IR's checks refuse (`invalid_input`), is a contract fault between Lingara
+  and the core, not the player's.
+- **Five minutes.** A fetched revision is reused for 300 s with no request,
+  then revalidated (`If-None-Match`, a `304` keeps it). So activating a
+  revision reaches *new* conversations within five minutes; a running one
+  never changes revision, and `DialogueLoaded.rev` says which one it got.
+  The cache holds 32 ids per handle.
+- **The budget.** Lingara allows 60 loads per player per hour, a `304`
+  included, and each id costs at most 12 an hour. Keep three or four stored
+  ids in steady rotation per player, and keep one handle for the session:
+  the cache is in memory, per handle, so a recreated handle starts cold.
+- **Offline means bundling.** Nothing is kept on disk. A game that must
+  start a story offline, or needs exact bytes, bundles the IR and loads it
+  inline.
+
 ## Errors
 
 Every failure is an `EmbedError` with one closed `ErrorKind` and a

@@ -4,6 +4,7 @@ mod config_tests;
 mod dialogue_tests;
 mod fake_core;
 mod frame_tests;
+mod graph_npc_tests;
 mod lifecycle_tests;
 mod practice_tests;
 mod token_tests;

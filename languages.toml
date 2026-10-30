@@ -54,6 +54,7 @@ package = "lingara-embed"
 snippets = "snippets/server/rust"
 version_files = [
   { path = "core/Cargo.toml", kind = "toml", keys = ["package.version"] },
+  { path = "core/Cargo.toml", kind = "toml", keys = ["dependencies.lingara-dialogue-ir.version"], prefix = "=" },
   { path = "ffi/Cargo.toml", kind = "toml", keys = ["package.version"] },
   { path = "ffi/Cargo.toml", kind = "toml", keys = ["dependencies.core_embed.version", "dev-dependencies.core_embed.version"], prefix = "=" },
   { path = "kotlin/uniffi/Cargo.toml", kind = "toml", keys = ["package.version"] },

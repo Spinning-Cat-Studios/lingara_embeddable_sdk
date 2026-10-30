@@ -67,6 +67,12 @@ fn route(world: &mut World, event: EmbedEvent) {
         }
         EmbedEvent::Practice { session, snapshot } => practice::on_snapshot(world, session, snapshot),
         EmbedEvent::NpcTurn { dialogue, request, update } => dialogue::on_turn(world, dialogue, request, update),
+        // A graph dialogue's story (ADR 28.10.26g D6).
+        EmbedEvent::CheckpointReached { dialogue, checkpoint, edge, via } => dialogue::on_checkpoint(world, dialogue, checkpoint, edge, via),
+        EmbedEvent::DialogueEnded { dialogue, outcome, checkpoint, .. } => dialogue::on_ended(world, dialogue, outcome, checkpoint),
+        // A stored dialogue's load (ADR 28.10.26i D5): raw only, as
+        // `LingaraRawEvent`, until follow-up H1 gives it typed Messages.
+        EmbedEvent::DialogueLoaded { .. } | EmbedEvent::DialogueLoadFailed { .. } => {}
         EmbedEvent::Error { error } => on_error(world, error),
         EmbedEvent::Closed { reason } => lifecycle::on_closed(world, reason),
         _ => {}

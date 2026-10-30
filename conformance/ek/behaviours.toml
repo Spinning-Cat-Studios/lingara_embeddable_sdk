@@ -40,3 +40,11 @@ title = "Close and backpressure: after close every connection drops within 2 s a
 [[behaviour]]
 id = "EK10"
 title = "The kit names itself: the User-Agent chain ends lingara-embed/<version> [<kit>/<version>] <suffix>, and Lingara-Version is sent when pinned"
+
+[[behaviour]]
+id = "EK11"
+title = "A graph dialogue sends only passing edges, in order, and crosses exactly one: only disclosable facts leave, an edge with no when is crossed with no turn, a transition is applied after done and only for a sent edge, and an edge to an outcome ends the dialogue"
+
+[[behaviour]]
+id = "EK12"
+title = "A stored dialogue is fetched with the embed token, at most once per id per freshness window: no revision query, a later load sends nothing, not_found and dialogue_not_active fail the load as not_found, a 403 as forbidden, a refused body as invalid_input, and DialogueLoaded carries the header's rev before CheckpointReached"

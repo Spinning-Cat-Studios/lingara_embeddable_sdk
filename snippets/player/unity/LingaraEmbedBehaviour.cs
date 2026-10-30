@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Lingara.Embed;
+using Lingara.Embed.Dialogues;
 using Lingara.Embed.Events;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -103,6 +104,43 @@ public sealed class LingaraEmbedBehaviour : MonoBehaviour
 
     // The reply streams back as NpcTurn events: append each Fragment's text to your label.
     public RequestId Say(DialogueId dialogue, string line) => Client.DialogueSay(dialogue, line);
+    // lingara:end
+
+    // lingara:begin dialogueGraph
+    // A story as a graph: checkpoints joined by edges. An edge's predicate is a game
+    // condition Lingara's core evaluates; its `when` is a conversational one the server's
+    // judge reads. Two NPCs share this graph, each with their own fluency (1–9).
+    public static Dialogue MissingBrother() => new DialogueBuilder("missing_brother", start: "introduction")
+        .Title("The missing brother").Pedagogy(Pedagogy.None)
+        .Npc("elena", "Elena", n => n.Persona("a farmer who distrusts soldiers")
+            .Speaks("es", Level.Native, Level.Native)
+            .Speaks("en", Level.Cefr("A2"), Level.Cefr("B1")))
+        .Npc("tomas", "Tomás", n => n.Persona("Elena's neighbour, a retired soldier")
+            .Speaks("es", Level.Native, Level.Native)
+            .Speaks("en", 6, 7))
+        .Fact("trust", FactType.Number, defaultValue: 0)
+        .Fact("suspicion", FactType.Number, defaultValue: 0.4)
+        .Fact("alarm_raised", FactType.Boolean, defaultValue: false)
+        .Fact("eastern_gate", FactType.String)
+        .Checkpoint("introduction", "Elena is wary and asks who the player is", c => c
+            .Edge("alarm", Outcome.Failure, predicate: "alarm_raised")
+            .Edge("explained", "ask_about_brother", when: "the player says who they are and why they are here"))
+        .Checkpoint("ask_about_brother", "Admit she saw soldiers ride toward \"the old mill\"; reveal the gate only if she trusts the player", c => c
+            .Discloses("eastern_gate")
+            .Edge("gate", Outcome.Success, predicate: "trust >= 0.4", when: "the player asks where soldiers might take a prisoner")
+            .Edge("neighbour", "ask_tomas", when: "the player asks who else saw the soldiers")
+            .Edge("leaves", Outcome.Abandoned, when: "the player walks away"))
+        .Checkpoint("ask_tomas", "Tomás says the soldiers spoke of the road to 長安", c => c
+            .Edge("suspicious", Outcome.Failure, predicate: "suspicion > 0.5")
+            .Edge("back_to_elena", "ask_about_brother", when: "the player returns to Elena with what Tomás said"))
+        .Build(); // structural checks; DialogueLoad runs the core's full ones
+
+    // Elena speaks Spanish to a learner at level 2; CheckpointReached and DialogueEnded
+    // events follow as the story moves, and DialogueSay talks to her as to any NPC.
+    public DialogueId LoadElena(string sourceLang) =>
+        Client.DialogueLoad(MissingBrother(), new GraphSession { Npc = "elena", SourceLang = sourceLang, TargetLang = "es", Level = 2 });
+
+    public void RaiseTheAlarm(DialogueId elena) => Client.DialogueSetFact(elena, "alarm_raised", FactValue.Of(true));
     // lingara:end
 
     // lingara:begin practice

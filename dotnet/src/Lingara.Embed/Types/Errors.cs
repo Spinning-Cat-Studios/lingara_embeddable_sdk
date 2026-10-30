@@ -83,6 +83,12 @@ namespace Lingara.Embed
         Idle,
         Sending,
         Streaming,
+
+        /// <summary>A graph dialogue whose story reached an outcome (ADR 28.10.26f).</summary>
+        Ended,
+
+        /// <summary>A stored dialogue still being fetched (ADR 28.10.26i).</summary>
+        Loading,
     }
 
     public enum Speaker
@@ -222,7 +228,8 @@ namespace Lingara.Embed
             W("skipped", PracticeOutcome.Skipped));
 
         public static readonly WordTable<DialoguePhase> DialoguePhases = new WordTable<DialoguePhase>(
-            DialoguePhase.Unknown, W("idle", DialoguePhase.Idle), W("sending", DialoguePhase.Sending), W("streaming", DialoguePhase.Streaming));
+            DialoguePhase.Unknown, W("idle", DialoguePhase.Idle), W("sending", DialoguePhase.Sending), W("streaming", DialoguePhase.Streaming), W("ended", DialoguePhase.Ended),
+            W("loading", DialoguePhase.Loading));
 
         public static readonly WordTable<Speaker> Speakers = new WordTable<Speaker>(
             Speaker.Unknown, W("player", Speaker.Player), W("npc", Speaker.Npc));

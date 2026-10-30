@@ -14,6 +14,7 @@
 use serde::{Deserialize, Serialize};
 
 pub use crate::config::{EmbedConfig, Header, SecretString, TokenSourceConfig};
+pub use crate::graph::{FactValue, GraphSession, GraphSnapshot, NpcLanguage};
 pub use crate::records::*;
 
 macro_rules! tagged {
@@ -57,6 +58,9 @@ tagged! {
         DialogueCancel { dialogue: i64 },
         DialogueClose { dialogue: i64 },
         DialogueSnapshot { dialogue: i64 },
+        DialogueLoad { source: DialogueSource, session: GraphSession },
+        DialogueSetFact { dialogue: i64, key: String, value: FactValue },
+        DialogueValidate { ir_json: String },
     }
 
     /// What `execute` answers. `Id` carries a request, session or dialogue id.
@@ -76,6 +80,12 @@ tagged! {
         WorldSent { request: i64, event_id: String, reaction: Option<Reaction> },
         Practice { session: i64, snapshot: PracticeSnapshot },
         NpcTurn { dialogue: i64, request: i64, update: NpcTurnUpdate },
+        CheckpointReached { dialogue: i64, checkpoint: String, edge: Option<String>, via: CrossedVia },
+        DialogueEnded { dialogue: i64, outcome: DialogueOutcome, checkpoint: String, edge: Option<String> },
+        /// A stored dialogue's revision `rev` is loaded (ADR 28.10.26i); `CheckpointReached` follows.
+        DialogueLoaded { dialogue: i64, dialogue_id: String, rev: i64 },
+        /// A stored dialogue could not load; its id is gone.
+        DialogueLoadFailed { dialogue: i64, error: EmbedError },
         Error { error: EmbedError },
         Log { level: LogLevel, target: String, message: String },
         Closed { reason: CloseReason },
@@ -108,6 +118,13 @@ tagged! {
         Plan { plan_id: String, #[serde(default = "yes")] report: bool },
     }
 
+    /// Where a graph dialogue comes from: a `dialogue.v1` document, as
+    /// text, or a dialogue saved on Lingara by its store id (ADR 28.10.26i).
+    pub enum DialogueSource {
+        Ir { ir_json: String },
+        Stored { dialogue_id: String },
+    }
+
     pub enum LingaraEventDetail {
         LessonPlanReady { plan_id: String, title: Option<String>, level: i32, source_lang: String, target_lang: String, complete: bool },
         LessonPlanFailed { plan_id: String, reason: String },
@@ -130,7 +147,16 @@ word! {
 
     pub enum PracticeOutcome { Correct, Incorrect, Revealed, SelfCorrect, SelfIncorrect, Skipped }
 
-    pub enum DialoguePhase { Idle, Sending, Streaming }
+    pub enum DialoguePhase { Idle, Sending, Streaming, Ended, Loading }
+
+    /// How a checkpoint was reached.
+    pub enum CrossedVia { Start, Auto, Judge }
+
+    /// The reserved names a story ends on.
+    pub enum DialogueOutcome { Success, Failure, Abandoned }
+
+    /// How much the NPC adapts its speech to the learner.
+    pub enum Pedagogy { Subtle, None }
 
     pub enum Speaker { Player, Npc }
 

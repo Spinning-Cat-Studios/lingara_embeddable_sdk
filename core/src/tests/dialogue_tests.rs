@@ -6,12 +6,12 @@ use crate::embed::Embed;
 use crate::error::ErrorKind;
 use crate::tests::fake_lingara::{After, FakeLingara, Reply, frame};
 use crate::tests::{SECS, config, refusal, started, wait_for};
-use crate::types::{DialogueConfig, DialogueId, DialoguePhase, EmbedEvent, Npc, NpcTurnUpdate, Speaker, WindowEntry};
+use crate::types::{DialogueConfig, DialogueId, DialoguePhase, EmbedEvent, Npc, NpcLanguage, NpcTurnUpdate, Pedagogy, Speaker, WindowEntry};
 
 const TURNS: &str = "/v1/embed/dialogue/turns";
 
 fn mei(window: Vec<WindowEntry>) -> DialogueConfig {
-    DialogueConfig { npc: Npc { name: "Mei".into(), persona: None }, scene: None, source_lang: "en".into(), target_lang: "zh".into(), level: 2, window }
+    DialogueConfig { npc: Npc { name: "Mei".into(), persona: None }, scene: None, source_lang: "en".into(), target_lang: "zh".into(), level: 2, window, languages: vec![], pedagogy: None }
 }
 
 fn entry(speaker: Speaker, text: &str) -> WindowEntry {
@@ -100,4 +100,33 @@ fn say_checks_the_line_and_settings_keep_the_window() {
     assert_eq!(seen.len(), 1, "a refused line sends nothing");
     assert_eq!((&seen[0].body["level"], &seen[0].body["scene"]), (&json!(5), &json!("a tea house")));
     assert_eq!(seen[0].body["history"].as_array().unwrap().len(), 1, "settings keep the window");
+}
+
+fn language(code: &str) -> NpcLanguage {
+    NpcLanguage { code: code.into(), speaking: 9, comprehension: 4 }
+}
+
+// 28.10.26f AC13
+#[test]
+fn the_free_form_dialogue_carries_the_profile() {
+    // The shape vector's `dialogue_open`, written before N1's profile existed.
+    let old = r#"{"npc":{"name":"Mei","persona":null},"scene":"a tea house","source_lang":"en","target_lang":"zh","level":2,"window":[{"speaker":"player","text":"hi"}]}"#;
+    let config: DialogueConfig = serde_json::from_str(old).unwrap();
+    assert_eq!(serde_json::to_string(&config).unwrap(), old, "byte-equal without languages and pedagogy");
+
+    let done = |_| Reply::Sse(vec![frame("delta", json!({ "text": "hao" })), frame("done", json!({}))], After::End);
+    let (fake, embed, _) = open(done, vec![]);
+    let profiled = DialogueConfig { languages: vec![language("zh"), language("en")], pedagogy: Some(Pedagogy::None), ..mei(vec![]) };
+    let d = embed.dialogue_open(profiled.clone()).unwrap();
+    embed.dialogue_say(d, "ni hao").unwrap();
+    wait_for(&embed, 5 * SECS, finished);
+    let body = &fake.seen()[0].body;
+    assert_eq!(body["npc"]["languages"], json!([{ "code": "zh", "speaking": 9, "comprehension": 4 }, { "code": "en", "speaking": 9, "comprehension": 4 }]));
+    assert_eq!(body["pedagogy"], "none");
+
+    let nine = (0..9).map(|i| language(&format!("l{i}"))).collect();
+    for languages in [nine, vec![language("zh"), language("zh")]] {
+        let config = DialogueConfig { languages, ..profiled.clone() };
+        assert_eq!(embed.dialogue_open(config).unwrap_err().kind, ErrorKind::InvalidInput);
+    }
 }

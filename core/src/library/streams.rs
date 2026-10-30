@@ -45,6 +45,7 @@ impl Frames<TurnFrame> for EventStream<SendDialogueTurnEvent> {
         Box::pin(read(self, |e| match e {
             SendDialogueTurnEvent::Delta(d) => TurnFrame::Delta(d.text),
             SendDialogueTurnEvent::Notice(n) => TurnFrame::Notice { code: n.code, message: n.message },
+            SendDialogueTurnEvent::Transition(t) => TurnFrame::Transition { edge: t.edge, to: t.to },
             // `done` and `error` end the stream before they reach here.
             _ => TurnFrame::Other,
         }))

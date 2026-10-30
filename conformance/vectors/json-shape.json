@@ -24,7 +24,10 @@
       { "type": "dialogue_set_scene", "dialogue": 4, "scene": "the market" },
       { "type": "dialogue_cancel", "dialogue": 4 },
       { "type": "dialogue_close", "dialogue": 4 },
-      { "type": "dialogue_snapshot", "dialogue": 4 }
+      { "type": "dialogue_snapshot", "dialogue": 4 },
+      { "type": "dialogue_load", "source": { "type": "ir", "ir_json": "{\"schema\":\"dialogue.v1\",\"id\":\"gate\",\"npcs\":[{\"id\":\"elena\",\"name\":\"Elena\"}],\"start\":\"intro\",\"checkpoints\":[{\"id\":\"intro\",\"goal\":\"Elena is wary\",\"edges\":[{\"id\":\"gate\",\"to\":\"success\",\"when\":\"the player asks\"}]}]}" }, "session": { "npc": "elena", "source_lang": "en", "target_lang": "es", "level": 2, "scene": null, "facts": { "trust": 0.4 }, "checkpoint": null, "window": [] } },
+      { "type": "dialogue_set_fact", "dialogue": 4, "key": "trust", "value": 0.4 },
+      { "type": "dialogue_validate", "ir_json": "{\"schema\":\"dialogue.v1\",\"id\":\"gate\",\"npcs\":[{\"id\":\"elena\",\"name\":\"Elena\"}],\"start\":\"intro\",\"checkpoints\":[{\"id\":\"intro\",\"goal\":\"Elena is wary\",\"edges\":[{\"id\":\"gate\",\"to\":\"success\",\"when\":\"the player asks\"}]}]}" }
     ],
     "CommandOutcome": [
       { "type": "done" },
@@ -45,6 +48,10 @@
         "last_result": { "outcome": "correct", "expected": "你好", "explanation": "a greeting" },
         "failure": null } },
       { "type": "npc_turn", "dialogue": 4, "request": 5, "update": { "type": "fragment", "text": "Ni" } },
+      { "type": "checkpoint_reached", "dialogue": 4, "checkpoint": "ask_about_brother", "edge": "explained", "via": "judge" },
+      { "type": "dialogue_ended", "dialogue": 4, "outcome": "success", "checkpoint": "ask_about_brother", "edge": "gate" },
+      { "type": "dialogue_loaded", "dialogue": 4, "dialogue_id": "3f2a9c1e-7b4d-4e8a-9c0f-1a2b3c4d5e6f", "rev": 4 },
+      { "type": "dialogue_load_failed", "dialogue": 4, "error": { "kind": "not_found", "message": "no active revision", "status": 404, "code": "dialogue_not_active", "retry_after_ms": null, "retryable": false, "request": null } },
       { "type": "error", "error": { "kind": "rate_limited", "message": "slow down", "status": 429, "code": "rate_limited", "retry_after_ms": 30000, "retryable": true, "request": 5 } },
       { "type": "log", "level": "warn", "target": "lingara_embed::token", "message": "a token lifetime was clamped" },
       { "type": "closed", "reason": "requested" }
@@ -75,6 +82,18 @@
       { "type": "lesson_plan_ready", "plan_id": "8f0e2c1a-0000-4000-8000-000000000001", "title": "At the market", "level": 2, "source_lang": "en", "target_lang": "zh", "complete": true },
       { "type": "lesson_plan_failed", "plan_id": "8f0e2c1a-0000-4000-8000-000000000001", "reason": "generation_failed" },
       { "type": "other" }
+    ],
+    "DialogueSource": [
+      { "type": "ir", "ir_json": "{\"schema\":\"dialogue.v1\",\"id\":\"gate\",\"npcs\":[{\"id\":\"elena\",\"name\":\"Elena\"}],\"start\":\"intro\",\"checkpoints\":[{\"id\":\"intro\",\"goal\":\"Elena is wary\",\"edges\":[{\"id\":\"gate\",\"to\":\"success\",\"when\":\"the player asks\"}]}]}" },
+      { "type": "stored", "dialogue_id": "3f2a9c1e-7b4d-4e8a-9c0f-1a2b3c4d5e6f" }
+    ]
+  },
+  "structs": {
+    "DialogueConfig": [
+      { "npc": { "name": "Elena", "persona": "a farmer" }, "scene": null, "source_lang": "en", "target_lang": "es", "level": 2, "window": [], "languages": [{ "code": "es", "speaking": 9, "comprehension": 9 }, { "code": "en", "speaking": 2, "comprehension": 3 }], "pedagogy": "none" }
+    ],
+    "DialogueSnapshot": [
+      { "phase": "ended", "npc": { "name": "Elena", "persona": null }, "scene": null, "level": 2, "window": [], "graph": { "id": "missing_brother", "npc": "elena", "checkpoint": "ask", "facts": { "eastern_gate": "the eastern gate", "trust": 0.4 }, "outcome": "success" } }
     ]
   },
   "words": {
@@ -84,7 +103,10 @@
     "CloseReason": ["requested", "internal"],
     "PracticePhase": ["requesting", "generating", "creating", "loading", "unanswered", "awaiting_self_grade", "reviewed", "set_complete", "reporting", "reported", "report_failed", "failed", "ended"],
     "PracticeOutcome": ["correct", "incorrect", "revealed", "self_correct", "self_incorrect", "skipped"],
-    "DialoguePhase": ["idle", "sending", "streaming"],
-    "Speaker": ["player", "npc"]
+    "DialoguePhase": ["idle", "sending", "streaming", "ended", "loading"],
+    "Speaker": ["player", "npc"],
+    "CrossedVia": ["start", "auto", "judge"],
+    "DialogueOutcome": ["success", "failure", "abandoned"],
+    "Pedagogy": ["subtle", "none"]
   }
 }

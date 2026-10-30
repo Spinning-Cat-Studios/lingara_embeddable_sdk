@@ -1,5 +1,69 @@
 # Changelog
 
+## v0.2.0-alpha.5 — 2026-10-30
+
+
+Generated from Lingara API 2026-10-expensive-sauger (development) at spec backend@76f880270d80e3a46ad92e74b492a5bbcc5dd9c9.
+
+### Added
+
+### Changed
+
+### Fixed
+
+- Rust: the core's own tests pass again when run from the published crate, and when the whole workspace is tested at once. A test of a stored dialogue read its example from outside the crate, so it could not compile from the packaged `.crate`, and a test of a graph turn checked the order of the keys in its `facts` object, which JSON does not fix. Neither change touches the shipped libraries.
+
+### Removed
+
+## v0.2.0-alpha.4 — 2026-10-30
+
+
+Generated from Lingara API 2026-10-expensive-sauger (development) at spec backend@76f880270d80e3a46ad92e74b492a5bbcc5dd9c9.
+
+### Added
+
+### Changed
+
+### Fixed
+
+- The core builds from source again. `v0.2.0-alpha.2` and `v0.2.0-alpha.3` shipped without two of `lingara-dialogue-ir`'s source files (the `build` module's `fact` and `parts`), so the crate and every kit built on it failed to compile with `file not found for module`. The files now ship. `lingara_dialogue_ir::build` keeps its name and contents, and no behaviour changes.
+
+### Removed
+
+## v0.2.0-alpha.3 — 2026-10-30
+
+
+Generated from Lingara API 2026-10-expensive-sauger (development) at spec backend@76f880270d80e3a46ad92e74b492a5bbcc5dd9c9.
+
+### Added
+
+### Changed
+
+### Fixed
+
+- The core builds again from source. `v0.2.0-alpha.2` left out two of `lingara-dialogue-ir`'s source files (`src/build/fact.rs` and `src/build/parts.rs`), which a repository-wide ignore of `build/` directories had hidden, so the crate and every kit built on it failed to compile with `file not found for module`. The files are back, and the ignore now leaves that directory alone. No behaviour changes.
+
+### Removed
+
+## v0.2.0-alpha.2 — 2026-10-30
+
+
+Generated from Lingara API 2026-10-expensive-sauger (development) at spec backend@76f880270d80e3a46ad92e74b492a5bbcc5dd9c9.
+
+### Added
+
+- Dialogue graphs: every kit can run a `dialogue.v1` story. `dialogue_load` opens a run of a graph (its IR as text), `dialogue_set_fact` sets the facts its predicates read, and `dialogue_validate` checks a document without opening anything. A turn sends the current checkpoint, the edges whose predicates hold (in the order the dialogue lists them) and only the facts the checkpoint may disclose; an edge with no `when` is crossed with no turn. Two new events, `checkpoint_reached` and `dialogue_ended`, say where the story went, and a dialogue's snapshot carries its `graph` so a game can save and restore it. Graphs need `enable_npc_dialogue_graphs` on the client. Rust re-exports the IR crate as `lingara_embed::dialogue_ir`; C#, Godot, Kotlin, Java and Unreal gain the three commands and two events (the idiomatic builders follow).
+- Loading a dialogue by id: `dialogue_load` takes `{ type: stored, dialogue_id }`, the store id of a dialogue saved and activated on the Lingara platform. The core fetches the active revision with the player's embed token (which needs `dialogues:read`), caches it per handle for five minutes, and then runs it as an inline graph, so an activated revision reaches new conversations without a game update. The dialogue answers in a new phase, `loading`, until `dialogue_loaded` (with the revision) or `dialogue_load_failed` arrives. C#, Godot, Kotlin, Java, Unreal and Bevy see the new source and the two events.
+- NPC fluency: a dialogue's config may carry the NPC's `languages` (each with a speaking and a comprehension level, 1–9) and a `pedagogy` (`subtle` or `none`).
+
+### Changed
+
+- Every kit now needs the `lingara` library at `0.2.0-alpha.6` or later, the release that carries the graph turn and its `transition` frame. In Java, `new DialogueConfig(…)` takes the two new fields (`List.of(), null` for none); Kotlin defaults them.
+
+### Fixed
+
+### Removed
+
 ## v0.2.0-alpha.1 — 2026-10-29
 
 

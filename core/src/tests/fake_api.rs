@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use serde_json::Value;
 use tokio::time::Instant;
 
-use crate::api::{Accepted, Api, Frames, Plan, PlanFrame, PlanStream, Tail, TurnFrame, TurnStream};
+use crate::api::{Accepted, Api, Exported, Frames, Plan, PlanFrame, PlanStream, Tail, TurnFrame, TurnStream};
 use crate::error::EmbedError;
 use crate::handoff::BoxFuture;
 use crate::types::LingaraEvent;
@@ -68,6 +68,14 @@ pub struct FakeApi {
     pub bodies: Mutex<Vec<Value>>,
     /// The next tail panics on its first read.
     pub panic_on_tail: std::sync::atomic::AtomicBool,
+    /// `export_dialogue`'s answers, in order (ADR 28.10.26i).
+    pub exports: Mutex<VecDeque<Result<Exported, EmbedError>>>,
+    /// Each export's `(dialogue_id, if_none_match)`.
+    pub export_requests: Mutex<Vec<(String, Option<String>)>>,
+    /// While set, an export waits for `release_exports` before it answers:
+    /// how a test keeps a fetch in flight.
+    pub hold_exports: std::sync::atomic::AtomicBool,
+    pub release_exports: tokio::sync::Notify,
 }
 
 fn frames(script: &Mutex<VecDeque<PlanFrames>>) -> PlanStream {
@@ -126,5 +134,18 @@ impl Api for Handle {
     fn dialogue_turn(&self, _body: Value) -> BoxFuture<'_, Result<TurnStream, EmbedError>> {
         self.0.log("dialogue_turn");
         Box::pin(async { Ok(Box::new(Scripted::<TurnFrame>(VecDeque::new())) as TurnStream) })
+    }
+
+    fn export_dialogue(&self, dialogue_id: String, if_none_match: Option<String>) -> BoxFuture<'_, Result<Exported, EmbedError>> {
+        self.0.log("export_dialogue");
+        self.0.export_requests.lock().unwrap().push((dialogue_id, if_none_match));
+        let held = self.0.hold_exports.load(std::sync::atomic::Ordering::SeqCst);
+        Box::pin(async move {
+            if held {
+                self.0.release_exports.notified().await;
+            }
+            let answer = self.0.exports.lock().unwrap().pop_front();
+            answer.unwrap_or_else(|| Err(EmbedError::invalid("no scripted export")))
+        })
     }
 }

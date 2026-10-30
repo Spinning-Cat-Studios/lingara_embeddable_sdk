@@ -68,6 +68,59 @@ loads. A fact read by a predicate must be declared; a fact with no value set
 and no `default` is *unset*, and every comparison over it is `false`. Declare
 a `default` and you never meet that rule.
 
+## Writing a dialogue
+
+`build` writes the same document from code, in the order you add its parts
+(edge order matters: the core crosses the first open edge with no `when`, and
+the judge takes the first match). A predicate is text, never a closure.
+`build()` runs `validate`, so a built dialogue is one the core accepts.
+
+```rust
+use lingara_dialogue_ir::build::{Checkpoint, Dialogue, Edge, Fact, Npc, Outcome};
+use lingara_dialogue_ir::{Level, Pedagogy};
+
+let ir = Dialogue::new("missing_brother", "introduction")
+    .title("The missing brother")
+    .pedagogy(Pedagogy::None)
+    .npc(Npc::new("elena", "Elena").persona("a farmer who distrusts soldiers")
+        .speaks("es", Level::NATIVE, Level::NATIVE)
+        .speaks("en", Level::cefr("A2")?, Level::cefr("B1")?))
+    .fact(Fact::number("trust").default(0.0))
+    .fact(Fact::string("eastern_gate"))
+    .checkpoint(Checkpoint::new("introduction", "Elena is wary and asks who the player is")
+        .discloses("eastern_gate")
+        .edge(Edge::new("gate", Outcome::Success).predicate("trust >= 0.4")
+            .when("the player asks where soldiers might take a prisoner")))
+    .build()?;
+let text: String = ir.to_canonical_json(); // what `DialogueLoad` sends
+assert!(text.starts_with(r#"{"checkpoints":"#));
+# Ok::<(), lingara_dialogue_ir::IrError>(())
+```
+
+**Levels** run 1–9 and are numbers in the IR. `Level::cefr("A1"…"C2")` is
+1–6, `Level::jlpt("N5"…"N1")` is 1–5 (reversed), and `Level::NATIVE` is 9.
+HSK, TOPIK and General labels are their number, so they have no helper; write
+`Level(3)`. A helper does not check the language: `cefr("A2")` on `zh` stores
+2. Under `subtle` (the default) the NPC speaks at the lower of its speaking
+level and the learner's, so even `NATIVE` sounds easy to a beginner; under
+`none` it speaks at its own.
+
+**Defaults** a builder writes are integers up to 2^53 − 1, or numbers with at
+most four decimal places in `1e-4 ≤ |x| < 1e9`; anything else is refused at
+`build()`. Set other values at run time with `DialogueSetFact`.
+
+## Canonical form
+
+`to_canonical_json()` writes RFC 8785 (JCS) over the IR's normal form: keys
+sorted by UTF-16 code unit, no whitespace, no trailing newline, an integral
+number without a fraction (`0`, never `0.0`), and only `"`, `\` and
+U+0000–U+001F escaped. The same dialogue written by any kit, saved by the
+server or drawn on the canvas is one byte string once every `x-` member is
+removed (`comparison_form()`). `canonical::to_string` does the same for any
+`serde_json::Value`. The rules and the shared vectors are in the repository's
+`conformance/README.md`, *Dialogue IR*; a server that exports the IR is held
+to those vectors. `validate` measures the 131 072-byte cap on this form.
+
 ## Pinning
 
 Pin an exact version (`lingara-dialogue-ir = "=X.Y.Z"`), as the embed kits do:

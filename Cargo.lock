@@ -1333,7 +1333,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_lingara"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.5"
 dependencies = [
  "bevy",
  "lingara-embed",
@@ -4292,9 +4292,9 @@ checksum = "d4a5ff6bcca6c4867b1c4fd4ef63e4db7436ef363e0ad7531d1558856bae64f4"
 
 [[package]]
 name = "lingara"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8f7a3632a2d02d4876a34465a81c7a60acd429274cab6889f82fef46b04147a"
+checksum = "a274efbf6741cb9a26ca691573ff08c0ca3eaf06021614888828fbab8e0a0799"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -4318,7 +4318,7 @@ dependencies = [
 
 [[package]]
 name = "lingara-dialogue-ir"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.5"
 dependencies = [
  "schemars",
  "serde",
@@ -4327,12 +4327,13 @@ dependencies = [
 
 [[package]]
 name = "lingara-embed"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.5"
 dependencies = [
  "axum",
  "bytes",
  "getrandom 0.4.3",
  "lingara",
+ "lingara-dialogue-ir",
  "log",
  "reqwest",
  "schemars",
@@ -4392,7 +4393,7 @@ dependencies = [
 
 [[package]]
 name = "lingara-embed-ffi"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.5"
 dependencies = [
  "cbindgen",
  "lingara-embed",
@@ -4413,7 +4414,7 @@ dependencies = [
 
 [[package]]
 name = "lingara-embed-uniffi"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.5"
 dependencies = [
  "lingara-embed",
  "serde",
@@ -4441,7 +4442,7 @@ dependencies = [
 
 [[package]]
 name = "lingara_godot"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.5"
 dependencies = [
  "godot",
  "lingara-embed",

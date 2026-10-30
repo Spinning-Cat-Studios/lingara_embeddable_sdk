@@ -9,6 +9,7 @@ use std::time::Duration;
 use crate::api::Api;
 use crate::config::{EmbedConfig, TokenSourceConfig};
 use crate::dialogue::Dialogues;
+use crate::dialogue::graph::DialogueCache;
 use crate::error::{Diagnostics, EmbedError};
 use crate::events::StreamControl;
 use crate::handoff::EmbedTokenSource;
@@ -70,7 +71,8 @@ impl Embed {
         };
         let stream = StreamControl::new(config.resume_cursor.clone());
         let (practice, dialogues) = (Practice::default(), Dialogues::default());
-        let shared = Arc::new(Shared { io, queue, outbox, tokens, api, ids, diag, config, stream, practice, dialogues });
+        let dialogue_cache = DialogueCache::default();
+        let shared = Arc::new(Shared { io, queue, outbox, tokens, api, ids, diag, config, stream, practice, dialogues, dialogue_cache });
         shared.tokens.ask();
         if shared.config.stream_on_start {
             shared.stream.resume(&shared);

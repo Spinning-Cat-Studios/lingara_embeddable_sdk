@@ -93,7 +93,8 @@ Problem HostRun::refusable(const json& command) {
     }
     const json answer = json::parse(out, nullptr, false);
     const std::string type = command.value("type", std::string());
-    if (answer.value("type", std::string()) == "id" && (type == "practice_start" || type == "dialogue_open")) {
+    const bool opens = type == "practice_start" || type == "dialogue_open" || type == "dialogue_load";
+    if (answer.value("type", std::string()) == "id" && opens) {
         last_ = answer["id"].get<uint64_t>();
     }
     return std::nullopt;

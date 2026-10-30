@@ -6,7 +6,7 @@
 //! error vocabulary, ahead of that frame's events as the core's harness
 //! puts its synchronous refusals.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::time::{Duration, Instant};
 
 use bevy::MinimalPlugins;
@@ -32,6 +32,9 @@ pub struct Run {
     pub last_id: Option<u64>,
     /// K1's ids, to the entities the harness made for them.
     pub entities: HashMap<u64, Entity>,
+    /// Graph dialogues (ADR 28.10.26f), loaded through `Lingara::core()`:
+    /// the plugin wraps none of them until K2, so their commands go there too.
+    pub graphs: HashSet<u64>,
 }
 
 pub fn run(server: &str, case: &Value) -> Run {

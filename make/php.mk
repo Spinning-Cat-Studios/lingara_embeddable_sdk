@@ -27,7 +27,7 @@ PHP_ES_HARNESS = $(PHP) $(PHP_DIR)/conformance-es/serve.php
 
 CONFORMANCE_HARNESS_es_php = $(PHP_ES_HARNESS) nyholm
 
-.PHONY: codegen-php check-codegen-php test-php conformance-es-php help-php
+.PHONY: codegen-php check-codegen-php test-php conformance-es-php lock-php help-php
 
 # The lockfile is a prerequisite only when it exists: the first install
 # writes it.
@@ -61,6 +61,12 @@ test-php: $(PHP_VENDOR)
 	cd $(PHP_DIR) && vendor/bin/phpcs
 	@for f in $(PHP_SNIPPETS)/*.php; do $(PHP) -l $$f > /dev/null || exit 1; done; echo "✓ $(PHP_SNIPPETS) parses"
 
+## composer.lock's lingara library at exactly LIBRARY_FLOOR (ADR 30.10.26a):
+## the floor is what the kit promises, so it is what the suite runs against.
+lock-php:
+	$(COMPOSER) --working-dir=$(PHP_DIR) update "spinningcatstudios/lingara:$$(tr -d '[:space:]' < LIBRARY_FLOOR)" \
+	  --with-dependencies --minimal-changes --no-interaction --no-progress
+
 ## Every ES case, once on nyholm/psr7 and once on guzzlehttp/psr7.
 conformance-es-php: $(PHP_VENDOR)
 	@for v in $(PHP_ES_VARIANTS); do \
@@ -73,6 +79,7 @@ help-php:
 	@echo "PHP (spinningcatstudios/lingara-embed):"
 	@echo "  make test-php             - PHPUnit, PHPStan, the PHPCS budgets, snippets/server/php"
 	@echo "  make conformance-es-php   - Every ES case, on nyholm/psr7 and on guzzlehttp/psr7"
+	@echo "  make lock-php             - composer.lock's lingara library at exactly LIBRARY_FLOOR"
 	@echo "  make codegen-php          - php/src/Version.php from VERSION"
 	@echo "  make check-codegen-php    - Fail when php/src/Version.php is stale"
 

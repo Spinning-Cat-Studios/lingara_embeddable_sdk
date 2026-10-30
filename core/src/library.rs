@@ -12,12 +12,13 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use lingara::Client;
+use lingara::dialogues::{ExportDialogueOptions, ExportedDialogue};
 use lingara::events::{EventStart, EventsOptions, InboundEvent, SendEventOptions};
 use lingara::models::{DialogueTurnRequest, LessonPlanCreateRequest};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::api::{Accepted, Api, Plan, PlanStream, Tail, TurnStream};
+use crate::api::{Accepted, Api, Exported, Plan, PlanStream, Tail, TurnStream};
 use crate::config::EmbedConfig;
 use crate::error::{EmbedError, ErrorKind};
 use crate::handoff::BoxFuture;
@@ -92,6 +93,18 @@ impl Api for LibraryApi {
         Box::pin(async move {
             let request: DialogueTurnRequest = decode(body)?;
             Ok(Box::new(tracked(self.client.send_dialogue_turn(&request)).await?) as TurnStream)
+        })
+    }
+
+    fn export_dialogue(&self, dialogue_id: String, if_none_match: Option<String>) -> BoxFuture<'_, Result<Exported, EmbedError>> {
+        Box::pin(async move {
+            // No `revision` and no `layout`: N3's defaults, the active revision with its layout (ADR 28.10.26i D2).
+            let options = ExportDialogueOptions { if_none_match, ..ExportDialogueOptions::default() };
+            let exported = tracked(self.client.dialogues().export_dialogue(&dialogue_id, &options)).await?.into_inner();
+            Ok(match exported {
+                ExportedDialogue::Body { revision, etag, ir_json } => Exported::Body { rev: revision, etag, ir_json },
+                ExportedDialogue::NotModified { revision, etag } => Exported::NotModified { rev: revision, etag },
+            })
         })
     }
 }

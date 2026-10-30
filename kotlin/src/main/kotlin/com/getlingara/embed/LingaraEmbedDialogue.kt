@@ -39,3 +39,25 @@ public fun LingaraEmbed.dialogueClose(dialogue: Long): Unit = handle.dialogueClo
 /** The conversation's snapshot, or null for an unknown dialogue. */
 @Throws(EmbedException::class)
 public fun LingaraEmbed.dialogueSnapshot(dialogue: Long): DialogueSnapshot? = handle.dialogueSnapshot(dialogue)
+
+/**
+ * Loads a `dialogue.v1` graph and opens a run of it; its dialogue id
+ * (ADR 28.10.26f). `CheckpointReached` follows.
+ */
+@Throws(EmbedException::class)
+public fun LingaraEmbed.dialogueLoad(
+    source: DialogueSource,
+    session: GraphSession,
+): Long = handle.dialogueLoad(source, session)
+
+/** Sets a fact the graph declared. */
+@Throws(EmbedException::class)
+public fun LingaraEmbed.dialogueSetFact(
+    dialogue: Long,
+    key: String,
+    value: FactValue,
+): Unit = handle.dialogueSetFact(dialogue, key, value)
+
+/** Checks a `dialogue.v1` document as [dialogueLoad] would, creating nothing. */
+@Throws(EmbedException::class)
+public fun LingaraEmbed.dialogueValidate(irJson: String): Unit = handle.dialogueValidate(irJson)

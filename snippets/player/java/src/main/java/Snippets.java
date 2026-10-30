@@ -66,8 +66,9 @@ public final class Snippets implements AutoCloseable {
   void talkToMei(String line) {
     if (npc < 0) {
       Npc mei = new Npc("Mei", "a tea seller");
-      npc =
-          lingara.dialogueOpen(new DialogueConfig(mei, "the tea house", "en", "zh", 2, List.of()));
+      DialogueConfig config =
+          new DialogueConfig(mei, "the tea house", "en", "zh", 2, List.of(), List.of(), null);
+      npc = lingara.dialogueOpen(config);
     }
     lingara.dialogueSay(npc, line);
   }

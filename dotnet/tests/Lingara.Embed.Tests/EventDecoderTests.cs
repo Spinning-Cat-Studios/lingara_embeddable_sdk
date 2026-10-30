@@ -59,6 +59,29 @@ namespace Lingara.Embed.Tests
                 case EmbedEvent.Closed e:
                     Assert.Equal(CloseReason.Requested, e.Reason);
                     break;
+                case EmbedEvent.CheckpointReached e:
+                    Assert.Equal((4L, "ask_about_brother", "explained", CrossedVia.Judge), (e.Dialogue.Value, e.Checkpoint, e.Edge, e.Via));
+                    break;
+                case EmbedEvent.DialogueEnded e:
+                    Assert.Equal((DialogueOutcome.Success, "ask_about_brother", "gate"), (e.Outcome, e.Checkpoint, e.Edge));
+                    break;
+                default:
+                    CarriedStored(evt);
+                    break;
+            }
+        }
+
+        // 28.10.26i AC12
+        private static void CarriedStored(EmbedEvent evt)
+        {
+            switch (evt)
+            {
+                case EmbedEvent.DialogueLoaded e:
+                    Assert.Equal((4L, "3f2a9c1e-7b4d-4e8a-9c0f-1a2b3c4d5e6f", 4L), (e.Dialogue.Value, e.StoreId, e.Rev));
+                    break;
+                case EmbedEvent.DialogueLoadFailed e:
+                    Assert.Equal((4L, ErrorKind.NotFound, "dialogue_not_active", false), (e.Dialogue.Value, e.Error.Kind, e.Error.Code, e.Error.Retryable));
+                    break;
                 default:
                     Assert.Fail($"{evt.Type} decoded to {evt.GetType().Name}");
                     break;
@@ -84,7 +107,7 @@ namespace Lingara.Embed.Tests
         {
             using var vector = JsonDocument.Parse(File.ReadAllText(Support.Vector("json-shape.json")));
             var examples = vector.RootElement.GetProperty("tagged").GetProperty("EmbedEvent").EnumerateArray().ToList();
-            Assert.Equal(9, examples.Count);
+            Assert.Equal(13, examples.Count);
             foreach (var example in examples)
             {
                 var evt = Decode(example);

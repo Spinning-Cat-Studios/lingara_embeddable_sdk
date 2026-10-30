@@ -74,6 +74,60 @@ namespace Lingara.Embed.Events
             public NpcTurnUpdate Update { get; init; } = new NpcTurnUpdate.Opened();
         }
 
+        /// <summary>A graph dialogue reached a checkpoint: at its start, or by an edge (ADR 28.10.26f).</summary>
+        public sealed class CheckpointReached : EmbedEvent
+        {
+            public CheckpointReached() : base("checkpoint_reached") { }
+
+            public DialogueId Dialogue { get; init; }
+
+            public string Checkpoint { get; init; } = string.Empty;
+
+            /// <summary>The edge crossed; null at the start.</summary>
+            public string? Edge { get; init; }
+
+            public CrossedVia Via { get; init; }
+        }
+
+        /// <summary>A graph dialogue's story ended: an edge to an outcome, or a close (<c>Abandoned</c>).</summary>
+        public sealed class DialogueEnded : EmbedEvent
+        {
+            public DialogueEnded() : base("dialogue_ended") { }
+
+            public DialogueId Dialogue { get; init; }
+
+            public DialogueOutcome Outcome { get; init; }
+
+            /// <summary>The checkpoint the story left.</summary>
+            public string Checkpoint { get; init; } = string.Empty;
+
+            public string? Edge { get; init; }
+        }
+
+        /// <summary>A stored dialogue's revision is loaded (ADR 28.10.26i); <c>CheckpointReached</c> follows.</summary>
+        public sealed class DialogueLoaded : EmbedEvent
+        {
+            public DialogueLoaded() : base("dialogue_loaded") { }
+
+            public DialogueId Dialogue { get; init; }
+
+            /// <summary>The store id it was loaded by (<c>dialogue_id</c>), lowercased.</summary>
+            public string StoreId { get; init; } = string.Empty;
+
+            /// <summary>The revision the dialogue runs.</summary>
+            public long Rev { get; init; }
+        }
+
+        /// <summary>A stored dialogue could not load; its id is gone.</summary>
+        public sealed class DialogueLoadFailed : EmbedEvent
+        {
+            public DialogueLoadFailed() : base("dialogue_load_failed") { }
+
+            public DialogueId Dialogue { get; init; }
+
+            public EmbedError Error { get; init; } = new EmbedError();
+        }
+
         /// <summary>An asynchronous failure; <c>Error.Request</c> names the command it answers.</summary>
         public sealed class Failed : EmbedEvent
         {

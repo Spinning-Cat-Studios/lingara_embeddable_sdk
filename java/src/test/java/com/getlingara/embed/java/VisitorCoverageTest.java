@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.getlingara.embed.CloseReason;
+import com.getlingara.embed.CrossedVia;
+import com.getlingara.embed.DialogueOutcome;
 import com.getlingara.embed.EmbedError;
 import com.getlingara.embed.EmbedEvent;
 import com.getlingara.embed.ErrorKind;
@@ -43,6 +45,11 @@ class VisitorCoverageTest {
         new EmbedEvent.WorldSent(2, "e2", null),
         new EmbedEvent.Practice(3, snapshot),
         new EmbedEvent.NpcTurn(4, 5, NpcTurnUpdate.Opened.INSTANCE),
+        new EmbedEvent.CheckpointReached(4, "ask", "hello", CrossedVia.JUDGE),
+        new EmbedEvent.DialogueEnded(4, DialogueOutcome.SUCCESS, "ask", "gate"),
+        // 28.10.26i AC13
+        new EmbedEvent.DialogueLoaded(4, "3f2a9c1e-7b4d-4e8a-9c0f-1a2b3c4d5e6f", 4),
+        new EmbedEvent.DialogueLoadFailed(4, error),
         new EmbedEvent.Error(error),
         new EmbedEvent.Log(LogLevel.WARN, "t", "m"),
         new EmbedEvent.Closed(CloseReason.REQUESTED),
