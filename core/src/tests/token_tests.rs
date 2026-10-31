@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use serde_json::json;
+use serde_json::{Value, json};
 
 use crate::embed::Embed;
 use crate::error::{Diagnostics, ErrorKind};
@@ -11,10 +11,10 @@ use crate::queue::{self, Queue};
 use crate::rfc3339;
 use crate::secret::Secret;
 use crate::tests::fake_lingara::{FakeLingara, Reply};
-use crate::tests::{SECS, accepted, config, context, refusal, started, token, wait_for};
-use crate::token::HostTokenSource;
+use crate::tests::{SECS, accepted, collect, config, context, refusal, started, token, wait_for};
+use crate::token::{HostTokenSource, UpdateLatch};
 use crate::token_fetch::Mode;
-use crate::types::{EmbedConfig, EmbedError, EmbedEvent, Header, LogLevel, TokenReason, TokenSourceConfig};
+use crate::types::{Command, EmbedConfig, EmbedError, EmbedEvent, Header, LogLevel, TokenReason, TokenSourceConfig, UpdateAvailable};
 
 fn is_error(kind: ErrorKind) -> impl Fn(&EmbedEvent) -> bool {
     move |e| matches!(e, EmbedEvent::Error { error } if error.kind == kind)
@@ -50,11 +50,11 @@ fn now() -> i64 {
 fn source() -> (Arc<HostTokenSource>, Queue) {
     let (queue, outbox) = queue::channel(16, tokio::runtime::Handle::current());
     let diag = Diagnostics { level: LogLevel::Warn, outbox: outbox.clone() };
-    (HostTokenSource::new(Mode::Poll, outbox, diag, Arc::new(Ids::default()), 30 * SECS), queue)
+    (HostTokenSource::new(Mode::Poll, diag, Arc::new(Ids::default()), 30 * SECS, UpdateLatch::new(None)), queue)
 }
 
 fn issued(expires_at: Option<String>, expires_in_secs: Option<u32>) -> IssuedToken {
-    IssuedToken { token: Secret::new(token(1)), expires_at, expires_in_secs }
+    IssuedToken { token: Secret::new(token(1)), expires_at, expires_in_secs, update_available: None }
 }
 
 /// No need before `at` seconds, then exactly one, `Expiring`.
@@ -116,7 +116,7 @@ struct Fixed(&'static str);
 impl EmbedTokenSource for Fixed {
     fn fetch(&self, _reason: TokenReason) -> BoxFuture<'_, Result<IssuedToken, EmbedError>> {
         let token = self.0;
-        Box::pin(async move { Ok(IssuedToken { token: Secret::new(token), expires_at: None, expires_in_secs: Some(900) }) })
+        Box::pin(async move { Ok(IssuedToken { token: Secret::new(token), expires_at: None, expires_in_secs: Some(900), update_available: None }) })
     }
 }
 
@@ -191,4 +191,139 @@ fn one_need_one_event_and_the_sources_are_replaceable() {
     let to_b: Vec<_> = fake.seen().into_iter().filter(|s| s.path == "/b").collect();
     assert_eq!(to_b.first().and_then(|s| s.header("x-session")), Some("s2"), "the stale point fetches from the new endpoint");
     assert_eq!(fake.seen().iter().find(|s| s.path == "/a").and_then(|s| s.header("x-session")), Some("s1"));
+}
+
+fn handoff(update_available: Option<Value>) -> Value {
+    let mut body = json!({ "token": token(3), "expires_at": rfc3339::from_unix(now() + 900) });
+    if let Some(update) = update_available {
+        body["update_available"] = update;
+    }
+    body
+}
+
+fn declaring(config: EmbedConfig, version: &str) -> EmbedConfig {
+    EmbedConfig { embed_version: Some(version.into()), ..config }
+}
+
+// 30.10.26p AC1
+#[test]
+fn the_declared_version_goes_to_the_token_endpoint_only() {
+    for bad in ["v1.0", "1.0", "01.0.0", "123456.123456.1234567", "1.0.0-beta"] {
+        let refused = Embed::start(declaring(config("http://127.0.0.1:9"), bad)).unwrap_err();
+        assert_eq!(refused.kind, ErrorKind::Config, "{bad}");
+    }
+    assert_eq!("123456.123456.1234567".len(), 21);
+    let fake = FakeLingara::start(|s, _| match s.path.as_str() {
+        "/token" | "/other" => Reply::Json(200, handoff(None)),
+        _ => Reply::Json(202, accepted("lgr_evt_1")),
+    });
+    let embed = Embed::start(declaring(http(&fake, "/token", vec![]), "1.1.0")).unwrap();
+    embed.send_context(context("market")).unwrap();
+    wait_for(&embed, 5 * SECS, |e| matches!(e, EmbedEvent::WorldSent { .. }));
+    // A re-pointed endpoint carries it too: a 2 s token goes stale at 1 s and is fetched from `/other`.
+    embed.set_token_endpoint(&format!("{}/other", fake.url), vec![]).unwrap();
+    embed.provide_token_for(token(4), 2).unwrap();
+    let deadline = std::time::Instant::now() + 5 * SECS;
+    while fake.count("POST", "/other") == 0 && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let header = crate::EMBED_VERSION_HEADER;
+    for seen in fake.seen() {
+        let want = matches!(seen.path.as_str(), "/token" | "/other").then_some("1.1.0");
+        assert_eq!(seen.header(header), want, "{} {}", seen.method, seen.path);
+    }
+    assert_eq!(fake.count("POST", "/v1/events"), 1, "Lingara was called, without the header");
+
+    let fake = FakeLingara::start(|s, _| match s.path.as_str() {
+        "/token" => Reply::Json(200, handoff(None)),
+        _ => Reply::Json(202, accepted("lgr_evt_1")),
+    });
+    let embed = Embed::start(http(&fake, "/token", vec![])).unwrap();
+    embed.send_context(context("market")).unwrap();
+    wait_for(&embed, 5 * SECS, |e| matches!(e, EmbedEvent::WorldSent { .. }));
+    assert!(fake.seen().iter().all(|s| s.header(crate::EMBED_VERSION_HEADER).is_none()), "absent sends no header");
+}
+
+/// `update-notice.json`'s rows: (embed_version, update_available, line).
+/// `None` only when there is no `conformance/` tree beside the crate at all —
+/// the packaged crate `check-msrv-core` unpacks outside the repo, which ships
+/// `src/**` alone. In the workspace a missing vector still fails.
+fn notice_rows() -> Option<Vec<(Option<String>, Value, String)>> {
+    let conformance = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../conformance");
+    if !conformance.is_dir() {
+        return None;
+    }
+    let path = conformance.join("vectors/update-notice.json");
+    let vector: Value = serde_json::from_str(&std::fs::read_to_string(path).expect("update-notice.json")).unwrap();
+    assert_eq!(vector["target"], crate::token::update::TARGET);
+    let rows = vector["rows"].as_array().unwrap().iter();
+    Some(rows.map(|r| (r["embed_version"].as_str().map(str::to_owned), r["update_available"].clone(), r["line"].as_str().unwrap().to_owned())).collect())
+}
+
+/// The `Log` lines and `UpdateAvailable` events among `events`, in order.
+fn told(events: &[EmbedEvent]) -> Vec<&EmbedEvent> {
+    events.iter().filter(|e| matches!(e, EmbedEvent::UpdateAvailable { .. } | EmbedEvent::Log { level: LogLevel::Warn, .. })).collect()
+}
+
+fn poll_started(config: EmbedConfig) -> Embed {
+    let embed = Embed::start(config).unwrap();
+    assert!(matches!(embed.poll_event(), Some(EmbedEvent::TokenNeeded { .. })));
+    embed
+}
+
+// 30.10.26p AC2
+#[test]
+fn an_update_is_said_once_per_handle() {
+    let Some(rows) = notice_rows() else {
+        eprintln!("skipped: no conformance/ tree beside the packaged crate");
+        return;
+    };
+    assert_eq!(rows.len(), 18);
+    for (version, update, line) in &rows {
+        let notice = UpdateAvailable::from_value(update.clone()).expect("a well-formed row");
+        assert_eq!(&crate::token::update::notice_line(&notice, version.as_deref()), line);
+    }
+    for (version, update, line) in rows.into_iter().take(4) {
+        let notice = UpdateAvailable::from_value(update).unwrap();
+        let config = EmbedConfig { embed_version: version, ..config("http://127.0.0.1:9") };
+        for _handle in 0..2 {
+            let embed = poll_started(config.clone());
+            let expires = || rfc3339::from_unix(now() + 900);
+            embed.provide_token_with_update(token(1), expires(), Some(notice.clone())).unwrap();
+            embed.provide_token_with_update(token(2), expires(), Some(notice.clone())).unwrap();
+            embed.provide_token(token(3), expires()).unwrap();
+            let events = collect(&embed, Duration::from_millis(100));
+            let want_log = EmbedEvent::Log { level: LogLevel::Warn, target: "lingara_embed::update".into(), message: line.clone() };
+            let want_event = EmbedEvent::UpdateAvailable { latest: notice.latest.clone(), deprecated: notice.deprecated, message: notice.message.clone() };
+            assert_eq!(told(&events), vec![&want_log, &want_event], "a new handle is told again, once");
+        }
+    }
+}
+
+// 30.10.26p AC3
+#[test]
+fn a_bad_notice_never_costs_the_token() {
+    for bad in [json!(5), json!({ "latest": "1.2.0", "message": null })] {
+        assert!(UpdateAvailable::parse(&bad).is_err(), "the Debug line's cause: {bad}");
+        let body = handoff(Some(bad.clone()));
+        let fake = FakeLingara::start(move |s, _| match s.path.as_str() {
+            "/token" => Reply::Json(200, body.clone()),
+            _ => Reply::Json(202, accepted("lgr_evt_1")),
+        });
+        let embed = Embed::start(http(&fake, "/token", vec![])).unwrap();
+        embed.send_context(context("market")).unwrap();
+        let (_, before) = wait_for(&embed, 5 * SECS, |e| matches!(e, EmbedEvent::WorldSent { .. }));
+        assert!(told(&before).is_empty(), "a malformed notice says nothing");
+
+        let command: Command = serde_json::from_value(json!({ "type": "provide_token", "token": token(1), "expires_at": rfc3339::from_unix(now() + 900), "update_available": bad })).unwrap();
+        assert!(matches!(&command, Command::ProvideToken { update_available: None, .. }));
+        let embed = poll_started(config("http://127.0.0.1:9"));
+        embed.execute(command).unwrap();
+        assert!(!embed.status().needs_token && told(&collect(&embed, Duration::from_millis(100))).is_empty());
+    }
+    let today = IssuedToken::from_handoff_json(handoff(None).to_string().as_bytes()).unwrap();
+    assert!(today.update_available.is_none() && today.expires_at.is_some());
+    let good = json!({ "latest": null, "deprecated": true, "message": null });
+    let read = IssuedToken::from_handoff_json(handoff(Some(good)).to_string().as_bytes()).unwrap();
+    assert_eq!(read.update_available, Some(UpdateAvailable { latest: None, deprecated: true, message: None }));
 }

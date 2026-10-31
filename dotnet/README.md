@@ -23,6 +23,17 @@ the poll loop and the token flow.
 all five `dist/ffi/<rid>/` directories (`make ffi-dist RID=<rid>`) and refuses
 to pack, naming the platform, if any one is missing.
 
+### Updates
+
+An update notice is for you, the developer, and is never drawn for the
+player. Set `EmbedOptions.EmbedVersion = "1.1.0"` to the embed version this
+build was registered against: the Http source sends it to your endpoint as
+`Lingara-Embed-Version`, and a polling game sends that header itself and
+passes the handoff's notice as `ProvideToken(token, expiresAt, new
+UpdateAvailable { … })`. Once per handle `Drain` yields an
+`EmbedEvent.UpdateAvailable` (`Latest`, `Deprecated`, `Message`), beside a
+`Log` at `Warn`; both samples log it.
+
 ## Server: `Lingara.Embed.Server`
 
 For your game's or site's own server, the one that holds your Lingara client

@@ -1,0 +1,25 @@
+id: ek13.latest-null
+behaviours: [EK13]
+tier: ek
+# No published version serves (V1's withdrawn fallback): `latest` is null,
+# the flag and the line still say so.
+serve:
+  - route: { operation: sendEvent }
+    expect_request: { headers: { authorization: "Bearer lgr_et_conformance0001" } }
+    respond: { status: 202, json: { id: lgr_evt_1, type: world.context_changed, created_at: "2026-10-01T12:00:00Z" } }
+host:
+  - start: { initial_token: none, config: { stream_on_start: false, log_level: warn } }
+  - provide_token:
+      token: lgr_et_conformance0001
+      expires_at: "2099-01-01T00:00:00Z"
+      update_available: { latest: null, deprecated: true, message: null }
+  - poll_until:
+      event: log
+      match: { level: warn, target: "lingara_embed::update", message: "lingara: this build's embed version is deprecated; no version is currently published" }
+      within_ms: 2000
+  - poll_until: { event: update_available, match: { deprecated: true }, within_ms: 2000 }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: world_sent, match: { event_id: lgr_evt_1 }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

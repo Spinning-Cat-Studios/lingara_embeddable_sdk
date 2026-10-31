@@ -99,6 +99,10 @@ fn typed(event: &EmbedEvent, finished: &mut Finished) -> Vec<SignalCall> {
         EmbedEvent::DialogueLoadFailed { dialogue, error } => one("dialogue_load_failed", vec![Value::from(*dialogue), json(error)]),
         EmbedEvent::Error { error } => one("error_raised", vec![json(error)]),
         EmbedEvent::Log { level, target, message } => one("log_received", vec![level.to_string().into(), target.clone().into(), message.clone().into()]),
+        // ADR 30.10.26p D4: once per handle, for the developer; null is "".
+        EmbedEvent::UpdateAvailable { latest, deprecated, message } => {
+            one("update_available", vec![latest.clone().unwrap_or_default().into(), Value::from(*deprecated), message.clone().unwrap_or_default().into()])
+        }
         EmbedEvent::Closed { reason } => one("closed", vec![json(reason)]),
         _ => Vec::new(),
     }

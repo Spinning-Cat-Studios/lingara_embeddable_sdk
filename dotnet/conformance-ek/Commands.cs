@@ -17,8 +17,8 @@ namespace Lingara.Embed.Conformance
 
         private static readonly Dictionary<string, Send> Table = new Dictionary<string, Send>
         {
-            ["provide_token"] = (c, o, _) => c.ProvideToken(Str(o, "token"), Str(o, "expires_at")),
-            ["provide_token_for"] = (c, o, _) => c.ProvideTokenFor(Str(o, "token"), (uint)Long(o, "expires_in_secs")),
+            ["provide_token"] = (c, o, _) => c.ProvideToken(Str(o, "token"), Str(o, "expires_at"), Update(o["update_available"])),
+            ["provide_token_for"] = (c, o, _) => c.ProvideTokenFor(Str(o, "token"), (uint)Long(o, "expires_in_secs"), Update(o["update_available"])),
             ["token_unavailable"] = (c, o, _) => c.TokenUnavailable(Str(o, "reason")),
             ["set_token_endpoint"] = (c, o, _) => c.SetTokenEndpoint(Str(o, "url"), Headers(o["headers"] as JsonArray)),
             ["stream_pause"] = (c, _, _) => c.StreamPause(),
@@ -102,6 +102,27 @@ namespace Lingara.Embed.Conformance
         private static string Str(JsonObject o, string key) => o[key]?.GetValue<string>() ?? throw new InvalidOperationException($"`{key}` is missing");
 
         private static string? OptStr(JsonObject o, string key) => o[key]?.GetValue<string>();
+
+        /// <summary>
+        /// A case's <c>update_available</c> as the typed notice (EK13, ADR 30.10.26p).
+        /// A shape the type cannot hold is dropped here, as the core drops it: the
+        /// token still goes, and nothing is said.
+        /// </summary>
+        internal static UpdateAvailable? Update(JsonNode? n)
+        {
+            if (n is not JsonObject o || o["deprecated"] is not JsonValue d || !d.TryGetValue<bool>(out var deprecated))
+            {
+                return null;
+            }
+
+            static bool Text(JsonNode? v) => v == null || (v is JsonValue s && s.TryGetValue<string>(out _));
+            if (!Text(o["latest"]) || !Text(o["message"]))
+            {
+                return null;
+            }
+
+            return new UpdateAvailable { Latest = OptStr(o, "latest"), Deprecated = deprecated, Message = OptStr(o, "message") };
+        }
 
         private static long Long(JsonObject o, string key) => o[key]?.GetValue<long>() ?? throw new InvalidOperationException($"`{key}` is missing");
 

@@ -13,3 +13,12 @@ fn the_user_agent_names_the_plugin_then_the_game() {
     let suffixes: Vec<Option<String>> = fake.state().starts.iter().map(|c| c.user_agent_suffix.clone()).collect();
     assert_eq!(suffixes, [Some(kit.clone()), Some(format!("{kit} my-game/1.4"))]);
 }
+
+/// 30.10.26p D4: `.embed_version()` reaches the core's config.
+#[test]
+fn the_embed_version_reaches_the_core() {
+    let fake = Fake::default();
+    let _declared = app(LingaraConfig::new().embed_version("1.1.0"), &fake);
+    let versions: Vec<Option<String>> = fake.state().starts.iter().map(|c| c.embed_version.clone()).collect();
+    assert_eq!(versions, [Some("1.1.0".to_owned())]);
+}

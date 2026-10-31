@@ -12,19 +12,21 @@ use crate::error::{EmbedError, ErrorKind};
 use crate::limits;
 use crate::rfc3339;
 use crate::secret::Secret;
-use crate::types::TokenReason;
+use crate::types::{TokenReason, UpdateAvailable};
 
 /// A boxed, `Send` future, so an `EmbedTokenSource` needs no `futures` crate.
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
 /// A token as a source issues it: `expires_at` (the handoff body's), or
 /// `expires_in_secs` (from a host holding the mint's whole answer). One of
-/// the two is needed. Rust-only: no serde, not in the shape vector.
+/// the two is needed. `update_available` is the mint's optional notice
+/// (ADR 30.10.26p D3). Rust-only: no serde, not in the shape vector.
 #[derive(Debug, Clone)]
 pub struct IssuedToken {
     pub token: Secret,
     pub expires_at: Option<String>,
     pub expires_in_secs: Option<u32>,
+    pub update_available: Option<UpdateAvailable>,
 }
 
 /// A Rust game's own token source, awaited on the core's I/O thread
@@ -33,12 +35,16 @@ pub trait EmbedTokenSource: Send + Sync + 'static {
     fn fetch(&self, reason: TokenReason) -> BoxFuture<'_, Result<IssuedToken, EmbedError>>;
 }
 
-/// The handoff body V1's ES6 fixes: exactly `{token, expires_at}`. Any other
-/// field (B1's whole six-field answer, forwarded) is ignored.
+/// The handoff body V1's ES6 fixes: `{token, expires_at}`, and since ADR
+/// 30.10.26p an optional `update_available`, read leniently (a malformed
+/// one is dropped, never fatal). Any other field (B1's whole six-field
+/// answer, forwarded) is ignored.
 #[derive(Deserialize)]
 struct Handoff {
     token: String,
     expires_at: String,
+    #[serde(default, deserialize_with = "crate::types::update::lenient")]
+    update_available: Option<UpdateAvailable>,
 }
 
 impl IssuedToken {
@@ -46,7 +52,7 @@ impl IssuedToken {
     pub fn from_handoff_json(body: &[u8]) -> Result<Self, EmbedError> {
         let handoff: Handoff = serde_json::from_slice(body)
             .map_err(|_| EmbedError::new(ErrorKind::TokenUnavailable, "the token endpoint's answer is not {token, expires_at}"))?;
-        Ok(Self { token: Secret::new(handoff.token), expires_at: Some(handoff.expires_at), expires_in_secs: None })
+        Ok(Self { token: Secret::new(handoff.token), expires_at: Some(handoff.expires_at), expires_in_secs: None, update_available: handoff.update_available })
     }
 }
 

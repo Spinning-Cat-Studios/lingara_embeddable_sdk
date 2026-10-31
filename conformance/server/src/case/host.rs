@@ -68,6 +68,10 @@ pub struct ProvideToken {
     pub expires_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_in_secs: Option<u32>,
+    /// The command's `update_available` (ADR 30.10.26p D5), passed through
+    /// as written: EK13's malformed case relies on it never being checked here.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub update_available: Option<Value>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

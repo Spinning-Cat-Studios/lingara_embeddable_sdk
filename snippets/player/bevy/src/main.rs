@@ -18,6 +18,16 @@ fn lingara_config(session_header: bevy_lingara::lingara_embed::Header) -> Lingar
     LingaraConfig::new()
         .token_endpoint("https://game.example.com/lingara-token", vec![session_header])
         .source_lang("en")
+        // The embed version this build was registered against: sent to your
+        // route as `Lingara-Embed-Version`, for your server's mint.
+        .embed_version("1.1.0")
+}
+
+/// Once per session, for you: log it, never draw it for the player.
+fn on_update_available(mut updates: MessageReader<LingaraUpdateAvailable>) {
+    for update in updates.read() {
+        warn!("Lingara update: latest {:?}, deprecated {}", update.latest, update.deprecated);
+    }
 }
 
 /// Or keep the session in ECS: leave the token endpoint unset, answer each
@@ -47,7 +57,7 @@ fn main() {
         .add_systems(Update, on_lingara_event)
     // lingara:end
         .add_systems(Startup, (spawn_seller, spawn_elena))
-        .add_systems(Update, (answer_token_requests, talk, show_reply, practise, on_practice_finished))
+        .add_systems(Update, (answer_token_requests, on_update_available, talk, show_reply, practise, on_practice_finished))
         .add_systems(Update, (raise_the_alarm, follow_the_story))
         .run();
 }

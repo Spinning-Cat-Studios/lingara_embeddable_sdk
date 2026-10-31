@@ -14,7 +14,8 @@ use lingara_embed::{Command, CommandOutcome, DialogueId, EmbedError, EmbedEvent,
 
 use crate::core::{Lingara, closed};
 use crate::messages::{
-    LingaraError, LingaraEventReceived, LingaraRawEvent, LingaraStatus, LingaraTokenNeeded, WorldContextChanged, WorldContextSent,
+    LingaraError, LingaraEventReceived, LingaraRawEvent, LingaraStatus, LingaraTokenNeeded, LingaraUpdateAvailable, WorldContextChanged,
+    WorldContextSent,
 };
 use crate::plugin::Settings;
 use crate::{dialogue, lifecycle, practice};
@@ -61,6 +62,10 @@ fn route(world: &mut World, event: EmbedEvent) {
         }
         EmbedEvent::Lingara { event } => {
             world.write_message(LingaraEventReceived(event));
+        }
+        // ADR 30.10.26p: once per handle, for the developer only.
+        EmbedEvent::UpdateAvailable { latest, deprecated, message } => {
+            world.write_message(LingaraUpdateAvailable { latest, deprecated, message });
         }
         EmbedEvent::WorldSent { request, event_id, reaction } => {
             world.write_message(WorldContextSent { request, event_id, reaction });

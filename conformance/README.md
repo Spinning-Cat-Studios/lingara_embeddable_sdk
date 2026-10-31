@@ -123,6 +123,7 @@ kit's unit tests from the repository root:
 | `snippet.json` | `{description, cases: [{name, options, expect: {html} \| {refused: <field>}}]}`; `{{version}}` in `html` is the kit's `VERSION` | ES4, every server kit's `widgetSnippet` |
 | `token-handoff.json` | `[{name, input: {token, expires_at}, body}]`, `body` the exact text | ES6, every server kit's `handoffBody`; K1's reader |
 | `json-shape.json` | the core's message shapes | EK bindings |
+| `update-notice.json` | `{description, target, rows: [{case, embed_version, update_available, line}]}`: the `Warn` line an `update_available` yields (ADR 30.10.26p) | the core's latch (every row); the widget (rows with no `embed_version`) |
 | `dialogue/` | the dialogue IR's golden vectors (*Dialogue IR*, below) | every dialogue builder; Backend's export |
 
 ## Dialogue IR

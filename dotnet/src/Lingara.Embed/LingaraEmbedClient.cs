@@ -93,11 +93,17 @@ namespace Lingara.Embed
 
         // ── Tokens (K1 D4) ────────────────────────────────────────────
 
-        /// <summary>The handoff body's two fields, verbatim: an <c>lgr_et_</c> token and its RFC 3339 expiry.</summary>
-        public void ProvideToken(string token, string expiresAt) => AnswerDecoder.Done(Execute(CommandEncoder.ProvideToken(token, expiresAt)));
+        /// <summary>
+        /// The handoff body's fields, verbatim: an <c>lgr_et_</c> token, its RFC 3339
+        /// expiry and, when the handoff carries one, its <c>update_available</c>
+        /// (ADR 30.10.26p), which the core turns into one <c>UpdateAvailable</c> event.
+        /// </summary>
+        public void ProvideToken(string token, string expiresAt, UpdateAvailable? updateAvailable = null) =>
+            AnswerDecoder.Done(Execute(CommandEncoder.ProvideToken(token, expiresAt, updateAvailable)));
 
         /// <summary>A token with its lifetime from the mint's <c>expires_in</c>.</summary>
-        public void ProvideTokenFor(string token, uint expiresInSecs) => AnswerDecoder.Done(Execute(CommandEncoder.ProvideTokenFor(token, expiresInSecs)));
+        public void ProvideTokenFor(string token, uint expiresInSecs, UpdateAvailable? updateAvailable = null) =>
+            AnswerDecoder.Done(Execute(CommandEncoder.ProvideTokenFor(token, expiresInSecs, updateAvailable)));
 
         /// <summary>The game cannot get a token: every waiting call fails now, not at the timeout.</summary>
         public void TokenUnavailable(string reason) => AnswerDecoder.Done(Execute(CommandEncoder.TokenUnavailable(reason)));

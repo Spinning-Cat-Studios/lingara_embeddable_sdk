@@ -2,16 +2,35 @@
 // re-mint schedule, single-flight and back-off. The token goes to the caller's
 // `granted` hook and nowhere else; it is never stored, logged or thrown.
 
-/** The integrator's token endpoint answer, exactly. Other fields are ignored. */
+import type { UpdateAvailableDetail } from './events.js'
+
+/**
+ * The integrator's token endpoint answer. `update_available` is the mint's
+ * optional notice (ADR 30.10.26p), forwarded as the server answered it; a
+ * malformed one is dropped and the grant still works. Other fields are ignored.
+ */
 export interface TokenGrant {
   token: string
   expires_at: string
+  update_available?: UpdateAvailableDetail | null
 }
 export type TokenProvider = () => Promise<TokenGrant>
 
 export interface ParsedGrant {
   token: string
   expiresAt: number
+  /** Present only when the grant carried a well-formed notice. */
+  update?: UpdateAvailableDetail
+}
+
+const textOrNull = (value: unknown): value is string | null => value === null || value === undefined || typeof value === 'string'
+
+/** V1's three keys, or `undefined` for anything else: a notice never costs the grant. */
+export function readUpdate(value: unknown): UpdateAvailableDetail | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  const { latest, deprecated, message } = value as Record<string, unknown>
+  if (typeof deprecated !== 'boolean' || !textOrNull(latest) || !textOrNull(message)) return undefined
+  return { latest: latest ?? null, deprecated, message: message ?? null }
 }
 
 export const LEAD_MS = 60_000
@@ -62,10 +81,12 @@ export function parseExpiresAt(value: string): number | null {
 /** The two fields, checked; `null` for anything else. A past `expires_at` is not a refusal. */
 export function validateGrant(answer: unknown): ParsedGrant | null {
   if (typeof answer !== 'object' || answer === null) return null
-  const { token, expires_at: expiresAtText } = answer as Record<string, unknown>
+  const { token, expires_at: expiresAtText, update_available: notice } = answer as Record<string, unknown>
   if (typeof token !== 'string' || !token.startsWith('lgr_et_') || typeof expiresAtText !== 'string') return null
   const expiresAt = parseExpiresAt(expiresAtText)
-  return expiresAt === null ? null : { token, expiresAt }
+  if (expiresAt === null) return null
+  const update = readUpdate(notice)
+  return update === undefined ? { token, expiresAt } : { token, expiresAt, update }
 }
 
 /** `clamp(expires_at − 60 s − now, 30 s, 840 s)`. */
@@ -84,7 +105,7 @@ async function ask(provider: TokenProvider): Promise<Outcome> {
 
 export interface KeeperHooks {
   provider(): TokenProvider | undefined
-  granted(token: string): void
+  granted(token: string, update?: UpdateAvailableDetail): void
   failed(code: 'token_provider_invalid' | 'token_provider_failed'): void
 }
 
@@ -171,7 +192,7 @@ export class TokenKeeper {
     this.failures = 0
     // After the failure was reported, a success answers its one ask and no more.
     if (!this.exhausted) this.arm(remintDelay(grant.expiresAt, Date.now()))
-    this.hooks.granted(grant.token)
+    this.hooks.granted(grant.token, grant.update)
   }
 
   private fail(): void {

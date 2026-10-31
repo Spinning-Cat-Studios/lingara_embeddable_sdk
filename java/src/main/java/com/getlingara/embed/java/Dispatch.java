@@ -43,6 +43,8 @@ final class Dispatch {
       return visitor.error(e);
     } else if (event instanceof EmbedEvent.Log e) {
       return visitor.log(e);
+    } else if (event instanceof EmbedEvent.UpdateAvailable e) {
+      return visitor.updateAvailable(e);
     } else if (event instanceof EmbedEvent.Closed e) {
       return visitor.closed(e);
     } else if (event instanceof EmbedEvent.Unknown e) {

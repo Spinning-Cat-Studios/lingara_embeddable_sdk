@@ -21,6 +21,9 @@ public partial class LingaraEmbedNode : Node
     /// <summary>Your own server's endpoint: it mints a native embed token (no origin) and returns { token, expires_at }.</summary>
     [Export] public string TokenUrl { get; set; } = "http://127.0.0.1:8787/token"; // tools/demo-token-server while you develop
 
+    /// <summary>The platform embed version this build was registered against, e.g. 1.1.0: your server is told it.</summary>
+    [Export] public string EmbedVersion { get; set; } = "";
+
     public LingaraEmbedClient Client { get; private set; }
 
     // System.Net.Http's, not Godot's own HttpClient node.
@@ -33,6 +36,7 @@ public partial class LingaraEmbedNode : Node
         {
             StreamOnStart = false,
             UserAgentSuffix = "godot/" + (string)Engine.GetVersionInfo()["string"],
+            EmbedVersion = string.IsNullOrEmpty(EmbedVersion) ? null : EmbedVersion,
         });
     }
 
@@ -60,6 +64,8 @@ public partial class LingaraEmbedNode : Node
                 case EmbedEvent.Practice p: EmitSignal(SignalName.PracticeChanged, p.Session.Value, p.Snapshot.Phase.ToString()); break;
                 case EmbedEvent.Failed f: EmitSignal(SignalName.Failed, f.Error.KindName, f.Error.Message, f.Error.Request?.Value ?? 0); break;
                 case EmbedEvent.Log log: GD.Print($"[lingara] {log.Level} {log.Target}: {log.Message}"); break;
+                // Once per session, for you: log it, never draw it for the player.
+                case EmbedEvent.UpdateAvailable u: GD.PushWarning($"[lingara] update available: latest {u.Latest ?? "none"}, deprecated {u.Deprecated}"); break;
             }
         }
     }
@@ -72,7 +78,9 @@ public partial class LingaraEmbedNode : Node
     {
         try
         {
-            using var response = await Http.PostAsync(TokenUrl, new StringContent("{}"));
+            using var request = new HttpRequestMessage(HttpMethod.Post, TokenUrl) { Content = new StringContent("{}") };
+            if (!string.IsNullOrEmpty(EmbedVersion)) request.Headers.Add("Lingara-Embed-Version", EmbedVersion);
+            using var response = await Http.SendAsync(request);
             response.EnsureSuccessStatusCode();
             using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             Client?.ProvideToken(body.RootElement.GetProperty("token").GetString(), body.RootElement.GetProperty("expires_at").GetString());

@@ -65,6 +65,11 @@ pub fn from_variant(variant: &Variant) -> Value {
     }
 }
 
+/// A GDScript string argument as JSON text.
+pub fn text(s: &GString) -> Value {
+    s.to_string().into()
+}
+
 /// Keys become strings, as JSON's must.
 pub fn from_dictionary(dict: &VarDictionary) -> Value {
     let map = dict.iter_shared().map(|(k, v)| (key(&k), from_variant(&v))).collect();

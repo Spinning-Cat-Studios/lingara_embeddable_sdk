@@ -11,6 +11,7 @@ import com.getlingara.embed.EmbedEvent;
 import com.getlingara.embed.EmbedException;
 import com.getlingara.embed.Lingara_embed_uniffiKt;
 import com.getlingara.embed.LogLevel;
+import com.getlingara.embed.UpdateAvailable;
 import com.getlingara.embed.java.LingaraEmbedJava;
 import com.getlingara.embed.java.LingaraEmbedJavaException;
 import java.io.IOException;
@@ -128,14 +129,42 @@ final class Host {
     if (at == null && secs == null) {
       throw new IllegalStateException("no expires_at or expires_in_secs");
     }
+    UpdateAvailable update = updateFrom(body.get("update_available"));
     refusing(
         () -> {
-          if (at != null) {
+          if (at != null && update != null) {
+            embed().provideToken(token, at, update);
+          } else if (at != null) {
             embed().provideToken(token, at);
           } else {
             embed().provideTokenFor(token, secs.asLong());
           }
         });
+  }
+
+  /**
+   * A case's {@code update_available} as the typed notice (EK13, ADR 30.10.26p). A shape the record
+   * cannot hold is dropped, as the core drops it.
+   */
+  private static UpdateAvailable updateFrom(JsonNode n) {
+    if (n == null || !n.path("deprecated").isBoolean()) {
+      return null;
+    }
+    JsonNode latest = n.path("latest");
+    JsonNode message = n.path("message");
+    if (!textOrAbsent(latest) || !textOrAbsent(message)) {
+      return null;
+    }
+    return new UpdateAvailable(
+        textOrNull(latest), n.get("deprecated").asBoolean(), textOrNull(message));
+  }
+
+  private static boolean textOrAbsent(JsonNode v) {
+    return v.isMissingNode() || v.isNull() || v.isTextual();
+  }
+
+  private static String textOrNull(JsonNode v) {
+    return v.isTextual() ? v.asText() : null;
   }
 
   /** A Command in its JSON shape; any {@code "$last"} is the latest opened session or dialogue. */

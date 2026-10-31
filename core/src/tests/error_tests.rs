@@ -47,8 +47,8 @@ fn secrets_never_render() {
     capture_logs();
     let header = Header { name: "cookie".into(), value: Secret::new(SESSION) };
     let commands = [
-        Command::ProvideToken { token: Secret::new(TOKEN), expires_at: "2026-10-01T12:15:00Z".into() },
-        Command::ProvideTokenFor { token: Secret::new(TOKEN), expires_in_secs: 900 },
+        Command::ProvideToken { token: Secret::new(TOKEN), expires_at: "2026-10-01T12:15:00Z".into(), update_available: None },
+        Command::ProvideTokenFor { token: Secret::new(TOKEN), expires_in_secs: 900, update_available: None },
         Command::SetTokenEndpoint { url: "https://g.example/t".into(), headers: vec![header.clone()] },
     ];
     for c in &commands {

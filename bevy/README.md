@@ -69,6 +69,19 @@ Three ways to get it to the plugin:
 `ProvideToken` has private fields and a redacting `Debug`, and no component
 or resource ever holds a token.
 
+## Updates
+
+An update notice is for you, the developer, and is never drawn for the
+player: read it and log it, or build your own prompt from it. Set
+`LingaraConfig::new().embed_version("1.1.0")` to the embed version this build
+was registered against; the token endpoint is sent it as
+`Lingara-Embed-Version`. A game answering `LingaraTokenNeeded` itself sends
+that header itself, and passes the handoff's notice on with
+`ProvideToken::with_update(token, expires_at, UpdateAvailable::from_value(v))`.
+Once per handle the plugin writes a `LingaraUpdateAvailable { latest,
+deprecated, message }` message, and the core's warning line reaches
+`bevy::log`.
+
 ## NPC dialogue
 
 ```rust,ignore

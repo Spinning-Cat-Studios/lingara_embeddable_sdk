@@ -105,6 +105,7 @@ namespace
 		if (!C.ResumeCursor.IsEmpty()) W.WriteValue(TEXT("resume_cursor"), C.ResumeCursor);
 		if (C.EventTypes.Num() > 0) WriteStrings(W, TEXT("event_types"), C.EventTypes);
 		if (!C.ApiVersion.IsEmpty()) W.WriteValue(TEXT("api_version"), C.ApiVersion);
+		if (!C.EmbedVersion.IsEmpty()) W.WriteValue(TEXT("embed_version"), C.EmbedVersion);
 		if (C.QueueCapacity > 0) W.WriteValue(TEXT("queue_capacity"), C.QueueCapacity);
 		if (C.StreamIdleTimeoutMs > 0) W.WriteValue(TEXT("stream_idle_timeout_ms"), C.StreamIdleTimeoutMs);
 		if (C.TokenWaitTimeoutMs > 0) W.WriteValue(TEXT("token_wait_timeout_ms"), C.TokenWaitTimeoutMs);
@@ -131,11 +132,16 @@ namespace LingaraCommandEncoder
 		return O.Close();
 	}
 
-	FString ProvideToken(const FString& Token, const FString& ExpiresAt)
+	FString ProvideToken(const FString& Token, const FString& ExpiresAt, const FString& UpdateAvailableJson)
 	{
 		FObject O(TEXT("provide_token"));
 		O.W->WriteValue(TEXT("token"), Token);
 		O.W->WriteValue(TEXT("expires_at"), ExpiresAt);
+		if (!UpdateAvailableJson.IsEmpty())
+		{
+			// Verbatim: the core reads it leniently, so a malformed one costs nothing.
+			O.W->WriteRawJSONValue(TEXT("update_available"), UpdateAvailableJson);
+		}
 		return O.Close();
 	}
 

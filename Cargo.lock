@@ -1333,7 +1333,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_lingara"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "bevy",
  "lingara-embed",
@@ -4318,7 +4318,7 @@ dependencies = [
 
 [[package]]
 name = "lingara-dialogue-ir"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "schemars",
  "serde",
@@ -4327,7 +4327,7 @@ dependencies = [
 
 [[package]]
 name = "lingara-embed"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "axum",
  "bytes",
@@ -4393,7 +4393,7 @@ dependencies = [
 
 [[package]]
 name = "lingara-embed-ffi"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "cbindgen",
  "lingara-embed",
@@ -4414,7 +4414,7 @@ dependencies = [
 
 [[package]]
 name = "lingara-embed-uniffi"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "lingara-embed",
  "serde",
@@ -4442,7 +4442,7 @@ dependencies = [
 
 [[package]]
 name = "lingara_godot"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "godot",
  "lingara-embed",

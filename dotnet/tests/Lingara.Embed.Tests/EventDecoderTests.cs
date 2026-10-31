@@ -59,6 +59,10 @@ namespace Lingara.Embed.Tests
                 case EmbedEvent.Closed e:
                     Assert.Equal(CloseReason.Requested, e.Reason);
                     break;
+                // 30.10.26p AC6
+                case EmbedEvent.UpdateAvailable e:
+                    Assert.Equal(("1.2.0", true, "1.1.x stops minting on 1 December; please update."), (e.Latest, e.Deprecated, e.Message));
+                    break;
                 case EmbedEvent.CheckpointReached e:
                     Assert.Equal((4L, "ask_about_brother", "explained", CrossedVia.Judge), (e.Dialogue.Value, e.Checkpoint, e.Edge, e.Via));
                     break;
@@ -107,7 +111,7 @@ namespace Lingara.Embed.Tests
         {
             using var vector = JsonDocument.Parse(File.ReadAllText(Support.Vector("json-shape.json")));
             var examples = vector.RootElement.GetProperty("tagged").GetProperty("EmbedEvent").EnumerateArray().ToList();
-            Assert.Equal(13, examples.Count);
+            Assert.Equal(14, examples.Count);
             foreach (var example in examples)
             {
                 var evt = Decode(example);

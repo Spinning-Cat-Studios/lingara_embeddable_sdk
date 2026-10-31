@@ -19,8 +19,8 @@ pub(crate) fn send(
     mut link: Link,
 ) {
     for message in provide.read() {
-        let (token, expires_at) = message.parts();
-        link.run(Command::ProvideToken { token, expires_at }, None);
+        let (token, expires_at, update_available) = message.parts();
+        link.run(Command::ProvideToken { token, expires_at, update_available }, None);
     }
     for TokenUnavailable { reason } in unavailable.read() {
         link.run(Command::TokenUnavailable { reason: reason.clone() }, None);

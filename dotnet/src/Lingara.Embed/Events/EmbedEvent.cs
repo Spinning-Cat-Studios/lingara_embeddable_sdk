@@ -148,6 +148,21 @@ namespace Lingara.Embed.Events
             public string Message { get; init; } = string.Empty;
         }
 
+        /// <summary>
+        /// Once per handle: this build's <c>EmbedVersion</c> has a newer or better
+        /// one (ADR 30.10.26p). For the developer's log, never the player's screen.
+        /// </summary>
+        public sealed class UpdateAvailable : EmbedEvent
+        {
+            public UpdateAvailable() : base("update_available") { }
+
+            public string? Latest { get; init; }
+
+            public bool Deprecated { get; init; }
+
+            public string? Message { get; init; }
+        }
+
         /// <summary>The core closed itself; every later command is refused.</summary>
         public sealed class Closed : EmbedEvent
         {

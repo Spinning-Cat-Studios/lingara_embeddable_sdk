@@ -25,6 +25,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLingaraWorldSent, const FLingaraW
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLingaraPractice, const FLingaraPracticeUpdate&, Event);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLingaraNpcTurn, const FLingaraNpcTurn&, Event);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLingaraError, const FLingaraEmbedError&, Error);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLingaraUpdateAvailable, const FLingaraUpdateAvailable&, Event);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLingaraClosed, ELingaraCloseReason, Reason);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLingaraStateChanged, ELingaraEmbedState, State, const FString&, Reason);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLingaraUnknownEvent, const FString&, Type, const FString&, RawJson);
@@ -59,6 +60,9 @@ public:
 	// Token (K1 D4). ExpiresAt is the handoff body's `expires_at`, verbatim.
 	UFUNCTION(BlueprintCallable, Category = "Lingara", meta = (ExpandEnumAsExecs = "Result"))
 	void ProvideToken(const FString& Token, const FString& ExpiresAt, ELingaraCallResult& Result, FLingaraEmbedError& Error);
+	// ProvideToken with the handoff's `update_available`, as its raw JSON (empty is
+	// none; a malformed one is dropped by the core, never refused). ADR 30.10.26p.
+	void ProvideTokenWithUpdate(const FString& Token, const FString& ExpiresAt, const FString& UpdateAvailableJson, ELingaraCallResult& Result, FLingaraEmbedError& Error);
 	UFUNCTION(BlueprintCallable, Category = "Lingara", meta = (ExpandEnumAsExecs = "Result"))
 	void ProvideTokenFor(const FString& Token, int32 ExpiresInSecs, ELingaraCallResult& Result, FLingaraEmbedError& Error);
 	UFUNCTION(BlueprintCallable, Category = "Lingara", meta = (ExpandEnumAsExecs = "Result"))
@@ -123,6 +127,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Lingara") FOnLingaraPractice OnPractice;
 	UPROPERTY(BlueprintAssignable, Category = "Lingara") FOnLingaraNpcTurn OnNpcTurn;
 	UPROPERTY(BlueprintAssignable, Category = "Lingara") FOnLingaraError OnError;
+	// Once per handle (ADR 30.10.26p), beside a Warning on LogLingaraEmbed: log it, never draw it.
+	UPROPERTY(BlueprintAssignable, Category = "Lingara") FOnLingaraUpdateAvailable OnUpdateAvailable;
 	UPROPERTY(BlueprintAssignable, Category = "Lingara") FOnLingaraClosed OnClosed;
 	UPROPERTY(BlueprintAssignable, Category = "Lingara") FOnLingaraStateChanged OnStateChanged;
 	UPROPERTY(BlueprintAssignable, Category = "Lingara") FOnLingaraUnknownEvent OnUnknownEvent;

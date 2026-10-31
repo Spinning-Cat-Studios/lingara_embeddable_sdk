@@ -8,11 +8,7 @@ use godot::prelude::*;
 use crate::binding::Returns;
 use crate::commands;
 use crate::embed_node::LingaraEmbed;
-use crate::variant::from_dictionary;
-
-fn text(s: &GString) -> serde_json::Value {
-    s.to_string().into()
-}
+use crate::variant::{from_dictionary, text};
 
 #[godot_api(secondary)]
 impl LingaraEmbed {
@@ -20,6 +16,16 @@ impl LingaraEmbed {
     #[func]
     pub fn provide_token(&mut self, token: GString, expires_at: GString) -> bool {
         self.flat("provide_token", vec![("token", text(&token)), ("expires_at", text(&expires_at))], Returns::Bool).to()
+    }
+
+    /// `provide_token` with the handoff's optional `update_available`
+    /// dictionary (ADR 30.10.26p); `{}` is none, and a malformed one is
+    /// dropped, never refused.
+    #[func]
+    pub fn provide_token_with_update(&mut self, token: GString, expires_at: GString, update_available: VarDictionary) -> bool {
+        let update = Some(from_dictionary(&update_available)).filter(|u| u.as_object().is_none_or(|o| !o.is_empty()));
+        let fields = vec![("token", text(&token)), ("expires_at", text(&expires_at)), ("update_available", update.into())];
+        self.flat("provide_token", fields, Returns::Bool).to()
     }
 
     /// B1's whole answer forwarded: the lifetime from its `expires_in`.

@@ -47,6 +47,17 @@
             "type": {
               "const": "provide_token",
               "type": "string"
+            },
+            "update_available": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/UpdateAvailable"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
             }
           },
           "required": [
@@ -69,6 +80,17 @@
             "type": {
               "const": "provide_token_for",
               "type": "string"
+            },
+            "update_available": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/UpdateAvailable"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
             }
           },
           "required": [
@@ -784,6 +806,14 @@
           "default": "https://api.getlingara.com",
           "type": "string"
         },
+        "embed_version": {
+          "default": null,
+          "description": "The platform embed version this build was registered against\n(`MAJOR.MINOR.PATCH`), sent to the token endpoint as\n`Lingara-Embed-Version` (ADR 30.10.26p D1). Never sent to Lingara.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "event_types": {
           "default": [],
           "description": "The tail's `types`; empty is every type.",
@@ -1199,6 +1229,35 @@
             "level",
             "target",
             "message"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Once per handle: the build's `embed_version` has a newer or better one (ADR 30.10.26p).",
+          "properties": {
+            "deprecated": {
+              "type": "boolean"
+            },
+            "latest": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "message": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "update_available",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "deprecated"
           ],
           "type": "object"
         },
@@ -2107,6 +2166,32 @@
           "type": "object"
         }
       ]
+    },
+    "UpdateAvailable": {
+      "description": "The platform's answer to a declared `embed_version`: a newer\nversion serves, or the declared one is deprecated or withdrawn.",
+      "properties": {
+        "deprecated": {
+          "type": "boolean"
+        },
+        "latest": {
+          "description": "The version now serving, or `None` when no published one serves.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "description": "The developer's message, verbatim, or `None`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "deprecated"
+      ],
+      "type": "object"
     },
     "WindowEntry": {
       "properties": {

@@ -89,6 +89,7 @@ fn send_systems() -> impl IntoScheduleConfigs<bevy::ecs::system::ScheduleSystem,
 fn add_messages(app: &mut App) {
     app.add_message::<LingaraRawEvent>()
         .add_message::<LingaraTokenNeeded>()
+        .add_message::<LingaraUpdateAvailable>()
         .add_message::<LingaraEventReceived>()
         .add_message::<WorldContextSent>()
         .add_message::<NpcReplied>()

@@ -27,6 +27,18 @@ struct LINGARAEMBED_API FLingaraTokenNeeded
 	UPROPERTY(BlueprintReadOnly, Category = "Lingara") ELingaraTokenReason Reason = ELingaraTokenReason::Initial;
 };
 
+// `update_available` (ADR 30.10.26p): once per handle, this build's
+// EmbedVersion has a newer or better one. For the developer's log, never the
+// player's screen. A null `latest` or `message` is empty.
+USTRUCT(BlueprintType)
+struct LINGARAEMBED_API FLingaraUpdateAvailable
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly, Category = "Lingara") FString Latest;
+	UPROPERTY(BlueprintReadOnly, Category = "Lingara") bool bDeprecated = false;
+	UPROPERTY(BlueprintReadOnly, Category = "Lingara") FString Message;
+};
+
 // `stream`: save Cursor at quit and pass it back as ResumeCursor.
 USTRUCT(BlueprintType)
 struct LINGARAEMBED_API FLingaraStreamChange

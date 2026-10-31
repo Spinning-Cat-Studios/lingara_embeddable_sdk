@@ -90,6 +90,14 @@ All are `CustomEvent`s that bubble and cross shadow roots.
 | `lingara:resize` | `{ height }` (120–4000) |
 | `lingara:practice-completed` | `{ planId, setNumber, correct, total, eventId }` |
 | `lingara:error` | `{ code, retryable }` |
+| `lingara:update-available` | `{ latest, deprecated, message }`: once per element session (connect to disconnect), for you, never for the visitor |
+
+**An update notice never reaches the visitor or the frame.** Your
+`tokenProvider` is your code, so it sends `Lingara-Embed-Version: <the embed
+version this page was registered against>` to your token route itself; when
+your server forwards the mint's `update_available` in the grant, the element
+dispatches `lingara:update-available` once and writes one `console.warn` line.
+A malformed `update_available` is dropped and the grant still works.
 
 **`eventId` is not the webhook's id.** It is the id of the record that stored
 the result (`null` if storing it failed). The `practice.completed` webhook your

@@ -85,6 +85,14 @@ impl LingaraConfig {
         self
     }
 
+    /// The platform embed version this build was registered against, e.g.
+    /// `1.1.0` (ADR 30.10.26p). The Http source sends it to your token
+    /// endpoint as `Lingara-Embed-Version`; a Poll host sends it itself.
+    pub fn embed_version(mut self, version: impl Into<String>) -> Self {
+        self.embed.embed_version = Some(version.into());
+        self
+    }
+
     /// `false` starts the stream paused: a game that reads no stream event pays nothing.
     pub fn stream_on_start(mut self, on: bool) -> Self {
         self.embed.stream_on_start = on;

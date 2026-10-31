@@ -31,6 +31,8 @@ public final class Snippets implements AutoCloseable {
                 "https://my-game.example/lingara/token",
                 Map.of("Authorization", "Bearer " + session))
             .userAgentSuffix("my-game/1.4")
+            // The embed version this build was registered against: your server forwards it.
+            .embedVersion("1.1.0")
             .build();
     // lingara:end
   }

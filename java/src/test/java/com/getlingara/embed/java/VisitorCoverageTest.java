@@ -52,6 +52,8 @@ class VisitorCoverageTest {
         new EmbedEvent.DialogueLoadFailed(4, error),
         new EmbedEvent.Error(error),
         new EmbedEvent.Log(LogLevel.WARN, "t", "m"),
+        // 30.10.26p AC8
+        new EmbedEvent.UpdateAvailable("1.2.0", true, null),
         new EmbedEvent.Closed(CloseReason.REQUESTED),
         new EmbedEvent.Unknown("future_thing", "{\"type\":\"future_thing\"}"));
   }

@@ -40,6 +40,8 @@ fn expected(event: &Value) -> (&'static str, Vec<&'static str>) {
         // 28.10.26i AC8
         "dialogue_loaded" => ("dialogue_loaded", vec!["int", "str", "int"]),
         "dialogue_load_failed" => ("dialogue_load_failed", vec!["int", "obj"]),
+        // 30.10.26p AC7: (latest, deprecated, message).
+        "update_available" => ("update_available", vec!["str", "bool", "str"]),
         _ => match event["update"]["type"].as_str().unwrap_or_default() {
             "opened" => ("npc_turn_opened", vec!["int", "int"]),
             "fragment" => ("npc_fragment", vec!["int", "str"]),
@@ -54,6 +56,7 @@ fn kind_of(value: &Value) -> &'static str {
     match value {
         Value::Number(n) if n.is_i64() || n.is_u64() => "int",
         Value::String(_) => "str",
+        Value::Bool(_) => "bool",
         Value::Object(_) => "obj",
         _ => "other",
     }
@@ -266,6 +269,10 @@ fn config_names_the_kit_and_tokens_pick_their_source() {
     assert_eq!(config.user_agent_suffix.as_deref(), Some(concat!("lingara-godot/", env!("CARGO_PKG_VERSION"), " my-game/1.4")));
     assert_eq!(config.token_wait_timeout_ms, 2000);
     assert_eq!(config.api_version, None, "an empty api_version is no pin");
+    // 30.10.26p D4: the embed_version property, empty being none.
+    assert_eq!(config.embed_version, None);
+    let declared = Props { embed_version: "1.1.0".into(), ..Props::default() }.config(json!({ "type": "poll" })).unwrap();
+    assert_eq!(declared.embed_version.as_deref(), Some("1.1.0"));
 
     let mut tokens = crate::token::Tokens::default();
     assert_eq!(tokens.source(""), json!({ "type": "poll" }));

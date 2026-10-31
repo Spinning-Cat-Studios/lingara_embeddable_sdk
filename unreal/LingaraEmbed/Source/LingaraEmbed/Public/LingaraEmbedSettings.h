@@ -32,6 +32,11 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "Lingara")
 	ELingaraLogLevel LogLevel = ELingaraLogLevel::CoreDefault;
 
+	// The platform embed version this build was registered against, e.g. 1.1.0
+	// (ADR 30.10.26p). Sent to your token endpoint as Lingara-Embed-Version.
+	UPROPERTY(config, EditAnywhere, Category = "Lingara")
+	FString EmbedVersion;
+
 	// A flood carries over to the next frame rather than stalling this one.
 	UPROPERTY(config, EditAnywhere, Category = "Lingara", meta = (ClampMin = "1"))
 	int32 MaxEventsPerTick = 256;

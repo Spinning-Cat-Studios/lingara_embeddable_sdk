@@ -3,7 +3,7 @@
   "redacted": "[REDACTED]",
   "tagged": {
     "Command": [
-      { "type": "provide_token", "token": "lgr_et_example", "expires_at": "2026-10-01T12:15:00Z" },
+      { "type": "provide_token", "token": "lgr_et_example", "expires_at": "2026-10-01T12:15:00Z", "update_available": { "latest": "1.2.0", "deprecated": true, "message": "1.1.x stops minting on 1 December; please update." } },
       { "type": "provide_token_for", "token": "lgr_et_example", "expires_in_secs": 900 },
       { "type": "token_unavailable", "reason": "offline" },
       { "type": "set_token_endpoint", "url": "https://game.example/lingara/token", "headers": [{ "name": "cookie", "value": "session=abc" }] },
@@ -54,6 +54,7 @@
       { "type": "dialogue_load_failed", "dialogue": 4, "error": { "kind": "not_found", "message": "no active revision", "status": 404, "code": "dialogue_not_active", "retry_after_ms": null, "retryable": false, "request": null } },
       { "type": "error", "error": { "kind": "rate_limited", "message": "slow down", "status": 429, "code": "rate_limited", "retry_after_ms": 30000, "retryable": true, "request": 5 } },
       { "type": "log", "level": "warn", "target": "lingara_embed::token", "message": "a token lifetime was clamped" },
+      { "type": "update_available", "latest": "1.2.0", "deprecated": true, "message": "1.1.x stops minting on 1 December; please update." },
       { "type": "closed", "reason": "requested" }
     ],
     "StreamState": [

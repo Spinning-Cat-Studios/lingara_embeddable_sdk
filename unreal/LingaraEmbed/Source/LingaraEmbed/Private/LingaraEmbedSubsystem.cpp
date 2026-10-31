@@ -184,6 +184,7 @@ void ULingaraEmbedSubsystem::Broadcast(const FLingaraDecodedEvent& Event)
 	case ELingaraDecodedType::NpcTurn: OnNpcTurn.Broadcast(Event.NpcTurn); break;
 	case ELingaraDecodedType::Error: OnError.Broadcast(Event.Error); break;
 	case ELingaraDecodedType::Log: LogFromCore(Event.LogLevel, Event.LogTarget, Event.LogMessage); break;
+	case ELingaraDecodedType::UpdateAvailable: OnUpdateAvailable.Broadcast(Event.Update); break;
 	default: break;
 	}
 }

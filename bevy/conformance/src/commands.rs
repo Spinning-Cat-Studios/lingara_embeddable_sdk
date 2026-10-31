@@ -76,7 +76,7 @@ impl Run {
         }
         match command {
             Command::SendContext { context } => self.send(WorldContextChanged(context)),
-            Command::ProvideToken { token, expires_at } => self.send(ProvideToken::new(token, expires_at)),
+            Command::ProvideToken { token, expires_at, update_available } => self.send(ProvideToken::with_update(token, expires_at, update_available)),
             Command::TokenUnavailable { reason } => self.send(TokenUnavailable { reason }),
             Command::SetTokenEndpoint { url, headers } => self.send(SetTokenEndpoint { url, headers }),
             Command::PracticeStart { source } => {

@@ -88,4 +88,21 @@ class TokenFetcherTest {
         assertTrue(Secret.REDACTED in header.toString())
         assertEquals(token, secret.exposeSecret())
     }
+
+    // 30.10.26p D4: a fetcher's IssuedToken.withUpdate reaches the core, by
+    // either expiry form, and the handle says it once as UpdateAvailable.
+    @Test
+    fun theFetchersUpdateReachesTheCoreOnce() {
+        val notice = UpdateAvailable("1.2.0", true, null)
+        for (issue in listOf<(Int) -> IssuedToken>(
+            { n -> IssuedToken.expiringIn(Secret("${token}$n"), 900).withUpdate(notice) },
+            { n -> IssuedToken.expiringAt(Secret("${token}$n"), "2099-01-01T00:00:00Z").withUpdate(notice) },
+        )) {
+            var n = 0
+            LingaraEmbed.start(offline, TokenFetcher { issue(++n) }).use { embed ->
+                val events = embed.drainUntil(2_000) { seen -> seen.any { it is EmbedEvent.UpdateAvailable } }
+                assertEquals(listOf(EmbedEvent.UpdateAvailable("1.2.0", true, null)), events.filterIsInstance<EmbedEvent.UpdateAvailable>())
+            }
+        }
+    }
 }

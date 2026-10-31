@@ -97,6 +97,14 @@ namespace
 		return O->TryGetStringField(TEXT("message"), Out.LogMessage);
 	}
 
+	// ADR 30.10.26p: a null `latest` or `message` reads as empty.
+	bool UpdateAvailable(const FObjectPtr& O, FLingaraDecodedEvent& Out)
+	{
+		Out.Update.Latest = OptString(O, TEXT("latest"));
+		Out.Update.Message = OptString(O, TEXT("message"));
+		return O->TryGetBoolField(TEXT("deprecated"), Out.Update.bDeprecated);
+	}
+
 	bool Closed(const FObjectPtr& O, FLingaraDecodedEvent& Out)
 	{
 		Out.CloseReason = CloseReason(OptString(O, TEXT("reason")));
@@ -123,6 +131,7 @@ namespace
 		{TEXT("dialogue_load_failed"), ELingaraDecodedType::DialogueLoadFailed, &DialogueLoadFailed},
 		{TEXT("error"), ELingaraDecodedType::Error, &Error},
 		{TEXT("log"), ELingaraDecodedType::Log, &Log},
+		{TEXT("update_available"), ELingaraDecodedType::UpdateAvailable, &UpdateAvailable},
 		{TEXT("closed"), ELingaraDecodedType::Closed, &Closed},
 	};
 

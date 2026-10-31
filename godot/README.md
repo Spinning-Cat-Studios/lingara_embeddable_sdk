@@ -29,6 +29,18 @@ gdext tracking is internal: users get a binary, never the crate, so a gdext
 bump is a trio release's business. The Godot floor (4.5) moves only in a
 trio minor release.
 
+## Updates
+
+An update notice is for you, the developer, and is never drawn for the
+player. Set the node's `embed_version` property to the embed version this
+build was registered against: the `token_url` route is sent it as
+`Lingara-Embed-Version`, and a script that answers `token_needed` itself sends
+that header itself and passes the handoff's `update_available` dictionary to
+`provide_token_with_update(token, expires_at, update)` (`{}` is none). Once
+per session the node emits `update_available(latest, deprecated, message)`
+(a null `latest` or `message` is `""`), and the core's warning line reaches
+`log_received` and, with `forward_logs`, the Godot log.
+
 ## Make targets
 
 | Target | Does |

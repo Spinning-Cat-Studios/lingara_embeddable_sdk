@@ -9,7 +9,10 @@
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "LingaraEmbedLog.h"
+#include "LingaraEmbedSettings.h"
 #include "LingaraEmbedSubsystem.h"
+#include "Policies/CondensedJsonPrintPolicy.h"
+#include "Serialization/JsonWriter.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 
@@ -35,6 +38,12 @@ void ULingaraFetchTokenAsyncAction::Activate()
 	{
 		Request->SetHeader(Header.Name, Header.Value);
 	}
+	// The build's embed version, for the integrator's mint (ADR 30.10.26p D1).
+	const FString& EmbedVersion = GetDefault<ULingaraEmbedSettings>()->EmbedVersion;
+	if (!EmbedVersion.IsEmpty())
+	{
+		Request->SetHeader(TEXT("Lingara-Embed-Version"), EmbedVersion);
+	}
 	Request->SetContentAsString(TEXT("{}"));
 	Request->OnProcessRequestComplete().BindUObject(this, &ULingaraFetchTokenAsyncAction::HandleResponse);
 	if (!Request->ProcessRequest())
@@ -49,6 +58,24 @@ bool ULingaraFetchTokenAsyncAction::ReadHandoff(const FString& Body, FString& To
 	const TSharedRef<TJsonReader<TCHAR>> Reader = TJsonReaderFactory<TCHAR>::Create(Body);
 	return FJsonSerializer::Deserialize(Reader, Object) && Object.IsValid()
 		&& Object->TryGetStringField(TEXT("token"), Token) && Object->TryGetStringField(TEXT("expires_at"), ExpiresAt);
+}
+
+FString ULingaraFetchTokenAsyncAction::ReadUpdate(const FString& Body)
+{
+	TSharedPtr<FJsonObject> Object;
+	const TSharedRef<TJsonReader<TCHAR>> Reader = TJsonReaderFactory<TCHAR>::Create(Body);
+	if (!FJsonSerializer::Deserialize(Reader, Object) || !Object.IsValid())
+	{
+		return FString();
+	}
+	const TSharedPtr<FJsonValue> Update = Object->TryGetField(TEXT("update_available"));
+	if (!Update.IsValid() || Update->IsNull())
+	{
+		return FString();
+	}
+	FString Json;
+	const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Json);
+	return FJsonSerializer::Serialize(Update, FString(), Writer) ? Json : FString();
 }
 
 void ULingaraFetchTokenAsyncAction::HandleResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
@@ -71,7 +98,7 @@ void ULingaraFetchTokenAsyncAction::HandleResponse(FHttpRequestPtr Request, FHtt
 	{
 		ELingaraCallResult Result;
 		FLingaraEmbedError Error;
-		Subsystem->ProvideToken(Token, ExpiresAt, Result, Error);
+		Subsystem->ProvideTokenWithUpdate(Token, ExpiresAt, ReadUpdate(Response->GetContentAsString()), Result, Error);
 		if (Result == ELingaraCallResult::Ok)
 		{
 			OnProvided.Broadcast();

@@ -13,7 +13,7 @@ runner = "windows-2022"
 [[platform]]
 rid = "osx"                      # aarch64 + x86_64, MACOSX_DEPLOYMENT_TARGET=11.0: ffi and godot lipo one
                                  # universal library; jvm-desktop writes two thin ones (K7 D5)
-runner = "macos-14"
+runner = "macos-26"
 
 [[platform]]
 rid = "linux-x64"
@@ -26,7 +26,7 @@ runner = "ubuntu-22.04"
 
 [[platform]]
 rid = "ios-arm64"                # device only: no simulator slice in v1 (D10)
-runner = "macos-14"
+runner = "macos-26"
 
 # the per-rid directory names packages use (K5 D3, K7 D5)
 [ue_platform]

@@ -27,9 +27,12 @@ void ALingaraEmbedSnippetActor::BeginPlay()
 	Subsystem->OnNpcTurn.AddDynamic(this, &ALingaraEmbedSnippetActor::HandleNpcTurn);
 	Subsystem->OnPractice.AddDynamic(this, &ALingaraEmbedSnippetActor::HandlePractice);
 	Subsystem->OnError.AddDynamic(this, &ALingaraEmbedSnippetActor::HandleError);
+	Subsystem->OnUpdateAvailable.AddDynamic(this, &ALingaraEmbedSnippetActor::HandleUpdateAvailable);
 
 	FLingaraEmbedConfig Config;
 	Config.MaxEventsPerTick = 256;
+	// The embed version this build was registered against: your server is told it.
+	Config.EmbedVersion = TEXT("1.1.0");
 	ELingaraCallResult Result;
 	FLingaraEmbedError Error;
 	Subsystem->Start(Config, Result, Error);
@@ -38,6 +41,12 @@ void ALingaraEmbedSnippetActor::BeginPlay()
 void ALingaraEmbedSnippetActor::HandleError(const FLingaraEmbedError& Error)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Lingara %s: %s"), *Error.KindName, *Error.Message);
+}
+
+// Once per session, for you: log it, never draw it for the player.
+void ALingaraEmbedSnippetActor::HandleUpdateAvailable(const FLingaraUpdateAvailable& Update)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Lingara update: latest %s, deprecated %d"), *Update.Latest, Update.bDeprecated);
 }
 // lingara:end
 

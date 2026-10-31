@@ -31,6 +31,8 @@ class Snippets(
                         headers = listOf(Header("Authorization", Secret("Bearer $session"))),
                     ),
                 userAgentSuffix = "my-game/1.4",
+                // The embed version this build was registered against: your server forwards it.
+                embedVersion = "1.1.0",
             ),
         )
     // lingara:end
@@ -47,6 +49,8 @@ class Snippets(
                 is EmbedEvent.Practice -> showPractice(event.snapshot.question?.prompt)
                 is EmbedEvent.NpcTurn -> onNpcTurn(event.update)
                 is EmbedEvent.Error -> println("Lingara error: ${event.error.message}")
+                // Once per session, for you: log it, never draw it for the player.
+                is EmbedEvent.UpdateAvailable -> println("Lingara update: latest ${event.latest}, deprecated ${event.deprecated}")
                 else -> Unit
             }
         }

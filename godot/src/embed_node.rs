@@ -42,6 +42,8 @@ pub struct LingaraEmbed {
     #[export]
     user_agent_suffix: GString,
     #[export]
+    embed_version: GString,
+    #[export]
     max_events_per_frame: i64,
     #[export]
     forward_logs: bool,
@@ -65,6 +67,7 @@ impl INode for LingaraEmbed {
             queue_capacity: k1.queue_capacity,
             log_level: GString::from(k1.log_level.as_str()),
             user_agent_suffix: GString::new(),
+            embed_version: GString::new(),
             max_events_per_frame: 256,
             forward_logs: true,
             extra_config: VarDictionary::new(),
@@ -128,6 +131,9 @@ impl LingaraEmbed {
     fn error_raised(error: VarDictionary);
     #[signal]
     fn log_received(level: GString, target: GString, message: GString);
+    /// Once per handle (ADR 30.10.26p): log it; never draw it for a player.
+    #[signal]
+    fn update_available(latest: GString, deprecated: bool, message: GString);
     #[signal]
     fn closed(reason: GString);
 
@@ -182,6 +188,7 @@ impl LingaraEmbed {
             queue_capacity: self.queue_capacity,
             log_level: self.log_level.to_string(),
             user_agent_suffix: self.user_agent_suffix.to_string(),
+            embed_version: self.embed_version.to_string(),
             extra_config: from_dictionary(&self.extra_config),
         }
     }

@@ -106,6 +106,18 @@ impl Run {
     fn provide(&mut self, body: &Value) -> Result<(), String> {
         let embed = self.embed()?;
         let token = body["token"].as_str().unwrap_or_default();
+        if let Some(update) = body.get("update_available") {
+            // EK13: the notice rides the JSON command, as every JSON binding sends it.
+            let kind = if body.get("expires_at").is_some() { "provide_token" } else { "provide_token_for" };
+            let mut command = body.clone();
+            command["type"] = kind.into();
+            command["update_available"] = update.clone();
+            let command: Command = serde_json::from_value(command).map_err(|e| format!("not a Command: {e}"))?;
+            if let Err(e) = embed.execute(command) {
+                self.local.push_back(refusal(&e));
+            }
+            return Ok(());
+        }
         let result = match (body["expires_at"].as_str(), body["expires_in_secs"].as_u64()) {
             (Some(at), _) => embed.provide_token(token, at),
             (None, Some(secs)) => embed.provide_token_for(token, u32::try_from(secs).unwrap_or(u32::MAX)),

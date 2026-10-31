@@ -12,6 +12,18 @@ public fun LingaraEmbed.provideToken(
     expiresAt: String,
 ): Unit = handle.provideToken(token, expiresAt)
 
+/**
+ * [provideToken] with the handoff's optional `update_available` (ADR
+ * 30.10.26p): the core turns the first one a handle hears into one
+ * [EmbedEvent.UpdateAvailable] and a warning log line.
+ */
+@Throws(EmbedException::class)
+public fun LingaraEmbed.provideToken(
+    token: Secret,
+    expiresAt: String,
+    updateAvailable: UpdateAvailable?,
+): Unit = handle.provideTokenWithUpdate(token, expiresAt, updateAvailable)
+
 /** The game's token, valid for [expiresInSecs] from now. */
 @Throws(EmbedException::class)
 public fun LingaraEmbed.provideTokenFor(

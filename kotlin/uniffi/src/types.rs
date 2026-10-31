@@ -36,8 +36,8 @@ macro_rules! word {
 tagged! {
     /// Every command, as one value: `LingaraEmbed.execute`.
     pub enum Command {
-        ProvideToken { token: SecretString, expires_at: String },
-        ProvideTokenFor { token: SecretString, expires_in_secs: i64 },
+        ProvideToken { token: SecretString, expires_at: String, #[serde(default)] #[uniffi(default = None)] update_available: Option<UpdateAvailable> },
+        ProvideTokenFor { token: SecretString, expires_in_secs: i64, #[serde(default)] #[uniffi(default = None)] update_available: Option<UpdateAvailable> },
         TokenUnavailable { reason: String },
         SetTokenEndpoint { url: String, #[serde(default)] headers: Vec<Header> },
         StreamPause,
@@ -88,6 +88,8 @@ tagged! {
         DialogueLoadFailed { dialogue: i64, error: EmbedError },
         Error { error: EmbedError },
         Log { level: LogLevel, target: String, message: String },
+        /// Once per handle: a newer or better embed version (ADR 30.10.26p). Never for the player's screen.
+        UpdateAvailable { latest: Option<String>, deprecated: bool, message: Option<String> },
         Closed { reason: CloseReason },
         #[serde(skip)]
         Unknown { type_tag: String, json: String },

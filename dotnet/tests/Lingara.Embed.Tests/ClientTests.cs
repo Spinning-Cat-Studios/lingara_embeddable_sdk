@@ -53,6 +53,28 @@ namespace Lingara.Embed.Tests
             Assert.Equal(("Mei", DialoguePhase.Idle), (snapshot.Npc.Name, snapshot.Phase));
         }
 
+        // 30.10.26p D4: EmbedVersion reaches the core's config (a malformed one is its
+        // Config refusal), and a ProvideToken carrying the notice says it once.
+        [Fact]
+        public void TheEmbedVersionReachesTheCoreAndTheNoticeIsSaidOnce()
+        {
+            var options = Support.Offline();
+            options.EmbedVersion = "v1.0";
+            var refused = Assert.Throws<EmbedException>(() => LingaraEmbedClient.Create(options));
+            Assert.Equal(ErrorKind.Config, refused.Kind);
+
+            options.EmbedVersion = "1.1.0";
+            using var client = LingaraEmbedClient.Create(options);
+            var notice = new UpdateAvailable { Latest = "1.2.0", Deprecated = true };
+            client.ProvideToken("lgr_et_fetchedTokenValue0001", "2099-01-01T00:00:00Z", notice);
+            client.ProvideToken("lgr_et_fetchedTokenValue0002", "2099-01-01T00:00:00Z", notice);
+            Thread.Sleep(200);
+            var events = new List<EmbedEvent>();
+            client.Drain(events);
+            var told = Assert.Single(events.OfType<EmbedEvent.UpdateAvailable>());
+            Assert.Equal(("1.2.0", true, (string?)null), (told.Latest, told.Deprecated, told.Message));
+        }
+
         // 1.10.26aa AC19
         [Fact]
         public void DisposeFreesOnceAndLaterCallsThrow()

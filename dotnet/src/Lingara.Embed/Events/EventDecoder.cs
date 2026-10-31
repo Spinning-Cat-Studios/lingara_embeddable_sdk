@@ -69,6 +69,12 @@ namespace Lingara.Embed.Events
                 Target = v.Str("target"),
                 Message = v.Str("message"),
             },
+            ["update_available"] = v => new EmbedEvent.UpdateAvailable
+            {
+                Latest = v.OptStr("latest"),
+                Deprecated = v.Bool("deprecated"),
+                Message = v.OptStr("message"),
+            },
             ["closed"] = v => new EmbedEvent.Closed { Reason = Words.CloseReasons.Parse(v.Str("reason")) },
         };
 

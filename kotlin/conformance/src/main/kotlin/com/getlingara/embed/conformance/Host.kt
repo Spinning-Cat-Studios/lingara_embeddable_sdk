@@ -14,6 +14,7 @@ import com.getlingara.embed.EmbedException
 import com.getlingara.embed.LingaraEmbed
 import com.getlingara.embed.LogLevel
 import com.getlingara.embed.Secret
+import com.getlingara.embed.UpdateAvailable
 import com.getlingara.embed.commandFromJson
 import com.getlingara.embed.eventToJson
 import com.getlingara.embed.provideToken
@@ -21,6 +22,7 @@ import com.getlingara.embed.provideTokenFor
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -97,8 +99,10 @@ internal class Host(
         val token = Secret(body.string("token").orEmpty())
         val at = body.string("expires_at")
         val secs = body.long("expires_in_secs")
+        val update = updateFrom(body["update_available"])
         refusing {
             when {
+                at != null && update != null -> embed().provideToken(token, at, update)
                 at != null -> embed().provideToken(token, at)
                 secs != null -> embed().provideTokenFor(token, secs)
                 else -> error("no expires_at or expires_in_secs")
@@ -175,5 +179,24 @@ internal class Host(
 }
 
 private fun JsonObject.string(key: String): String? = (this[key] as? JsonPrimitive)?.contentOrNull
+
+/**
+ * A case's `update_available` as the typed notice (EK13, ADR 30.10.26p). A
+ * shape the record cannot hold is dropped, as the core drops it.
+ */
+private fun updateFrom(element: JsonElement?): UpdateAvailable? {
+    val o = element as? JsonObject ?: return null
+    val deprecated = (o["deprecated"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: return null
+    val text = { key: String ->
+        when (val v = o[key]) {
+            null, JsonNull -> Result.success(null)
+            is JsonPrimitive -> if (v.isString) Result.success(v.content) else Result.failure(IllegalArgumentException(key))
+            else -> Result.failure(IllegalArgumentException(key))
+        }
+    }
+    val latest = text("latest").getOrElse { return null }
+    val message = text("message").getOrElse { return null }
+    return UpdateAvailable(latest, deprecated, message)
+}
 
 private fun JsonObject.long(key: String): Long? = (this[key] as? JsonPrimitive)?.longOrNull

@@ -65,6 +65,16 @@ try (LingaraEmbedJava lingara = LingaraEmbedJava.builder()
 - Every command is a plain method with `long` ids; a nullable argument is one
   the core treats as absent.
 
+## Updates
+
+An update notice is for you, the developer, and is never drawn for the
+player. `LingaraEmbedJava.builder().embedVersion("1.1.0")` names the embed
+version this build was registered against, sent to the token endpoint as
+`Lingara-Embed-Version`; `provideToken(token, expiresAt, update)` passes a
+handoff's `update_available` on. Once per handle the visitor's
+**`updateAvailable(EmbedEvent.UpdateAvailable)`** is called, beside a `log` at
+`WARN`. It is a new abstract method: an existing visitor adds it.
+
 ## Errors
 
 The core's refusals arrive as **`LingaraEmbedJavaException`**, a

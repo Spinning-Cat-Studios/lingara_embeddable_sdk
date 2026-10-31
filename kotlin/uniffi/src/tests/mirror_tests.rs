@@ -118,7 +118,7 @@ fn refused(command: Command) {
 fn out_of_range_values_are_refused() {
     refused(Command::PracticeAnswer { session: -1, answer: "a".into() });
     refused(Command::PracticeChoose { session: 3, option: i64::from(u32::MAX) + 1 });
-    refused(Command::ProvideTokenFor { token: String::from("lgr_et_x").into(), expires_in_secs: -5 });
+    refused(Command::ProvideTokenFor { token: String::from("lgr_et_x").into(), expires_in_secs: -5, update_available: None });
     refused(Command::DialogueSetLevel { dialogue: 4, level: 300 });
     refused(Command::DialogueClose { dialogue: i64::MIN });
     let narrowed = crate::convert::narrow::<u8>("level", 256i32).expect_err("out of range");

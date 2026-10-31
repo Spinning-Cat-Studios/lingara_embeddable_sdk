@@ -102,4 +102,9 @@ pub struct EmbedConfig {
     #[uniffi(default = None)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_agent_suffix: Option<String>,
+    /// The platform embed version this build was registered against, sent
+    /// to the token endpoint as `Lingara-Embed-Version` (ADR 30.10.26p).
+    #[uniffi(default = None)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub embed_version: Option<String>,
 }

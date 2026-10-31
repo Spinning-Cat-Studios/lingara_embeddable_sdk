@@ -30,6 +30,17 @@ the C++ wrapper over the C ABI, which is exactly what the Runtime module
 calls. A change to the decoder, the encoder or the subsystem can merge green
 and break in the engine until the next smoke.
 
+## Updates
+
+An update notice is for you, the developer, and is never drawn for the
+player. Set **Project Settings → Plugins → Lingara Embed → Embed Version** (or
+`FLingaraEmbedConfig::EmbedVersion`) to the embed version this build was
+registered against. **Fetch Token From URL** sends it to your route as
+`Lingara-Embed-Version` and passes the handoff's `update_available` on. Once
+per session the subsystem broadcasts `OnUpdateAvailable` with an
+`FLingaraUpdateAvailable` (`Latest`, `bDeprecated`, `Message`; a null is
+empty), and the core's line is a `Warning` on `LogLingaraEmbed`.
+
 ## Make targets
 
 | Target | What it does | Needs the engine |

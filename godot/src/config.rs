@@ -23,6 +23,8 @@ pub struct Props {
     pub queue_capacity: i64,
     pub log_level: String,
     pub user_agent_suffix: String,
+    /// ADR 30.10.26p: empty is none.
+    pub embed_version: String,
     pub extra_config: Value,
 }
 
@@ -37,6 +39,7 @@ impl Default for Props {
             queue_capacity: k1.queue_capacity.into(),
             log_level: k1.log_level.to_string(),
             user_agent_suffix: String::new(),
+            embed_version: String::new(),
             extra_config: Value::Object(Map::new()),
         }
     }
@@ -79,6 +82,8 @@ impl Props {
         object.insert("queue_capacity".into(), arg::<u32>("queue_capacity", self.queue_capacity.into()).map_err(|e| refuse(e.message))?.into());
         object.insert("log_level".into(), self.log_level.clone().into());
         object.insert("user_agent_suffix".into(), user_agent(&self.user_agent_suffix).into());
+        let embed_version = Some(self.embed_version.trim()).filter(|v| !v.is_empty());
+        object.insert("embed_version".into(), embed_version.into());
         serde_json::from_value(Value::Object(object)).map_err(|e| refuse(format!("not a valid configuration: {e}")))
     }
 }

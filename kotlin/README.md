@@ -94,6 +94,18 @@ the player kit only ever holds that token, never a client secret.
 Every token and header value is a `Secret`, whose `toString()` is
 `[REDACTED]`, so a config, a header or a command can be logged whole.
 
+## Updates
+
+An update notice is for you, the developer, and is never drawn for the
+player. Set `EmbedConfig(embedVersion = "1.1.0")` to the embed version this
+build was registered against: the Http source sends it to your endpoint as
+`Lingara-Embed-Version`. A `TokenFetcher` makes its own request, so it sends
+that header itself and returns `IssuedToken.expiringAt(token, at).withUpdate(update)`
+with the handoff's `update_available`; a polling game calls
+`provideToken(token, expiresAt, update)`. Once per handle the drain yields
+`EmbedEvent.UpdateAvailable(latest, deprecated, message)`, beside a `Log` at
+`WARN`.
+
 ## Android
 
 - **Lifecycle.** Call `streamPause()` in libGDX's `pause()` and

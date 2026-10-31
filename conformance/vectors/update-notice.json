@@ -1,0 +1,186 @@
+{
+  "description": "ADR 30.10.26p D3: the developer-facing log line the core (and, for rows with no embed_version, the web widget) writes for the first update_available a handle hears. Target lingara_embed::update, level warn. The wording never compares versions: latest can be lower than the declared build once the newest version is yanked. A message is appended verbatim after \": \", cut to 280 Unicode scalar values.",
+  "target": "lingara_embed::update",
+  "rows": [
+    {
+      "case": "deprecated, latest, no message, declared",
+      "embed_version": "1.1.0",
+      "update_available": {
+        "latest": "1.2.0",
+        "deprecated": true,
+        "message": null
+      },
+      "line": "lingara: embed version 1.1.0 is deprecated; the current version is 1.2.0"
+    },
+    {
+      "case": "deprecated, latest, no message, undeclared",
+      "embed_version": null,
+      "update_available": {
+        "latest": "1.2.0",
+        "deprecated": true,
+        "message": null
+      },
+      "line": "lingara: this build's embed version is deprecated; the current version is 1.2.0"
+    },
+    {
+      "case": "deprecated, latest, message, declared",
+      "embed_version": "1.1.0",
+      "update_available": {
+        "latest": "1.2.0",
+        "deprecated": true,
+        "message": "1.1.x stops minting on 1 December; please update."
+      },
+      "line": "lingara: embed version 1.1.0 is deprecated; the current version is 1.2.0: 1.1.x stops minting on 1 December; please update."
+    },
+    {
+      "case": "deprecated, latest, message, undeclared",
+      "embed_version": null,
+      "update_available": {
+        "latest": "1.2.0",
+        "deprecated": true,
+        "message": "1.1.x stops minting on 1 December; please update."
+      },
+      "line": "lingara: this build's embed version is deprecated; the current version is 1.2.0: 1.1.x stops minting on 1 December; please update."
+    },
+    {
+      "case": "deprecated, latest null, no message, declared",
+      "embed_version": "1.1.0",
+      "update_available": {
+        "latest": null,
+        "deprecated": true,
+        "message": null
+      },
+      "line": "lingara: embed version 1.1.0 is deprecated; no version is currently published"
+    },
+    {
+      "case": "deprecated, latest null, no message, undeclared",
+      "embed_version": null,
+      "update_available": {
+        "latest": null,
+        "deprecated": true,
+        "message": null
+      },
+      "line": "lingara: this build's embed version is deprecated; no version is currently published"
+    },
+    {
+      "case": "deprecated, latest null, message, declared",
+      "embed_version": "1.1.0",
+      "update_available": {
+        "latest": null,
+        "deprecated": true,
+        "message": "1.1.x stops minting on 1 December; please update."
+      },
+      "line": "lingara: embed version 1.1.0 is deprecated; no version is currently published: 1.1.x stops minting on 1 December; please update."
+    },
+    {
+      "case": "deprecated, latest null, message, undeclared",
+      "embed_version": null,
+      "update_available": {
+        "latest": null,
+        "deprecated": true,
+        "message": "1.1.x stops minting on 1 December; please update."
+      },
+      "line": "lingara: this build's embed version is deprecated; no version is currently published: 1.1.x stops minting on 1 December; please update."
+    },
+    {
+      "case": "behind, latest, no message, declared",
+      "embed_version": "1.1.0",
+      "update_available": {
+        "latest": "1.2.0",
+        "deprecated": false,
+        "message": null
+      },
+      "line": "lingara: embed version 1.1.0 is not the current version; the current version is 1.2.0"
+    },
+    {
+      "case": "behind, latest, no message, undeclared",
+      "embed_version": null,
+      "update_available": {
+        "latest": "1.2.0",
+        "deprecated": false,
+        "message": null
+      },
+      "line": "lingara: this build's embed version is not the current version; the current version is 1.2.0"
+    },
+    {
+      "case": "behind, latest, message, declared",
+      "embed_version": "1.1.0",
+      "update_available": {
+        "latest": "1.2.0",
+        "deprecated": false,
+        "message": "1.1.x stops minting on 1 December; please update."
+      },
+      "line": "lingara: embed version 1.1.0 is not the current version; the current version is 1.2.0: 1.1.x stops minting on 1 December; please update."
+    },
+    {
+      "case": "behind, latest, message, undeclared",
+      "embed_version": null,
+      "update_available": {
+        "latest": "1.2.0",
+        "deprecated": false,
+        "message": "1.1.x stops minting on 1 December; please update."
+      },
+      "line": "lingara: this build's embed version is not the current version; the current version is 1.2.0: 1.1.x stops minting on 1 December; please update."
+    },
+    {
+      "case": "behind, latest null, no message, declared",
+      "embed_version": "1.1.0",
+      "update_available": {
+        "latest": null,
+        "deprecated": false,
+        "message": null
+      },
+      "line": "lingara: embed version 1.1.0 is not the current version; no version is currently published"
+    },
+    {
+      "case": "behind, latest null, no message, undeclared",
+      "embed_version": null,
+      "update_available": {
+        "latest": null,
+        "deprecated": false,
+        "message": null
+      },
+      "line": "lingara: this build's embed version is not the current version; no version is currently published"
+    },
+    {
+      "case": "behind, latest null, message, declared",
+      "embed_version": "1.1.0",
+      "update_available": {
+        "latest": null,
+        "deprecated": false,
+        "message": "1.1.x stops minting on 1 December; please update."
+      },
+      "line": "lingara: embed version 1.1.0 is not the current version; no version is currently published: 1.1.x stops minting on 1 December; please update."
+    },
+    {
+      "case": "behind, latest null, message, undeclared",
+      "embed_version": null,
+      "update_available": {
+        "latest": null,
+        "deprecated": false,
+        "message": "1.1.x stops minting on 1 December; please update."
+      },
+      "line": "lingara: this build's embed version is not the current version; no version is currently published: 1.1.x stops minting on 1 December; please update."
+    },
+    {
+      "case": "fallback below the declared build",
+      "embed_version": "1.1.0",
+      "update_available": {
+        "latest": "1.0.0",
+        "deprecated": true,
+        "message": "1.1.0 was withdrawn; serving falls back to 1.0.0."
+      },
+      "line": "lingara: embed version 1.1.0 is deprecated; the current version is 1.0.0: 1.1.0 was withdrawn; serving falls back to 1.0.0."
+    },
+    {
+      "case": "an over-long message is cut to 280 scalar values",
+      "embed_version": null,
+      "update_available": {
+        "latest": "1.2.0",
+        "deprecated": true,
+        "message": "🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉"
+      },
+      "line": "lingara: this build's embed version is deprecated; the current version is 1.2.0: 🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉🐉"
+    }
+  ]
+}

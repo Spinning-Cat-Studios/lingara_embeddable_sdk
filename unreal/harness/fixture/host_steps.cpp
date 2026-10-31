@@ -69,6 +69,10 @@ Problem HostRun::provide(const json& body) {
     } else {
         return std::string("no expires_at or expires_in_secs");
     }
+    // EK13 (ADR 30.10.26p): the notice verbatim, as the plugin's fetch passes it.
+    if (body.contains("update_available")) {
+        command["update_available"] = body["update_available"];
+    }
     return refusable(command);
 }
 

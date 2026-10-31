@@ -46,6 +46,8 @@ macro_rules! word {
 // After the two macros, which it uses (ADR 28.10.26f: the dialogue's types).
 mod dialogue_graph;
 pub use dialogue_graph::*;
+pub(crate) mod update;
+pub use update::UpdateAvailable;
 
 data! {
     /// Every command, as one serialisable enum (`execute`). The flat methods
@@ -53,8 +55,8 @@ data! {
     #[serde(tag = "type", rename_all = "snake_case")]
     #[non_exhaustive]
     pub enum Command {
-        ProvideToken { token: Secret, expires_at: String },
-        ProvideTokenFor { token: Secret, expires_in_secs: u32 },
+        ProvideToken { token: Secret, expires_at: String, #[serde(default, deserialize_with = "update::lenient")] update_available: Option<UpdateAvailable> },
+        ProvideTokenFor { token: Secret, expires_in_secs: u32, #[serde(default, deserialize_with = "update::lenient")] update_available: Option<UpdateAvailable> },
         TokenUnavailable { reason: String },
         SetTokenEndpoint { url: String, #[serde(default)] headers: Vec<Header> },
         StreamPause,
@@ -108,6 +110,8 @@ data! {
         DialogueLoadFailed { dialogue: DialogueId, error: EmbedError },
         Error { error: EmbedError },
         Log { level: LogLevel, target: String, message: String },
+        /// Once per handle: the build's `embed_version` has a newer or better one (ADR 30.10.26p).
+        UpdateAvailable { latest: Option<String>, deprecated: bool, message: Option<String> },
         Closed { reason: CloseReason },
     }
 

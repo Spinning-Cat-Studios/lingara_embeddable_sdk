@@ -35,6 +35,13 @@ namespace Lingara.Embed
         /// <summary>The <c>Lingara-Version</c> pin.</summary>
         public string? ApiVersion { get; set; }
 
+        /// <summary>
+        /// The platform embed version this build was registered against, e.g. <c>1.1.0</c>
+        /// (ADR 30.10.26p). The Http source sends it to your token endpoint as
+        /// <c>Lingara-Embed-Version</c>; a polling game sends that header itself.
+        /// </summary>
+        public string? EmbedVersion { get; set; }
+
         public uint? QueueCapacity { get; set; }
 
         public uint? TokenWaitTimeoutMs { get; set; }
@@ -70,6 +77,7 @@ namespace Lingara.Embed
             }
 
             OptString(w, "api_version", ApiVersion);
+            OptString(w, "embed_version", EmbedVersion);
             OptNumber(w, "queue_capacity", QueueCapacity);
             OptNumber(w, "token_wait_timeout_ms", TokenWaitTimeoutMs);
             OptNumber(w, "stream_idle_timeout_ms", StreamIdleTimeoutMs);

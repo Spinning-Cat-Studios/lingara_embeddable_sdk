@@ -48,6 +48,12 @@ func _ready() -> void:
 	lingara.token_needed.connect(_on_token_needed)
 	lingara.event_received.connect(_on_event)
 	lingara.error_raised.connect(func(error: Dictionary) -> void: push_warning(error.message))
+	# Once per session, for you: log it, never draw it for the player. Set
+	# the node's embed_version so your token route can tell Lingara which build this is.
+	lingara.update_available.connect(
+		func(latest: String, deprecated: bool, _message: String) -> void:
+			push_warning("Lingara update: latest %s, deprecated %s" % [latest, deprecated])
+	)
 	lingara.practice_changed.connect(_on_practice_changed)
 	lingara.practice_finished.connect(_on_practice_finished)
 	mei.replied.connect(_on_mei_replied)

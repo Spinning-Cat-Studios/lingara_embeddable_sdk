@@ -7,7 +7,7 @@ import { createLingaraEmbedClass } from './element.js'
 export type { LingaraEmbedElement } from './element.js'
 export type { EmbedState } from './handshake.js'
 export type { TokenGrant, TokenProvider } from './tokens.js'
-export type { ErrorDetail, PracticeCompletedDetail, ReadyDetail, ResizeDetail, ElementCode } from './events.js'
+export type { ErrorDetail, PracticeCompletedDetail, ReadyDetail, ResizeDetail, UpdateAvailableDetail, ElementCode } from './events.js'
 export { EVENTS, ELEMENT_CODES } from './events.js'
 export { ERROR_CODES } from './protocol.js'
 

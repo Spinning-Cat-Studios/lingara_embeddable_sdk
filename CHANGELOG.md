@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.2.0-alpha.6 — 2026-10-31
+
+
+Generated from Lingara API 2026-10-dauntless-hoopoe (development) at spec backend@897aae2fcf74cebd19aa9ccf9dd116bc2c3a043f.
+
+### Added
+
+- `embed_version` in every player kit's config (`EmbedConfig.embed_version`, `EmbedOptions.EmbedVersion`, Bevy's `.embed_version()`, Godot's `embed_version` property, Unreal's `EmbedVersion` setting, Java's `.embedVersion()`): the core's Http source sends it to your token endpoint as `Lingara-Embed-Version`, never to Lingara. A malformed value is refused at `start` as `Config` (ADR 30.10.26p).
+- The player side reads the handoff's optional `update_available` and says it once per handle: one `Warn` log line (`lingara_embed::update`) and one `UpdateAvailable` event, in every binding's idiom (`LingaraUpdateAvailable`, the `update_available` signal, `EmbedEvent.UpdateAvailable`, `OnUpdateAvailable`, `EmbedEventVisitor.updateAvailable`, the widget's `lingara:update-available`). A malformed notice is dropped; the token is accepted either way. Never drawn for a player.
+- `provide_token_with_update` and the `update_available` field on `ProvideToken` / `ProvideTokenFor`, for hosts that fetch the handoff themselves.
+- EK13 and `conformance/vectors/update-notice.json`.
+
+### Changed
+
+- **Rust source break:** `IssuedToken` and `Command::ProvideToken` / `ProvideTokenFor` gain `update_available`; a struct literal adds `update_available: None`. The JSON wire is additive. `EmbedEventVisitor` (Java) gains `updateAvailable`.
+
+### Fixed
+
+### Removed
+
 ## v0.2.0-alpha.5 — 2026-10-30
 
 

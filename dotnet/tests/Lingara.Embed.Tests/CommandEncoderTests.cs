@@ -21,7 +21,9 @@ namespace Lingara.Embed.Tests
         /// <summary>Each command type: the client method that sends it, and that method's bytes for the vector's example.</summary>
         private static readonly Dictionary<string, (string Method, Func<byte[]> Encode)> Table = new Dictionary<string, (string, Func<byte[]>)>
         {
-            ["provide_token"] = ("ProvideToken", () => CommandEncoder.ProvideToken("lgr_et_example", "2026-10-01T12:15:00Z")),
+            // 30.10.26p AC15: the notice, all three keys, in V1's order.
+            ["provide_token"] = ("ProvideToken", () => CommandEncoder.ProvideToken("lgr_et_example", "2026-10-01T12:15:00Z",
+                new UpdateAvailable { Latest = "1.2.0", Deprecated = true, Message = "1.1.x stops minting on 1 December; please update." })),
             ["provide_token_for"] = ("ProvideTokenFor", () => CommandEncoder.ProvideTokenFor("lgr_et_example", 900)),
             ["token_unavailable"] = ("TokenUnavailable", () => CommandEncoder.TokenUnavailable("offline")),
             ["set_token_endpoint"] = ("SetTokenEndpoint", () => CommandEncoder.SetTokenEndpoint("https://game.example/lingara/token", new[] { new Header("cookie", "session=abc") })),

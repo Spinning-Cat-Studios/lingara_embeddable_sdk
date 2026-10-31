@@ -22,6 +22,13 @@ record! {
         pub detail: crate::types::LingaraEventDetail,
     }
 
+    /// The handoff's optional `update_available` (ADR 30.10.26p).
+    pub struct UpdateAvailable {
+        pub latest: Option<String>,
+        pub deprecated: bool,
+        pub message: Option<String>,
+    }
+
     /// The `202`'s `reaction` to a sent world event.
     pub struct Reaction {
         pub status: String,

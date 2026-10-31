@@ -9,6 +9,7 @@ pub(crate) mod bridge;
 pub(crate) mod fetch;
 pub(crate) mod handoff;
 pub(crate) mod rfc3339;
+pub(crate) mod update;
 
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
@@ -24,6 +25,7 @@ use crate::ids::Ids;
 use crate::queue::Outbox;
 use crate::sync::lock;
 use crate::token_fetch::Mode;
+pub(crate) use update::UpdateLatch;
 use crate::types::{EmbedEvent, TokenReason};
 
 struct Cached {
@@ -61,13 +63,16 @@ pub(crate) struct HostTokenSource {
     diag: Diagnostics,
     ids: Arc<Ids>,
     wait: Duration,
+    update: UpdateLatch,
 }
 
 impl HostTokenSource {
-    pub fn new(mode: Mode, outbox: Outbox, diag: Diagnostics, ids: Arc<Ids>, wait: Duration) -> Arc<Self> {
+    /// The outbox is `diag`'s: one queue for the events and the log lines.
+    pub fn new(mode: Mode, diag: Diagnostics, ids: Arc<Ids>, wait: Duration, update: UpdateLatch) -> Arc<Self> {
         let state = State { cached: None, need: None, reason: TokenReason::Initial, mode, timer: None };
         let (changed, _) = watch::channel(Generation::default());
-        Arc::new(Self { state: Mutex::new(state), changed, fetching: tokio::sync::Mutex::new(()), outbox, diag, ids, wait })
+        let outbox = diag.outbox.clone();
+        Arc::new(Self { state: Mutex::new(state), changed, fetching: tokio::sync::Mutex::new(()), outbox, diag, ids, wait, update })
     }
 
     /// A fresh token: the cached one, or one waited or fetched for.
@@ -157,6 +162,8 @@ impl HostTokenSource {
         }
         drop(state);
         self.bump(None);
+        // After acceptance, behind the queue: `TokenNeeded` keeps its place ahead (K1 D2).
+        self.update.hear(issued.update_available.as_ref(), &self.diag);
         Ok(())
     }
 

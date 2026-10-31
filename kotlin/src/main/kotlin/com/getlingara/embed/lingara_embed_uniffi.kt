@@ -670,6 +670,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_provide_token_for(
     ): Short
+    external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_provide_token_with_update(
+    ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_set_token_endpoint(
     ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_shutdown(
@@ -757,6 +759,8 @@ external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_poll_event(`ptr`:
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_provide_token(`ptr`: Long,`token`: RustBuffer.ByValue,`expiresAt`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_provide_token_for(`ptr`: Long,`token`: RustBuffer.ByValue,`expiresInSecs`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_provide_token_with_update(`ptr`: Long,`token`: RustBuffer.ByValue,`expiresAt`: RustBuffer.ByValue,`updateAvailable`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
 external fun uniffi_lingara_embed_uniffi_fn_method_embedhandle_set_token_endpoint(`ptr`: Long,`url`: RustBuffer.ByValue,`headers`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
@@ -962,6 +966,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_provide_token_for() != 41224.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_provide_token_with_update() != 17035.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_set_token_endpoint() != 47305.toShort()) {
@@ -1482,6 +1489,11 @@ public interface EmbedHandleInterface {
     fun `provideTokenFor`(`token`: SecretString, `expiresInSecs`: kotlin.Long)
     
     /**
+     * `provide_token` with the handoff's `update_available` (ADR 30.10.26p).
+     */
+    fun `provideTokenWithUpdate`(`token`: SecretString, `expiresAt`: kotlin.String, `updateAvailable`: UpdateAvailable?)
+    
+    /**
      * Switches to, or re-points, the Http token source.
      */
     fun `setTokenEndpoint`(`url`: kotlin.String, `headers`: List<Header>)
@@ -1864,6 +1876,22 @@ open class EmbedHandle: Disposable, AutoCloseable, EmbedHandleInterface
     UniffiLib.uniffi_lingara_embed_uniffi_fn_method_embedhandle_provide_token_for(
         it,
         FfiConverterTypeSecretString.lower(`token`),FfiConverterLong.lower(`expiresInSecs`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * `provide_token` with the handoff's `update_available` (ADR 30.10.26p).
+     */
+    @Throws(EmbedException::class)override fun `provideTokenWithUpdate`(`token`: SecretString, `expiresAt`: kotlin.String, `updateAvailable`: UpdateAvailable?)
+        = 
+    callWithHandle {
+    uniffiRustCallWithError(EmbedException) { _status ->
+    UniffiLib.uniffi_lingara_embed_uniffi_fn_method_embedhandle_provide_token_with_update(
+        it,
+        FfiConverterTypeSecretString.lower(`token`),FfiConverterString.lower(`expiresAt`),FfiConverterOptionalTypeUpdateAvailable.lower(`updateAvailable`),_status)
 }
     }
     
@@ -2390,6 +2418,12 @@ data class EmbedConfig (
      * Appended after the kit's own User-Agent token, e.g. `my-game/1.4`.
      */
     var `userAgentSuffix`: kotlin.String? = null 
+    , 
+    /**
+     * The platform embed version this build was registered against, sent
+     * to the token endpoint as `Lingara-Embed-Version` (ADR 30.10.26p).
+     */
+    var `embedVersion`: kotlin.String? = null 
     
 ){
     
@@ -2417,6 +2451,7 @@ public object FfiConverterTypeEmbedConfig: FfiConverterRustBuffer<EmbedConfig> {
             FfiConverterOptionalLong.read(buf),
             FfiConverterOptionalTypeLogLevel.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
         )
     }
 
@@ -2431,7 +2466,8 @@ public object FfiConverterTypeEmbedConfig: FfiConverterRustBuffer<EmbedConfig> {
             FfiConverterOptionalLong.allocationSize(value.`tokenWaitTimeoutMs`) +
             FfiConverterOptionalLong.allocationSize(value.`streamIdleTimeoutMs`) +
             FfiConverterOptionalTypeLogLevel.allocationSize(value.`logLevel`) +
-            FfiConverterOptionalString.allocationSize(value.`userAgentSuffix`)
+            FfiConverterOptionalString.allocationSize(value.`userAgentSuffix`) +
+            FfiConverterOptionalString.allocationSize(value.`embedVersion`)
     )
 
     override fun write(value: EmbedConfig, buf: ByteBuffer) {
@@ -2446,6 +2482,7 @@ public object FfiConverterTypeEmbedConfig: FfiConverterRustBuffer<EmbedConfig> {
             FfiConverterOptionalLong.write(value.`streamIdleTimeoutMs`, buf)
             FfiConverterOptionalTypeLogLevel.write(value.`logLevel`, buf)
             FfiConverterOptionalString.write(value.`userAgentSuffix`, buf)
+            FfiConverterOptionalString.write(value.`embedVersion`, buf)
     }
 }
 
@@ -3170,6 +3207,52 @@ public object FfiConverterTypeReaction: FfiConverterRustBuffer<Reaction> {
 
 
 
+/**
+ * The handoff's optional `update_available` (ADR 30.10.26p).
+ */
+data class UpdateAvailable (
+    var `latest`: kotlin.String?
+    , 
+    var `deprecated`: kotlin.Boolean
+    , 
+    var `message`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeUpdateAvailable: FfiConverterRustBuffer<UpdateAvailable> {
+    override fun read(buf: ByteBuffer): UpdateAvailable {
+        return UpdateAvailable(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: UpdateAvailable) = (
+            FfiConverterOptionalString.allocationSize(value.`latest`) +
+            FfiConverterBoolean.allocationSize(value.`deprecated`) +
+            FfiConverterOptionalString.allocationSize(value.`message`)
+    )
+
+    override fun write(value: UpdateAvailable, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`latest`, buf)
+            FfiConverterBoolean.write(value.`deprecated`, buf)
+            FfiConverterOptionalString.write(value.`message`, buf)
+    }
+}
+
+
+
 data class WindowEntry (
     var `speaker`: Speaker
     , 
@@ -3315,7 +3398,8 @@ sealed class Command {
     
     data class ProvideToken(
         val `token`: com.getlingara.embed.SecretString, 
-        val `expiresAt`: kotlin.String) : Command()
+        val `expiresAt`: kotlin.String, 
+        val `updateAvailable`: com.getlingara.embed.UpdateAvailable? = null ) : Command()
         
     {
         
@@ -3325,7 +3409,8 @@ sealed class Command {
     
     data class ProvideTokenFor(
         val `token`: com.getlingara.embed.SecretString, 
-        val `expiresInSecs`: kotlin.Long) : Command()
+        val `expiresInSecs`: kotlin.Long, 
+        val `updateAvailable`: com.getlingara.embed.UpdateAvailable? = null ) : Command()
         
     {
         
@@ -3557,10 +3642,12 @@ public object FfiConverterTypeCommand : FfiConverterRustBuffer<Command>{
             1 -> Command.ProvideToken(
                 FfiConverterTypeSecretString.read(buf),
                 FfiConverterString.read(buf),
+                FfiConverterOptionalTypeUpdateAvailable.read(buf),
                 )
             2 -> Command.ProvideTokenFor(
                 FfiConverterTypeSecretString.read(buf),
                 FfiConverterLong.read(buf),
+                FfiConverterOptionalTypeUpdateAvailable.read(buf),
                 )
             3 -> Command.TokenUnavailable(
                 FfiConverterString.read(buf),
@@ -3648,6 +3735,7 @@ public object FfiConverterTypeCommand : FfiConverterRustBuffer<Command>{
                 4UL
                 + FfiConverterTypeSecretString.allocationSize(value.`token`)
                 + FfiConverterString.allocationSize(value.`expiresAt`)
+                + FfiConverterOptionalTypeUpdateAvailable.allocationSize(value.`updateAvailable`)
             )
         }
         is Command.ProvideTokenFor -> {
@@ -3656,6 +3744,7 @@ public object FfiConverterTypeCommand : FfiConverterRustBuffer<Command>{
                 4UL
                 + FfiConverterTypeSecretString.allocationSize(value.`token`)
                 + FfiConverterLong.allocationSize(value.`expiresInSecs`)
+                + FfiConverterOptionalTypeUpdateAvailable.allocationSize(value.`updateAvailable`)
             )
         }
         is Command.TokenUnavailable -> {
@@ -3835,12 +3924,14 @@ public object FfiConverterTypeCommand : FfiConverterRustBuffer<Command>{
                 buf.putInt(1)
                 FfiConverterTypeSecretString.write(value.`token`, buf)
                 FfiConverterString.write(value.`expiresAt`, buf)
+                FfiConverterOptionalTypeUpdateAvailable.write(value.`updateAvailable`, buf)
                 Unit
             }
             is Command.ProvideTokenFor -> {
                 buf.putInt(2)
                 FfiConverterTypeSecretString.write(value.`token`, buf)
                 FfiConverterLong.write(value.`expiresInSecs`, buf)
+                FfiConverterOptionalTypeUpdateAvailable.write(value.`updateAvailable`, buf)
                 Unit
             }
             is Command.TokenUnavailable -> {
@@ -4436,6 +4527,20 @@ sealed class EmbedEvent {
         companion object
     }
     
+    /**
+     * Once per handle: a newer or better embed version (ADR 30.10.26p). Never for the player's screen.
+     */
+    data class UpdateAvailable(
+        val `latest`: kotlin.String?, 
+        val `deprecated`: kotlin.Boolean, 
+        val `message`: kotlin.String?) : EmbedEvent()
+        
+    {
+        
+
+        companion object
+    }
+    
     data class Closed(
         val `reason`: com.getlingara.embed.CloseReason) : EmbedEvent()
         
@@ -4525,10 +4630,15 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 )
-            13 -> EmbedEvent.Closed(
+            13 -> EmbedEvent.UpdateAvailable(
+                FfiConverterOptionalString.read(buf),
+                FfiConverterBoolean.read(buf),
+                FfiConverterOptionalString.read(buf),
+                )
+            14 -> EmbedEvent.Closed(
                 FfiConverterTypeCloseReason.read(buf),
                 )
-            14 -> EmbedEvent.Unknown(
+            15 -> EmbedEvent.Unknown(
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 )
@@ -4639,6 +4749,15 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
                 + FfiConverterString.allocationSize(value.`message`)
             )
         }
+        is EmbedEvent.UpdateAvailable -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterOptionalString.allocationSize(value.`latest`)
+                + FfiConverterBoolean.allocationSize(value.`deprecated`)
+                + FfiConverterOptionalString.allocationSize(value.`message`)
+            )
+        }
         is EmbedEvent.Closed -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
@@ -4736,13 +4855,20 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
                 FfiConverterString.write(value.`message`, buf)
                 Unit
             }
-            is EmbedEvent.Closed -> {
+            is EmbedEvent.UpdateAvailable -> {
                 buf.putInt(13)
+                FfiConverterOptionalString.write(value.`latest`, buf)
+                FfiConverterBoolean.write(value.`deprecated`, buf)
+                FfiConverterOptionalString.write(value.`message`, buf)
+                Unit
+            }
+            is EmbedEvent.Closed -> {
+                buf.putInt(14)
                 FfiConverterTypeCloseReason.write(value.`reason`, buf)
                 Unit
             }
             is EmbedEvent.Unknown -> {
-                buf.putInt(14)
+                buf.putInt(15)
                 FfiConverterString.write(value.`typeTag`, buf)
                 FfiConverterString.write(value.`json`, buf)
                 Unit
@@ -6216,6 +6342,38 @@ public object FfiConverterOptionalTypeReaction: FfiConverterRustBuffer<Reaction?
         } else {
             buf.put(1)
             FfiConverterTypeReaction.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeUpdateAvailable: FfiConverterRustBuffer<UpdateAvailable?> {
+    override fun read(buf: ByteBuffer): UpdateAvailable? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeUpdateAvailable.read(buf)
+    }
+
+    override fun allocationSize(value: UpdateAvailable?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeUpdateAvailable.allocationSize(value)
+        }
+    }
+
+    override fun write(value: UpdateAvailable?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeUpdateAvailable.write(value, buf)
         }
     }
 }

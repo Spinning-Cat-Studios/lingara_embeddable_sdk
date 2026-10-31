@@ -130,7 +130,10 @@ func _refused() -> void:
 func _provide(body: Dictionary) -> String:
 	if _node == null:
 		return "no start step ran"
-	if body.get("expires_at") != null:
+	if body.get("update_available") is Dictionary:
+		# EK13 (ADR 30.10.26p): the handoff's notice, passed through as written.
+		_node.provide_token_with_update(body["token"], body["expires_at"], body["update_available"])
+	elif body.get("expires_at") != null:
 		_node.provide_token(body["token"], body["expires_at"])
 	elif body.get("expires_in_secs") != null:
 		_node.provide_token_for(body["token"], body["expires_in_secs"])

@@ -12,7 +12,8 @@ namespace LingaraCommandEncoder
 	// K1's EmbedConfig: a field left unset is omitted, so K1's default applies (D7).
 	LINGARAEMBED_API FString Config(const FLingaraEmbedConfig& Config, const FString& UserAgentSuffix);
 
-	LINGARAEMBED_API FString ProvideToken(const FString& Token, const FString& ExpiresAt);
+	// UpdateAvailableJson is the handoff's `update_available`, verbatim; empty omits it (ADR 30.10.26p).
+	LINGARAEMBED_API FString ProvideToken(const FString& Token, const FString& ExpiresAt, const FString& UpdateAvailableJson = FString());
 	LINGARAEMBED_API FString ProvideTokenFor(const FString& Token, uint32 ExpiresInSecs);
 	LINGARAEMBED_API FString TokenUnavailable(const FString& Reason);
 	LINGARAEMBED_API FString SetTokenEndpoint(const FString& Url, const TArray<FLingaraHeader>& Headers);

@@ -18,9 +18,14 @@ pub(crate) enum Mode {
     Trait(Arc<dyn EmbedTokenSource>),
 }
 
+/// The header that names the build's `embed_version` to the integrator's
+/// endpoint (ADR 30.10.26p D1). It is never sent to Lingara.
+pub const EMBED_VERSION_HEADER: &str = "lingara-embed-version";
+
 /// The Http source for `url`, its header values marked sensitive so not
-/// even reqwest's own `Debug` renders them.
-pub(crate) fn http_mode(url: &str, headers: &[Header]) -> Result<Mode, EmbedError> {
+/// even reqwest's own `Debug` renders them. `embed_version`, already
+/// checked by `EmbedConfig::validate`, rides beside them.
+pub(crate) fn http_mode(url: &str, headers: &[Header], embed_version: Option<&str>) -> Result<Mode, EmbedError> {
     check_url("token endpoint", url)?;
     let mut map = HeaderMap::new();
     for header in headers {
@@ -30,6 +35,10 @@ pub(crate) fn http_mode(url: &str, headers: &[Header]) -> Result<Mode, EmbedErro
             .map_err(|_| EmbedError::new(ErrorKind::Config, format!("the value of header `{}` is not a header value", header.name)))?;
         value.set_sensitive(true);
         map.append(name, value);
+    }
+    if let Some(version) = embed_version {
+        let value = HeaderValue::from_str(version).map_err(|_| EmbedError::new(ErrorKind::Config, "embed_version is not a header value"))?;
+        map.insert(EMBED_VERSION_HEADER, value);
     }
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(30))

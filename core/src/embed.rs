@@ -19,7 +19,7 @@ use crate::practice::Practice;
 use crate::queue;
 use crate::runtime::IoThread;
 use crate::shared::Shared;
-use crate::token::HostTokenSource;
+use crate::token::{HostTokenSource, UpdateLatch};
 use crate::token_fetch::{Mode, http_mode};
 use crate::types::{CloseReason, EmbedEvent, EmbedStatus};
 
@@ -53,7 +53,7 @@ impl Embed {
         config.validate()?;
         let mode = match (source, &config.token_source) {
             (Some(source), _) => Mode::Trait(source),
-            (None, TokenSourceConfig::Http { url, headers }) => http_mode(url, headers)?,
+            (None, TokenSourceConfig::Http { url, headers }) => http_mode(url, headers, config.embed_version.as_deref())?,
             (None, _) => Mode::Poll,
         };
         let io = IoThread::spawn(paused)?;
@@ -61,7 +61,8 @@ impl Embed {
         let diag = Diagnostics { level: config.log_level, outbox: outbox.clone() };
         let ids = Arc::new(Ids::default());
         let wait = Duration::from_millis(config.token_wait_timeout_ms.into());
-        let tokens = HostTokenSource::new(mode, outbox.clone(), diag.clone(), Arc::clone(&ids), wait);
+        let update = UpdateLatch::new(config.embed_version.clone());
+        let tokens = HostTokenSource::new(mode, diag.clone(), Arc::clone(&ids), wait, update);
         let api = match api(&config, Arc::clone(&tokens)) {
             Ok(api) => api,
             Err(e) => {

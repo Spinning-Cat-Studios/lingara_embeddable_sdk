@@ -82,6 +82,8 @@ struct LINGARAEMBED_API FLingaraEmbedConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lingara") FString ResumeCursor;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lingara") TArray<FString> EventTypes;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lingara") FString ApiVersion;
+	// The platform embed version this build was registered against (ADR 30.10.26p).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lingara") FString EmbedVersion;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lingara") int32 QueueCapacity = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lingara") int32 StreamIdleTimeoutMs = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lingara") int32 TokenWaitTimeoutMs = 0;

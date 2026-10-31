@@ -12,7 +12,7 @@ use std::sync::Arc;
 use lingara_embed as core;
 
 use crate::convert::{event, fail, known, narrow, to_core};
-use crate::types::{Command, CommandOutcome, EmbedConfig, EmbedEvent, EmbedException, EmbedStatus, Header, SecretString};
+use crate::types::{Command, CommandOutcome, EmbedConfig, EmbedEvent, EmbedException, EmbedStatus, Header, SecretString, UpdateAvailable};
 
 pub(crate) type Outcome<T> = Result<T, EmbedException>;
 
@@ -68,6 +68,12 @@ impl EmbedHandle {
     /// The game's token, valid until `expires_at` (RFC 3339).
     pub fn provide_token(&self, token: SecretString, expires_at: String) -> Outcome<()> {
         self.embed.provide_token(String::from(token), expires_at).map_err(fail)
+    }
+
+    /// `provide_token` with the handoff's `update_available` (ADR 30.10.26p).
+    pub fn provide_token_with_update(&self, token: SecretString, expires_at: String, update_available: Option<UpdateAvailable>) -> Outcome<()> {
+        let update: Option<core::UpdateAvailable> = to_core("update_available", &update_available)?;
+        self.embed.provide_token_with_update(String::from(token), expires_at, update).map_err(fail)
     }
 
     /// The game's token, valid for `expires_in_secs` from now.

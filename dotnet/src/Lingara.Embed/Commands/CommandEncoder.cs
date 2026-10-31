@@ -10,11 +10,28 @@ namespace Lingara.Embed.Commands
     /// </summary>
     internal static class CommandEncoder
     {
-        public static byte[] ProvideToken(string token, string expiresAt) =>
-            Begin("provide_token").Prop("token", token).Prop("expires_at", expiresAt).EndObject().ToUtf8();
+        public static byte[] ProvideToken(string token, string expiresAt, UpdateAvailable? update = null) =>
+            Update(Begin("provide_token").Prop("token", token).Prop("expires_at", expiresAt), update).EndObject().ToUtf8();
 
-        public static byte[] ProvideTokenFor(string token, uint expiresInSecs) =>
-            Begin("provide_token_for").Prop("token", token).Prop("expires_in_secs", expiresInSecs).EndObject().ToUtf8();
+        public static byte[] ProvideTokenFor(string token, uint expiresInSecs, UpdateAvailable? update = null) =>
+            Update(Begin("provide_token_for").Prop("token", token).Prop("expires_in_secs", expiresInSecs), update).EndObject().ToUtf8();
+
+        /// <summary>
+        /// The notice (ADR 30.10.26p), written only when present: the key is new,
+        /// and an older core's command has none. Inside it all three keys are
+        /// written, nulls kept, in V1's order.
+        /// </summary>
+        private static JsonWriter Update(JsonWriter w, UpdateAvailable? update)
+        {
+            if (update == null)
+            {
+                return w;
+            }
+
+            return w.Name("update_available").BeginObject()
+                .Prop("latest", update.Latest).Prop("deprecated", update.Deprecated).Prop("message", update.Message)
+                .EndObject();
+        }
 
         public static byte[] TokenUnavailable(string reason) => Begin("token_unavailable").Prop("reason", reason).EndObject().ToUtf8();
 

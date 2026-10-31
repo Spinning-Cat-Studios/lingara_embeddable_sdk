@@ -36,6 +36,12 @@ public interface EmbedEventVisitor<R> {
 
   R log(EmbedEvent.Log event);
 
+  /**
+   * Once per handle: this build's embed version has a newer or better one (ADR 30.10.26p). Log it;
+   * never draw it for the player.
+   */
+  R updateAvailable(EmbedEvent.UpdateAvailable event);
+
   R closed(EmbedEvent.Closed event);
 
   R unknown(EmbedEvent.Unknown event);

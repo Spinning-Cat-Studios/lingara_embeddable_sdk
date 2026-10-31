@@ -12,6 +12,7 @@ FLingaraEmbedConfig ULingaraEmbedSettings::ToConfig() const
 	FLingaraEmbedConfig Config;
 	Config.BaseUrl = BaseUrl;
 	Config.LogLevel = LogLevel;
+	Config.EmbedVersion = EmbedVersion;
 	Config.MaxEventsPerTick = MaxEventsPerTick;
 	return Config;
 }

@@ -48,3 +48,7 @@ title = "A graph dialogue sends only passing edges, in order, and crosses exactl
 [[behaviour]]
 id = "EK12"
 title = "A stored dialogue is fetched with the embed token, at most once per id per freshness window: no revision query, a later load sends nothing, not_found and dialogue_not_active fail the load as not_found, a 403 as forbidden, a refused body as invalid_input, and DialogueLoaded carries the header's rev before CheckpointReached"
+
+[[behaviour]]
+id = "EK13"
+title = "An update notice is said once per handle: the first token carrying update_available yields one Log at warn and one UpdateAvailable, in that order; a later token yields neither; a token without it yields neither; and the token is accepted either way"

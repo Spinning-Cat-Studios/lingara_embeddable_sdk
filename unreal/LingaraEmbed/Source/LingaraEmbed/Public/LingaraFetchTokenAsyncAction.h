@@ -35,6 +35,10 @@ public:
 	// The handoff body's two fields, or false. Any other field is ignored (V1 ES6).
 	static bool ReadHandoff(const FString& Body, FString& Token, FString& ExpiresAt);
 
+	// The handoff's optional `update_available` as compact JSON, or empty (ADR
+	// 30.10.26p). Passed on verbatim: the core drops a malformed one.
+	static FString ReadUpdate(const FString& Body);
+
 private:
 	void HandleResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected);
 	void Unavailable(const FString& Reason);

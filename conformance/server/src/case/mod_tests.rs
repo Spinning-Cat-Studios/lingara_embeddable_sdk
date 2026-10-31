@@ -226,3 +226,24 @@ fn the_es_kit_script_is_closed() {
     mixed.tier = Tier::Ek;
     assert!(shape_problems(&mixed).iter().any(|p| p.contains("an ek case has no kit: or directory:")));
 }
+
+// 30.10.26p D5: provide_token's update_available is passed through as written,
+// a malformed one included (EK13's malformed case relies on it).
+#[test]
+fn provide_token_carries_update_available_unchecked() {
+    use super::host::{HostStep as H, ProvideToken};
+    for (notice, want) in [
+        ("{ latest: \"1.2.0\", deprecated: true, message: null }", serde_json::json!({ "latest": "1.2.0", "deprecated": true, "message": null })),
+        ("{ latest: \"1.2.0\", message: null }", serde_json::json!({ "latest": "1.2.0", "message": null })),
+        ("5", serde_json::json!(5)),
+    ] {
+        let from = "expires_at: \"2026-10-01T12:15:00Z\" }";
+        let ek = case(&HOST.replace(from, &format!("expires_at: \"2026-10-01T12:15:00Z\", update_available: {notice} }}")));
+        let H::ProvideToken(ProvideToken { update_available, .. }) = &ek.host.as_deref().unwrap()[1] else { panic!("provide_token") };
+        assert_eq!(update_available.as_ref(), Some(&want));
+        assert_eq!(shape_problems(&ek), Vec::<String>::new());
+        assert_eq!(serde_json::to_value(&ek).unwrap()["host"][1]["provide_token"]["update_available"], want, "served as written");
+    }
+    let H::ProvideToken(plain) = &case(HOST).host.unwrap()[1] else { panic!("provide_token") };
+    assert!(plain.update_available.is_none(), "absent stays absent");
+}

@@ -42,6 +42,7 @@ private:
 	UFUNCTION() void HandleNpcTurn(const FLingaraNpcTurn& Turn);
 	UFUNCTION() void HandlePractice(const FLingaraPracticeUpdate& Update);
 	UFUNCTION() void HandleError(const FLingaraEmbedError& Error);
+	UFUNCTION() void HandleUpdateAvailable(const FLingaraUpdateAvailable& Update);
 	void HandleTokenResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected);
 	ULingaraEmbedSubsystem* Lingara() const;
 

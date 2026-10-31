@@ -1,0 +1,31 @@
+id: ek13.told-once
+behaviours: [EK13]
+tier: ek
+# Two provides carry the notice; only the first is told, Log before the
+# event (a poll_until drains past what it does not match, so the order is
+# held). The second token is the one the send carries: accepted either way.
+serve:
+  - route: { operation: sendEvent }
+    expect_request: { headers: { authorization: "Bearer lgr_et_conformance0002" } }
+    respond: { status: 202, json: { id: lgr_evt_1, type: world.context_changed, created_at: "2026-10-01T12:00:00Z" } }
+host:
+  - start: { initial_token: none, config: { stream_on_start: false, log_level: warn } }
+  - provide_token:
+      token: lgr_et_conformance0001
+      expires_at: "2099-01-01T00:00:00Z"
+      update_available: { latest: "1.2.0", deprecated: true, message: "1.1.x stops minting on 1 December; please update." }
+  - poll_until:
+      event: log
+      match: { level: warn, target: "lingara_embed::update", message: "lingara: this build's embed version is deprecated; the current version is 1.2.0: 1.1.x stops minting on 1 December; please update." }
+      within_ms: 2000
+  - poll_until: { event: update_available, match: { latest: "1.2.0", deprecated: true, message: "1.1.x stops minting on 1 December; please update." }, within_ms: 2000 }
+  - provide_token:
+      token: lgr_et_conformance0002
+      expires_at: "2099-01-01T00:00:00Z"
+      update_available: { latest: "1.2.0", deprecated: true, message: null }
+  - expect_no_event: { event: update_available, for_ms: 300 }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: world_sent, match: { event_id: lgr_evt_1 }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

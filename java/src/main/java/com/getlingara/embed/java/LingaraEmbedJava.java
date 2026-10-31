@@ -23,6 +23,7 @@ import com.getlingara.embed.PracticeSource;
 import com.getlingara.embed.Secret;
 import com.getlingara.embed.TokenFetcher;
 import com.getlingara.embed.TokenSourceConfig;
+import com.getlingara.embed.UpdateAvailable;
 import com.getlingara.embed.WorldContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,6 +89,16 @@ public final class LingaraEmbedJava implements AutoCloseable {
 
   public void provideToken(String token, String expiresAt) {
     Calls.run(() -> LingaraEmbedCommands.provideToken(embed, new Secret(token), expiresAt));
+  }
+
+  /**
+   * {@code provideToken} with the handoff's {@code update_available} (ADR 30.10.26p); null is none.
+   */
+  public void provideToken(String token, String expiresAt, UpdateAvailable updateAvailable) {
+    Calls.run(
+        () ->
+            LingaraEmbedCommands.provideToken(
+                embed, new Secret(token), expiresAt, updateAvailable));
   }
 
   public void provideTokenFor(String token, long expiresInSecs) {
@@ -231,6 +242,7 @@ public final class LingaraEmbedJava implements AutoCloseable {
     private Long streamIdleTimeoutMs;
     private LogLevel logLevel;
     private String userAgentSuffix;
+    private String embedVersion;
     private TokenFetcher tokenFetcher;
 
     private Builder() {}
@@ -301,6 +313,15 @@ public final class LingaraEmbedJava implements AutoCloseable {
       return this;
     }
 
+    /**
+     * The platform embed version this build was registered against, e.g. {@code 1.1.0} (ADR
+     * 30.10.26p): sent to the token endpoint as {@code Lingara-Embed-Version}.
+     */
+    public Builder embedVersion(String embedVersion) {
+      this.embedVersion = embedVersion;
+      return this;
+    }
+
     /** Loads the natives and starts the core. */
     public LingaraEmbedJava build() {
       EmbedConfig config =
@@ -315,7 +336,8 @@ public final class LingaraEmbedJava implements AutoCloseable {
               tokenWaitTimeoutMs,
               streamIdleTimeoutMs,
               logLevel,
-              userAgentSuffix);
+              userAgentSuffix,
+              embedVersion);
       return new LingaraEmbedJava(
           Calls.call(() -> LingaraEmbed.startAs(KitSurface.JAVA, config, tokenFetcher)));
     }

@@ -99,6 +99,35 @@ A missing scope is the server's `403`, surfaced as `Forbidden`. A game whose
 tokens lack `events:read` sets `stream_on_start: false`; otherwise its stream
 goes `Down` at every new token.
 
+## Updates
+
+An update notice is for you, the developer, and never reaches the player's
+screen: the core draws nothing, and a game that wants its own "please update"
+prompt builds it from the event, as its own decision.
+
+Set `EmbedConfig { embed_version: Some("1.1.0".into()), .. }` to the platform
+embed version this build was registered against (`MAJOR.MINOR.PATCH`: no `v`,
+no leading zeros, at most 20 characters; anything else is refused at `start`
+as `Config`). The Http source sends it to your token endpoint, and only there,
+as `Lingara-Embed-Version` (`lingara_embed::EMBED_VERSION_HEADER`); Lingara
+learns it only from your server's mint. A Poll host or an `EmbedTokenSource`
+sends that header itself. A build that sets no `embed_version` hears nothing.
+
+When the mint answers with an `update_available` in the handoff (or you pass
+one to `provide_token_with_update`, or set it on `Command::ProvideToken*`),
+the first accepted token on the handle yields, in order:
+
+1. `Log { level: Warn, target: "lingara_embed::update", message }`, the line
+   `conformance/vectors/update-notice.json` pins, e.g. *lingara: embed version
+   1.1.0 is deprecated; the current version is 1.2.0: …*;
+2. `UpdateAvailable { latest, deprecated, message }`.
+
+Every later token on the same handle says nothing; a new handle is told again.
+A malformed `update_available` is dropped with a `Debug` line, and the token
+is accepted either way. `latest` is `None` when no published version serves,
+and can be *lower* than your build after a yank, so the line never says
+"newer".
+
 ## The stream
 
 The stream resumes from its cursor after a drop (`Last-Event-ID`), treats

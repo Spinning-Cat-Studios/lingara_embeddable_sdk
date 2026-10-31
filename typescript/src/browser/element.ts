@@ -4,7 +4,7 @@
 // on a server.
 
 import { checkAttributes, frameSrc, resolveLocale, resolveTheme, type FrameTarget } from './attributes.js'
-import { elementErrorDetail, emit } from './events.js'
+import { elementErrorDetail, emit, EVENTS, updateDetail, updateLine, type UpdateAvailableDetail } from './events.js'
 import { Handshake, type EmbedState, type SessionHost } from './handshake.js'
 import type { HostPayloads, Theme } from './protocol.js'
 import { TokenKeeper, type TokenProvider } from './tokens.js'
@@ -57,9 +57,14 @@ export function createLingaraEmbedClass(): { new (): LingaraEmbedElement } {
     private session: Handshake | null = null
     private sent: { theme?: Theme; locale?: string } = {}
     private readonly styleTag: HTMLStyleElement
+    // Told about an update this element session (connect to disconnect): ADR 30.10.26p.
+    private told = false
     private readonly keeper = new TokenKeeper({
       provider: () => this.provider,
-      granted: (token) => this.session?.granted(token),
+      granted: (token, update) => {
+        this.session?.granted(token)
+        if (update !== undefined) this.heard(update)
+      },
       failed: (code) => this.session?.providerFailed(code),
     })
     private readonly onMessage = (event: MessageEvent): void => this.session?.onMessage(event)
@@ -90,6 +95,7 @@ export function createLingaraEmbedClass(): { new (): LingaraEmbedElement } {
 
     connectedCallback(): void {
       this.live = true
+      this.told = false
       window.addEventListener('message', this.onMessage)
       document.addEventListener('visibilitychange', this.onVisibility)
       if (this.provider !== undefined) this.start()
@@ -116,6 +122,14 @@ export function createLingaraEmbedClass(): { new (): LingaraEmbedElement } {
     /** A new session: the checks again, a new frame, the back-off reset, a fresh held token reused. */
     reload(): void {
       if (this.live && this.provider !== undefined) this.start()
+    }
+
+    /** The first notice this session: one DOM event and one console line, for the developer. The frame is never told. */
+    private heard(update: UpdateAvailableDetail): void {
+      if (this.told) return
+      this.told = true
+      emit(this, EVENTS.updateAvailable, updateDetail(update))
+      console.warn(updateLine(update))
     }
 
     private retitle(value: string | null): void {

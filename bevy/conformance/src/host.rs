@@ -13,7 +13,7 @@ use bevy::MinimalPlugins;
 use bevy::app::App;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::{Message, Messages};
-use bevy_lingara::lingara_embed::{EmbedConfig, EmbedError, EmbedEvent};
+use bevy_lingara::lingara_embed::{EmbedConfig, EmbedError, EmbedEvent, UpdateAvailable};
 use bevy_lingara::{Lingara, LingaraConfig, LingaraDisconnect, LingaraError, LingaraPlugin, LingaraRawEvent, ProvideToken};
 use serde_json::{Value, json};
 
@@ -112,13 +112,15 @@ impl Run {
         self.pump()
     }
 
-    /// `expires_at` as a `ProvideToken`; `expires_in_secs` through
+    /// `expires_at` as a `ProvideToken` (`with_update` when EK13 sets
+    /// `update_available`); `expires_in_secs` through
     /// `Lingara::core().provide_token_for`, which the plugin does not wrap.
     fn provide(&mut self, body: &Value) -> Result<(), String> {
         let token = body["token"].as_str().unwrap_or_default().to_owned();
+        let update = body.get("update_available").cloned().and_then(UpdateAvailable::from_value);
         match (body["expires_at"].as_str(), body["expires_in_secs"].as_u64()) {
             (Some(at), _) => {
-                self.app()?.world_mut().write_message(ProvideToken::new(token, at));
+                self.app()?.world_mut().write_message(ProvideToken::with_update(token, at, update));
             }
             (None, Some(secs)) => {
                 let result = self.core(|core| core.provide_token_for(token.as_str(), u32::try_from(secs).unwrap_or(u32::MAX)))?;

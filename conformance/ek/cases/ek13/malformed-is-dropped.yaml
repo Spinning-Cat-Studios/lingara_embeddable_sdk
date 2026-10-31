@@ -1,0 +1,22 @@
+id: ek13.malformed-is-dropped
+behaviours: [EK13]
+tier: ek
+# `deprecated` is missing: the notice is dropped, never refused, and the
+# token still carries the send.
+serve:
+  - route: { operation: sendEvent }
+    expect_request: { headers: { authorization: "Bearer lgr_et_conformance0001" } }
+    respond: { status: 202, json: { id: lgr_evt_1, type: world.context_changed, created_at: "2026-10-01T12:00:00Z" } }
+host:
+  - start: { initial_token: none, config: { stream_on_start: false, log_level: warn } }
+  - provide_token:
+      token: lgr_et_conformance0001
+      expires_at: "2099-01-01T00:00:00Z"
+      update_available: { latest: "1.2.0", message: null }
+  - expect_no_event: { event: update_available, for_ms: 300 }
+  - expect_no_event: { event: error, for_ms: 100 }
+  - command: { type: send_context, context: { scene: the night market, source_lang: en, target_lang: zh, level: 2 } }
+  - poll_until: { event: world_sent, match: { event_id: lgr_evt_1 }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

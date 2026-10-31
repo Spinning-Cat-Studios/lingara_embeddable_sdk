@@ -16,14 +16,23 @@ public fun interface TokenFetcher {
 /**
  * A token and exactly one of its expiry forms: [expiresAt] (RFC 3339, the
  * server kits' handoff) goes to `provideToken`, [expiresInSecs] to
- * `provideTokenFor`. [toString] redacts the token.
+ * `provideTokenFor`. [updateAvailable] is the handoff's optional notice
+ * (ADR 30.10.26p), set with [withUpdate]. [toString] redacts the token.
+ *
+ * The fetcher makes the request itself, so it sends `Lingara-Embed-Version`
+ * itself, from the same value as `EmbedConfig.embedVersion`.
  */
 public class IssuedToken private constructor(
     public val token: Secret,
     public val expiresAt: String?,
     public val expiresInSecs: Long?,
+    public val updateAvailable: UpdateAvailable? = null,
 ) {
-    override fun toString(): String = "IssuedToken(token=${Secret.REDACTED}, expiresAt=$expiresAt, expiresInSecs=$expiresInSecs)"
+    override fun toString(): String =
+        "IssuedToken(token=${Secret.REDACTED}, expiresAt=$expiresAt, expiresInSecs=$expiresInSecs, updateAvailable=$updateAvailable)"
+
+    /** This token, carrying the handoff's `update_available`. */
+    public fun withUpdate(update: UpdateAvailable?): IssuedToken = IssuedToken(token, expiresAt, expiresInSecs, update)
 
     public companion object {
         /** Valid until [expiresAt], an RFC 3339 instant on the game's clock. */
@@ -61,9 +70,10 @@ internal class TokenFetchThread(
             val issued = fetcher.fetch(reason)
             val at = issued.expiresAt
             if (at != null) {
-                handle.provideToken(issued.token, at)
+                handle.provideTokenWithUpdate(issued.token, at, issued.updateAvailable)
             } else {
-                handle.provideTokenFor(issued.token, issued.expiresInSecs ?: 0L)
+                val command = Command.ProvideTokenFor(issued.token, issued.expiresInSecs ?: 0L, issued.updateAvailable)
+                handle.execute(command)
             }
         } catch (e: Exception) {
             // A closed handle refuses this too, and then nothing is waiting.

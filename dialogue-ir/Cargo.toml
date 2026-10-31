@@ -1,7 +1,7 @@
 [package]
 name = "lingara-dialogue-ir"
 # The trio's one VERSION (roadmap D10); the release tooling writes it.
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 edition = "2024"
 rust-version = "1.87"
 license = "MIT"

@@ -10,6 +10,7 @@ export const EVENTS = {
   resize: 'lingara:resize',
   practiceCompleted: 'lingara:practice-completed',
   error: 'lingara:error',
+  updateAvailable: 'lingara:update-available',
 } as const
 
 /** The element's own codes and their `retryable`; three of them are the frame's codes reused. */
@@ -49,7 +50,39 @@ export interface ErrorDetail {
   retryable: boolean
 }
 
-export const clampHeight = (height: number): number => Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, height))
+/**
+ * The handoff's `update_available` (ADR 30.10.26p): the version now serving
+ * (`null` when none is published), whether yours is deprecated, and the
+ * developer's message. For your console, never the player's screen.
+ */
+export interface UpdateAvailableDetail {
+  latest: string | null
+  deprecated: boolean
+  message: string | null
+}
+
+/** V1's schema caps `message` at 280; the line cuts again, in code points. */
+const MESSAGE_CAP = 280
+
+export const updateDetail = (u: UpdateAvailableDetail): UpdateAvailableDetail => ({
+  latest: u.latest,
+  deprecated: u.deprecated,
+  message: u.message,
+})
+
+/**
+ * The core's log line for the notice, as `conformance/vectors/update-notice.json`
+ * pins it. The widget has no `embed_version`, so the subject is always this
+ * build's. It never compares versions: `latest` can be below a yanked build.
+ */
+export function updateLine(u: UpdateAvailableDetail): string {
+  const state = u.deprecated ? 'is deprecated' : 'is not the current version'
+  const current = u.latest === null ? 'no version is currently published' : `the current version is ${u.latest}`
+  const line = `lingara: this build's embed version ${state}; ${current}`
+  return u.message === null ? line : `${line}: ${Array.from(u.message).slice(0, MESSAGE_CAP).join('')}`
+}
+
+export const clampHeight =(height: number): number => Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, height))
 
 export const readyDetail = (p: FramePayloads['started']): ReadyDetail => ({ surface: p.surface, planId: p.plan_id })
 

@@ -147,6 +147,20 @@ fn stored_variants_match_the_shape_vector() {
     }
 }
 
+// 30.10.26p D5: the update notice's event and command field are in the vector and the schema.
+#[test]
+fn update_variants_match_the_shape_vector() {
+    let v = vector();
+    let example = |name: &str, tag: &str| v["tagged"][name].as_array().unwrap().iter().find(|e| e["type"] == tag).cloned().unwrap();
+    let event: EmbedEvent = round_trip(&example("EmbedEvent", "update_available"));
+    assert!(matches!(event, EmbedEvent::UpdateAvailable { deprecated: true, latest: Some(_), message: Some(_) }));
+    let command: Command = serde_json::from_value(example("Command", "provide_token")).unwrap();
+    assert!(matches!(command, Command::ProvideToken { update_available: Some(UpdateAvailable { deprecated: true, .. }), .. }));
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../ffi/schema/messages.schema.json");
+    let committed = std::fs::read_to_string(path).expect("messages.schema.json");
+    assert!(committed.contains("\"update_available\""), "messages.schema.json lacks update_available: run make ffi-schema");
+}
+
 /// What a call answered: the outcome's tag, or the error's kind.
 fn shape(result: Result<CommandOutcome, EmbedError>) -> String {
     match result {
@@ -178,8 +192,8 @@ fn practice(r: Result<PracticeSnapshot, EmbedError>) -> Result<CommandOutcome, E
 fn flat(e: &Embed, command: Command) -> Result<CommandOutcome, EmbedError> {
     let id = |r: Result<u64, EmbedError>| r.map(|id| CommandOutcome::Id { id });
     match command {
-        Command::ProvideToken { token, expires_at } => done(e.provide_token(token, expires_at)),
-        Command::ProvideTokenFor { token, expires_in_secs } => done(e.provide_token_for(token, expires_in_secs)),
+        Command::ProvideToken { token, expires_at, update_available } => done(e.provide_token_with_update(token, expires_at, update_available)),
+        Command::ProvideTokenFor { token, expires_in_secs, update_available: None } => done(e.provide_token_for(token, expires_in_secs)),
         Command::TokenUnavailable { reason } => done(e.token_unavailable(&reason)),
         Command::SetTokenEndpoint { url, headers } => done(e.set_token_endpoint(&url, headers)),
         Command::StreamPause => done(e.stream_pause()),

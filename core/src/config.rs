@@ -55,6 +55,10 @@ pub struct EmbedConfig {
     pub log_level: LogLevel,
     /// Appended after `lingara-embed/<version>`, e.g. `my-game/1.4`.
     pub user_agent_suffix: Option<String>,
+    /// The platform embed version this build was registered against
+    /// (`MAJOR.MINOR.PATCH`), sent to the token endpoint as
+    /// `Lingara-Embed-Version` (ADR 30.10.26p D1). Never sent to Lingara.
+    pub embed_version: Option<String>,
 }
 
 impl Default for EmbedConfig {
@@ -71,6 +75,7 @@ impl Default for EmbedConfig {
             stream_idle_timeout_ms: limits::DEFAULT_STREAM_IDLE_TIMEOUT_MS,
             log_level: LogLevel::Warn,
             user_agent_suffix: None,
+            embed_version: None,
         }
     }
 }
@@ -88,6 +93,18 @@ pub(crate) fn check_url(option: &str, url: &str) -> Result<(), EmbedError> {
     }
 }
 
+/// V1's grammar for a declared version (Backend 30.10.26o §6): three
+/// dot-separated numbers of at most six digits, no leading zero, no `v`,
+/// at most 20 characters. So `v1.0`, `1.0` and `01.0.0` are refused.
+pub(crate) fn check_embed_version(version: &str) -> Result<(), EmbedError> {
+    let number = |part: &str| (1..=6).contains(&part.len()) && part.bytes().all(|b| b.is_ascii_digit()) && (part == "0" || !part.starts_with('0'));
+    let parts: Vec<&str> = version.split('.').collect();
+    if version.len() <= 20 && parts.len() == 3 && parts.iter().all(|p| number(p)) {
+        return Ok(());
+    }
+    Err(config_error("embed_version must be MAJOR.MINOR.PATCH (no leading zeros, no `v`, at most 20 characters)"))
+}
+
 impl EmbedConfig {
     /// D9's `Config` cases, checked before `start` spawns anything.
     pub fn validate(&self) -> Result<(), EmbedError> {
@@ -97,6 +114,9 @@ impl EmbedConfig {
         }
         if self.api_version.as_deref() == Some("") {
             return Err(config_error("api_version must not be empty"));
+        }
+        if let Some(version) = &self.embed_version {
+            check_embed_version(version)?;
         }
         if self.queue_capacity == 0 {
             return Err(config_error("queue_capacity must be at least 1"));

@@ -3,6 +3,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import notices from '../../../../conformance/vectors/update-notice.json'
+import { updateLine, type UpdateAvailableDetail } from '../events.js'
 import { validateGrant } from '../tokens.js'
 import { deferred, fired, frameSays, grant, mount, READY, sent, tick, type Mounted, type Provider } from './fakeFrame.js'
 import fixtures from './grants.json'
@@ -167,6 +169,40 @@ describe('1.10.26ad — tokens', () => {
     for (const text of surfaces) expect(text).not.toContain('lgr_et_')
     expect(setItem).not.toHaveBeenCalled()
     for (const log of logs) expect(log).not.toHaveBeenCalled()
+  })
+
+  it('30.10.26p AC9 an update notice reaches the host once', async () => {
+    // The core's own lines: every row without an embed_version is the widget's.
+    const rows = notices.rows.filter((row) => row.embed_version === null)
+    expect(rows.length).toBeGreaterThan(8)
+    for (const row of rows) expect(updateLine(row.update_available as UpdateAvailableDetail), row.case).toBe(row.line)
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const notice = { latest: '1.2.0', deprecated: true, message: 'please update' }
+    const bad = { latest: '1.2.0', message: null }
+    const with_ = (n: unknown) => ({ ...grant(900, 'lgr_et_n'), update_available: n })
+    const m = await initialised(scripted([with_(notice), with_(notice), 900, with_(bad), with_(notice)]))
+    for (let i = 0; i < 3; i += 1) {
+      frameSays(m, 'token_request', { reason: 'expired' })
+      await tick()
+    }
+    expect(m.provider).toHaveBeenCalledTimes(4)
+    expect(sent(m, 'token')).toHaveLength(3)
+    expect(fired(m, 'lingara:update-available').map((event) => event.detail)).toEqual([notice])
+    expect(warn.mock.calls).toEqual([["lingara: this build's embed version is deprecated; the current version is 1.2.0: please update"]])
+    // The frame hears tokens and nothing else.
+    for (const post of m.posts) expect(Object.keys(post.message.payload)).not.toContain('update_available')
+    // A malformed notice still grants.
+    expect(validateGrant(with_(bad))).toEqual({ token: 'lgr_et_n', expiresAt: expect.any(Number) })
+
+    // A re-connected element is a new session, and is told again.
+    m.el.remove()
+    document.body.append(m.el)
+    frameSays(m, 'ready', READY)
+    await tick()
+    expect(m.provider).toHaveBeenCalledTimes(5)
+    expect(fired(m, 'lingara:update-available')).toHaveLength(2)
+    expect(warn).toHaveBeenCalledTimes(2)
   })
 
   it('1.10.26ad AC14 every handoff shape V1 allows is read the same way', () => {

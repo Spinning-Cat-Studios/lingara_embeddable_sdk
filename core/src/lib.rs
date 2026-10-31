@@ -39,4 +39,5 @@ pub use lingara_dialogue_ir as dialogue_ir;
 pub use embed::Embed;
 pub use handoff::{BoxFuture, EmbedTokenSource, IssuedToken, stale_after};
 pub use secret::REDACTED;
+pub use token_fetch::EMBED_VERSION_HEADER;
 pub use types::*;

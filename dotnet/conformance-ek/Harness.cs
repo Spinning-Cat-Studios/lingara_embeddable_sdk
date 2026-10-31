@@ -184,13 +184,14 @@ namespace Lingara.Embed.Conformance
         private void Provide(JsonNode body)
         {
             var token = body["token"]?.GetValue<string>() ?? string.Empty;
+            var update = Commands.Update(body["update_available"]);
             if (body["expires_at"] is JsonNode at)
             {
-                Client.ProvideToken(token, at.GetValue<string>());
+                Client.ProvideToken(token, at.GetValue<string>(), update);
             }
             else
             {
-                Client.ProvideTokenFor(token, body["expires_in_secs"]?.GetValue<uint>() ?? throw new InvalidOperationException("no expires_at or expires_in_secs"));
+                Client.ProvideTokenFor(token, body["expires_in_secs"]?.GetValue<uint>() ?? throw new InvalidOperationException("no expires_at or expires_in_secs"), update);
             }
         }
 

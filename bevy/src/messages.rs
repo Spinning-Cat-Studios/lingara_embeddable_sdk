@@ -6,7 +6,7 @@ use bevy::ecs::message::Message;
 use bevy::ecs::resource::Resource;
 use lingara_embed::{
     CloseReason, CrossedVia, DialogueOutcome, EmbedError, EmbedEvent, EmbedStatus, FactValue, Header, LingaraEvent, PracticeSnapshot,
-    PracticeSource, Reaction, RequestId, Secret, TokenReason, WorldContext,
+    PracticeSource, Reaction, RequestId, Secret, TokenReason, UpdateAvailable, WorldContext,
 };
 
 use crate::practice::PracticeAction;
@@ -24,6 +24,16 @@ pub struct LingaraRawEvent(pub EmbedEvent);
 pub struct LingaraTokenNeeded {
     pub request: RequestId,
     pub reason: TokenReason,
+}
+
+/// This build's `embed_version` has a newer or better one (ADR 30.10.26p),
+/// written once per handle. For the developer: never draw it for a player.
+/// The core's `Warn` line reaches `bevy::log` beside it.
+#[derive(Message, Debug, Clone, PartialEq, Eq)]
+pub struct LingaraUpdateAvailable {
+    pub latest: Option<String>,
+    pub deprecated: bool,
+    pub message: Option<String>,
 }
 
 /// One event off the stream. Every type the core does not type, `practice.completed`
@@ -90,27 +100,35 @@ pub struct LingaraConnect;
 #[derive(Message, Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct LingaraDisconnect;
 
-/// The handoff body's two fields, for the Poll source. Private fields, no
+/// The handoff body's fields, for the Poll source. Private fields, no
 /// `Clone`, and a redacting `Debug`: nothing can read the token back out.
 #[derive(Message)]
 pub struct ProvideToken {
     token: Secret,
     expires_at: String,
+    update: Option<UpdateAvailable>,
 }
 
 impl ProvideToken {
     pub fn new(token: impl Into<Secret>, expires_at: impl Into<String>) -> Self {
-        Self { token: token.into(), expires_at: expires_at.into() }
+        Self { token: token.into(), expires_at: expires_at.into(), update: None }
     }
 
-    pub(crate) fn parts(&self) -> (Secret, String) {
-        (self.token.clone(), self.expires_at.clone())
+    /// With the handoff's optional `update_available` (ADR 30.10.26p), for
+    /// a game that fetched the handoff itself. Read a raw one with
+    /// `UpdateAvailable::from_value`, which drops a malformed notice.
+    pub fn with_update(token: impl Into<Secret>, expires_at: impl Into<String>, update: Option<UpdateAvailable>) -> Self {
+        Self { update, ..Self::new(token, expires_at) }
+    }
+
+    pub(crate) fn parts(&self) -> (Secret, String, Option<UpdateAvailable>) {
+        (self.token.clone(), self.expires_at.clone(), self.update.clone())
     }
 }
 
 impl std::fmt::Debug for ProvideToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ProvideToken").field("token", &self.token).field("expires_at", &self.expires_at).finish()
+        f.debug_struct("ProvideToken").field("token", &self.token).field("expires_at", &self.expires_at).field("update", &self.update).finish()
     }
 }
 

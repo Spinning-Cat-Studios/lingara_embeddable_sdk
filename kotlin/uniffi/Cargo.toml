@@ -3,7 +3,7 @@ name = "lingara-embed-uniffi"
 # The trio's one VERSION (roadmap D10); the release tooling writes it here as
 # it does core/Cargo.toml. NativeLoader compares it, through
 # `lingara_embed_uniffi_version`, with the version the Kotlin was built at.
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 edition = "2024"
 rust-version = "1.87"
 license = "MIT"
@@ -20,7 +20,7 @@ crate-type = ["cdylib", "lib"]
 # UniFFI 0.31: the version this studio has proven through R8, iOS and the
 # checksum trap (D2). A move is its own ADR.
 [dependencies]
-lingara-embed = { path = "../../core", version = "=0.2.0-alpha.5" }
+lingara-embed = { path = "../../core", version = "=0.2.0-alpha.6" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uniffi = "=0.31.1"

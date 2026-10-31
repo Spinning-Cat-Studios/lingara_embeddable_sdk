@@ -37,6 +37,12 @@ void ULingaraEmbedSubsystem::ProvideToken(const FString& Token, const FString& E
 	Result = Run(LingaraCommandEncoder::ProvideToken(Token, ExpiresAt), Outcome, Error);
 }
 
+void ULingaraEmbedSubsystem::ProvideTokenWithUpdate(const FString& Token, const FString& ExpiresAt, const FString& UpdateAvailableJson, ELingaraCallResult& Result, FLingaraEmbedError& Error)
+{
+	FLingaraOutcome Outcome;
+	Result = Run(LingaraCommandEncoder::ProvideToken(Token, ExpiresAt, UpdateAvailableJson), Outcome, Error);
+}
+
 void ULingaraEmbedSubsystem::ProvideTokenFor(const FString& Token, int32 ExpiresInSecs, ELingaraCallResult& Result, FLingaraEmbedError& Error)
 {
 	FLingaraOutcome Outcome;

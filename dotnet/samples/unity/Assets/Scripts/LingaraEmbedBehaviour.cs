@@ -14,6 +14,8 @@ public sealed class LingaraEmbedBehaviour : MonoBehaviour
 {
     [Tooltip("Your own server's endpoint: it mints a native embed token (no origin) and returns { token, expires_at }.")]
     public string tokenUrl = "http://127.0.0.1:8787/token"; // tools/demo-token-server while you develop
+    [Tooltip("The platform embed version this build was registered against, e.g. 1.1.0: your server is told it, and Lingara answers when an update is out.")]
+    public string embedVersion = "";
     public bool streamOnStart;
 
     public event Action<EmbedEvent.NpcTurn> NpcTurn;
@@ -34,6 +36,7 @@ public sealed class LingaraEmbedBehaviour : MonoBehaviour
         {
             StreamOnStart = streamOnStart,
             UserAgentSuffix = "unity/" + Application.unityVersion,
+            EmbedVersion = string.IsNullOrEmpty(embedVersion) ? null : embedVersion,
         });
 #if UNITY_EDITOR
         // Unity never unloads a native plugin in the editor: a client leaked across
@@ -71,6 +74,10 @@ public sealed class LingaraEmbedBehaviour : MonoBehaviour
                 case EmbedEvent.LingaraReceived received: LingaraReceived?.Invoke(received); break;
                 case EmbedEvent.Failed failed: Failed?.Invoke(failed); break;
                 case EmbedEvent.Log log: Debug.Log($"[lingara] {log.Level} {log.Target}: {log.Message}"); break;
+                // Once per session, for you: log it, never draw it for the player.
+                case EmbedEvent.UpdateAvailable update:
+                    Debug.LogWarning($"[lingara] update available: latest {update.Latest ?? "none"}, deprecated {update.Deprecated}: {update.Message}");
+                    break;
             }
         }
     }
@@ -78,13 +85,17 @@ public sealed class LingaraEmbedBehaviour : MonoBehaviour
 
     // lingara:begin tokenSource
     [Serializable]
-    private struct Handoff { public string token; public string expires_at; }
+    private struct Notice { public string latest; public bool deprecated; public string message; }
+
+    [Serializable]
+    private struct Handoff { public string token; public string expires_at; public Notice update_available; }
 
     // Your own server mints the token: never put a client secret in a game.
     private IEnumerator FetchToken()
     {
         using (var request = UnityWebRequest.PostWwwForm(tokenUrl, string.Empty))
         {
+            if (!string.IsNullOrEmpty(embedVersion)) request.SetRequestHeader("Lingara-Embed-Version", embedVersion);
             yield return request.SendWebRequest();
             if (Client == null) yield break;
             if (request.result != UnityWebRequest.Result.Success)
@@ -92,8 +103,14 @@ public sealed class LingaraEmbedBehaviour : MonoBehaviour
                 Client.TokenUnavailable(request.error); // fail the waiting calls now
                 yield break;
             }
-            var handoff = JsonUtility.FromJson<Handoff>(request.downloadHandler.text);
-            Client.ProvideToken(handoff.token, handoff.expires_at);
+            var text = request.downloadHandler.text;
+            var handoff = JsonUtility.FromJson<Handoff>(text);
+            // JsonUtility has no null: an absent notice and an empty string both read as "".
+            var n = handoff.update_available;
+            var update = text.Contains("\"update_available\"")
+                ? new UpdateAvailable { Latest = string.IsNullOrEmpty(n.latest) ? null : n.latest, Deprecated = n.deprecated, Message = string.IsNullOrEmpty(n.message) ? null : n.message }
+                : null;
+            Client.ProvideToken(handoff.token, handoff.expires_at, update);
         }
     }
     // lingara:end

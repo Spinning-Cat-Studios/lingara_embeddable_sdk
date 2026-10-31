@@ -10,7 +10,7 @@
 
 enum class ELingaraDecodedType : uint8
 {
-	TokenNeeded, Stream, Lingara, WorldSent, Practice, NpcTurn, CheckpointReached, DialogueEnded, DialogueLoaded, DialogueLoadFailed, Error, Log, Closed, Unknown
+	TokenNeeded, Stream, Lingara, WorldSent, Practice, NpcTurn, CheckpointReached, DialogueEnded, DialogueLoaded, DialogueLoadFailed, Error, Log, UpdateAvailable, Closed, Unknown
 };
 
 // A graph dialogue's story step (ADR 28.10.26f): `checkpoint_reached` sets
@@ -45,6 +45,7 @@ struct FLingaraDecodedEvent
 	ELingaraLogLevel LogLevel = ELingaraLogLevel::Info;
 	FString LogTarget;
 	FString LogMessage;
+	FLingaraUpdateAvailable Update;
 	ELingaraCloseReason CloseReason = ELingaraCloseReason::Unknown;
 };
 

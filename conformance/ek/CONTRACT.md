@@ -131,6 +131,14 @@ Every binding over the core replays every case through its own surface.
   `404 not_found` and `404 dialogue_not_active` fail the load
   (`dialogue_load_failed`) as `not_found` with no retry, a `403` as
   `forbidden`, and a body the IR's validation refuses as `invalid_input`.
+- **EK13 — an update notice is said once per handle** (ADR 30.10.26p). The
+  first token carrying `update_available` yields one `log` at `warn`
+  (target `lingara_embed::update`, the line
+  `conformance/vectors/update-notice.json` pins) and one
+  `update_available`, in that order; a later token yields neither; a token
+  without it yields neither; and the token is accepted either way. A
+  malformed `update_available` is dropped, never refused. Nothing in it is
+  sent to Lingara.
 
 ## The host script
 
@@ -140,7 +148,7 @@ binding already maps. Every step and field is closed.
 | Step | Fields | Through the surface |
 |---|---|---|
 | `start` | `initial_token`: `none` or a token; `config`: a subset of `EmbedConfig` (`queue_capacity`, `api_version`, `user_agent_suffix`, `event_types`, `resume_cursor`, `stream_on_start`, `stream_idle_timeout_ms`, `log_level`). `base_url` is always the server's | `start`, then `provide_token_for(token, 900)` if a token is given |
-| `provide_token` | `token`, and exactly one of `expires_at` or `expires_in_secs` | `provide_token` or `provide_token_for` |
+| `provide_token` | `token`, and exactly one of `expires_at` or `expires_in_secs`; optionally `update_available`, passed through as written, malformed or not (EK13) | `provide_token` or `provide_token_for`, the binding's way of carrying `update_available` when it is set |
 | `command` | a `Command` in its JSON shape. A value `"$last"` is the id the latest `practice_start`, `dialogue_open` or `dialogue_load` answered | `execute`, or the binding's flat method |
 | `poll_until` | `event`: an event `type` tag (`stream`, `npc_turn`, …); `match`: an optional object the event must contain, compared after dropping nulls; `within_ms` | drain until a match, failing at `within_ms` |
 | `expect_no_event` | `event`, optional `match`, `for_ms` | drain for `for_ms`; fail on a match |

@@ -26,6 +26,9 @@ func _on_token_needed(_request: int, _reason: String) -> void:
 	var http := HTTPRequest.new()
 	add_child(http)
 	var headers := PackedStringArray(["Content-Type: application/json"])
+	# The build's embed version, for the server's mint (ADR 30.10.26p D1).
+	if _lingara().embed_version != "":
+		headers.append("Lingara-Embed-Version: %s" % _lingara().embed_version)
 	if http.request(_url(), headers, HTTPClient.METHOD_POST, "{}") != OK:
 		http.queue_free()
 		_lingara().token_unavailable("the token request did not start")
@@ -40,6 +43,7 @@ func _on_token_needed(_request: int, _reason: String) -> void:
 		return
 	var body: Variant = JSON.parse_string(text)
 	if body is Dictionary and body.has("token"):
-		_lingara().provide_token(body["token"], body["expires_at"])
+		var update: Variant = body.get("update_available")
+		_lingara().provide_token_with_update(body["token"], body["expires_at"], update if update is Dictionary else {})
 	else:
 		_lingara().token_unavailable("the token server answered 200 without a token")
