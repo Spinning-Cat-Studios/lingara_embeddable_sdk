@@ -15,12 +15,14 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"strings"
 
 	lingara "github.com/Spinning-Cat-Studios/lingara_api_clients/go"
 )
 
 // MintOptions is what a mint may send beside the player. Each is sent only
-// when given: Scopes when non-nil, Origin when non-empty.
+// when given: Scopes when non-nil, Origin and EmbedVersion when non-empty.
 type MintOptions struct {
 	// Scopes narrows the token to these handable scopes. Nil asks for every
 	// handable scope your client holds.
@@ -29,6 +31,31 @@ type MintOptions struct {
 	// origins. A game's server mints without one. The kit never reads it
 	// from a request: it is yours to pass.
 	Origin string
+	// EmbedVersion is the embed version the player's build runs, usually
+	// EmbedVersionFrom(r.Header). Lingara answers a version that is behind,
+	// deprecated or withdrawn with MintedToken.UpdateAvailable, which
+	// TokenHandoff forwards. The kit does not validate it: Lingara does, and
+	// a refusal is the library's error, unchanged.
+	EmbedVersion string
+}
+
+// embedVersionHeader is the request header a player kit declares its build's
+// embed version in.
+const embedVersionHeader = "Lingara-Embed-Version"
+
+// EmbedVersionFrom reads Lingara-Embed-Version from a request's headers,
+// case-insensitively, and returns it trimmed. A missing header, or one blank
+// after trimming, is "", so the mint sends no embed_version and a blank
+// header never becomes a 400 for every player. The keys are compared with
+// strings.EqualFold rather than through Get, since a hand-built http.Header
+// need not hold the canonical spelling.
+func EmbedVersionFrom(h http.Header) string {
+	for key, values := range h {
+		if strings.EqualFold(key, embedVersionHeader) && len(values) > 0 {
+			return strings.TrimSpace(values[0])
+		}
+	}
+	return ""
 }
 
 // ServerOption configures a Server.
@@ -64,6 +91,22 @@ func NewServer(c *lingara.Client, opts ...ServerOption) *Server {
 // returns the library's error unchanged and remembers nothing; a failed
 // Remember is a *DirectoryError.
 func (s *Server) MintToken(ctx context.Context, playerRef string, o MintOptions) (*lingara.MintedToken, error) {
+	res, err := s.client.CreateEmbedToken(ctx, mintRequest(playerRef, o))
+	if err != nil {
+		return nil, err
+	}
+	minted := res.Value
+	if s.directory != nil {
+		if err := s.directory.Remember(ctx, playerRef, minted.Subject); err != nil {
+			return nil, &DirectoryError{Err: err}
+		}
+	}
+	return &minted, nil
+}
+
+// mintRequest is the library's request body, each option set only when
+// given.
+func mintRequest(playerRef string, o MintOptions) lingara.EmbedTokenRequest {
 	req := lingara.EmbedTokenRequest{PlayerRef: playerRef}
 	if o.Scopes != nil {
 		scopes := make([]lingara.EmbedTokenRequestScopes, len(o.Scopes))
@@ -76,17 +119,11 @@ func (s *Server) MintToken(ctx context.Context, playerRef string, o MintOptions)
 		origin := o.Origin
 		req.Origin = &origin
 	}
-	res, err := s.client.CreateEmbedToken(ctx, req)
-	if err != nil {
-		return nil, err
+	if o.EmbedVersion != "" {
+		version := o.EmbedVersion
+		req.EmbedVersion = &version
 	}
-	minted := res.Value
-	if s.directory != nil {
-		if err := s.directory.Remember(ctx, playerRef, minted.Subject); err != nil {
-			return nil, &DirectoryError{Err: err}
-		}
-	}
-	return &minted, nil
+	return req
 }
 
 // DeletePlayer deletes a player and revokes their tokens, then forgets them

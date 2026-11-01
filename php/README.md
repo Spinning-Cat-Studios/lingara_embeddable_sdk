@@ -64,10 +64,14 @@ $embed = new EmbedServer(
 // POST /lingara/token, behind your own login.
 $playerId = $_SESSION['player_id'] ?? null;
 if (!is_string($playerId)) { http_response_code(401); exit; }
-$minted = $embed->mintToken($playerId, origin: 'https://game.example'); // this page's origin
+$minted = $embed->mintToken(
+    $playerId,
+    origin: 'https://game.example', // this page's origin
+    embedVersion: EmbedServer::embedVersionFrom(getallheaders()), // the player build's declared version
+);
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
-echo TokenHandoff::body($minted); // {"token":"lgr_et_…","expires_at":"…"}
+echo TokenHandoff::body($minted); // {"token":"lgr_et_…","expires_at":"…"}, plus update_available when answered
 ```
 
 - Every `mintToken()` is one `POST /v1/embed/tokens`; the kit keeps no cache.
@@ -84,6 +88,30 @@ echo TokenHandoff::body($minted); // {"token":"lgr_et_…","expires_at":"…"}
 
 `TokenHandoff::body()` is the one place the token is exposed, in exactly the
 shape every player kit and the widget read. Return it and nothing else.
+
+### The player's declared version
+
+- A player kit sends its build's version to your token route as the
+  `Lingara-Embed-Version` header. `EmbedServer::embedVersionFrom($headers)`
+  reads it from `getallheaders()` or any PSR-7 request, case-insensitively,
+  and returns it trimmed; a missing or blank header is `null`, so the mint
+  sends no `embed_version` key.
+- Pass it as `mintToken(…, embedVersion: …)`. It is sent only when given, and
+  the kit does not validate it: Lingara is the authority.
+- When that build is behind, deprecated or withdrawn, the mint answers
+  `$minted->updateAvailable` (the library's `Lingara\Model\UpdateAvailable`),
+  and `TokenHandoff::body()` forwards it as a third key,
+  `"update_available":{"latest":…,"deprecated":…,"message":…}`, for the
+  player kit to show. Without one the body is the two-key body.
+- Lingara refuses three mints over the version. Each is a **developer**
+  condition: your route turns the `ApiException` into its own error, and the
+  player kit then sees `TokenUnavailable`, as for any failed fetch.
+  - `409 embed_version_withdrawn`: a new player on a yanked build. Existing
+    players keep minting.
+  - `400 embed_version_unknown`: a well-formed version that is not one of this
+    embed's published versions.
+  - `400 invalid_request_body`: an `embed_version` that fails the version
+    grammar.
 
 ## Webhooks: route them to your players
 

@@ -215,13 +215,14 @@ session**.
 ```ts
 import express from 'express'
 import { Lingara } from '@lingara/api'
-import { EmbedServer, tokenHandoff } from '@lingara/embed/server'
+import { EmbedServer, embedVersionFrom, tokenHandoff } from '@lingara/embed/server'
 
 const lingara = new Lingara({ clientId: process.env.LINGARA_CLIENT_ID, clientSecret: process.env.LINGARA_CLIENT_SECRET })
 const server = new EmbedServer(lingara, { directory: new PlayerTable() })
 
 app.post('/lingara/token', requireSignIn, async (req, res) => {
-  const minted = await server.mintToken(req.user.id, { origin: 'https://www.example.com' })
+  const embedVersion = embedVersionFrom(req.headers)
+  const minted = await server.mintToken(req.user.id, { origin: 'https://www.example.com', embedVersion })
   res.set('cache-control', 'no-store').type('application/json').send(tokenHandoff(minted))
 })
 ```
@@ -229,6 +230,28 @@ app.post('/lingara/token', requireSignIn, async (req, res) => {
 A failed call raises the library's own error (`ApiError` with its `status`
 and `code`, `OAuthError`, `MaintenanceError`), unchanged; nothing is
 remembered. A game's server mints the same way, without `origin`.
+
+**The player's build version.** A player kit names its build in a
+`Lingara-Embed-Version` header on its request to your route.
+`embedVersionFrom(headers)` reads it, case-insensitively and trimmed, from a
+fetch `Headers` or a Node header record (`req.headers`); a missing or blank
+header is `undefined`. Pass it as the mint's `embedVersion` option, which is
+sent as `embed_version` only when given. The kit does not validate it:
+Lingara does. When the build is behind, deprecated or withdrawn, the answer's
+`minted.updateAvailable` carries Lingara's notice, and `tokenHandoff` forwards
+it as a third key, `update_available` (`latest`, `deprecated`, `message`, in
+that order, `null`s kept). Without one the body is exactly
+`{"token","expires_at"}`, as before.
+
+A declared version can also be refused. These are **developer** conditions,
+raised as `ApiError`: your route turns them into its own error, and the
+player kit then sees `TokenUnavailable`, as for any failed fetch.
+
+| Status and `code` | When |
+|---|---|
+| `409 embed_version_withdrawn` | A new player on a build you yanked. Players who already have a token keep minting. |
+| `400 embed_version_unknown` | A well-formed version that is not one of this embed's published versions. |
+| `400 invalid_request_body` | An `embed_version` that fails the version grammar. |
 
 ### Render the widget
 

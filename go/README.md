@@ -45,7 +45,10 @@ http.HandleFunc("POST /lingara/token", func(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "sign in first", http.StatusUnauthorized)
 		return
 	}
-	minted, err := embed.MintToken(r.Context(), playerRef, lingaraembed.MintOptions{Origin: "https://game.example"})
+	minted, err := embed.MintToken(r.Context(), playerRef, lingaraembed.MintOptions{
+		Origin:       "https://game.example",
+		EmbedVersion: lingaraembed.EmbedVersionFrom(r.Header), // the player's build
+	})
 	if err != nil {
 		http.Error(w, "no token", http.StatusBadGateway)
 		return
@@ -66,9 +69,32 @@ http.HandleFunc("POST /lingara/token", func(w http.ResponseWriter, r *http.Reque
 - On success the kit calls `Remember(playerRef, minted.Subject)` on your
   directory. On failure it remembers nothing and returns the library's own
   error (`*lingara.APIError`, `*lingara.OAuthError`, …) unchanged.
-- `TokenHandoff` writes exactly `{"token", "expires_at"}`, the body every
-  player kit and the widget read. It is the one place the token is exposed;
-  everywhere else a `*lingara.MintedToken` renders as `[REDACTED]`.
+- `EmbedVersion` is the embed version the player's build runs. A player kit
+  declares it in the `Lingara-Embed-Version` request header, and
+  `EmbedVersionFrom(r.Header)` reads it case-insensitively and trimmed. A
+  missing or blank header is `""`, and the mint then sends no
+  `embed_version` at all. The kit does not validate the value: Lingara does.
+- `TokenHandoff` writes `{"token", "expires_at"}`, the body every player kit
+  and the widget read, and a third key `update_available`
+  (`{"latest", "deprecated", "message"}`, `null`s kept) only when Lingara
+  answered the declared version with one: the build is behind, deprecated or
+  withdrawn. Without it the body is exactly the two keys. It is the one place
+  the token is exposed; everywhere else a `*lingara.MintedToken` renders as
+  `[REDACTED]`.
+
+### When Lingara refuses the declared version
+
+A mint that sends `EmbedVersion` can be refused for it. Each refusal is a
+**developer** condition, returned as the library's `*lingara.APIError`: your
+route turns it into its own error, and the player kit then sees
+`TokenUnavailable`, as for any failed fetch.
+
+- `409 embed_version_withdrawn`: a new player on a build you withdrew
+  (yanked). Players who already minted on it keep minting.
+- `400 embed_version_unknown`: a well-formed version that is not one of this
+  embed's published versions.
+- `400 invalid_request_body`: an `embed_version` that fails the
+  `MAJOR.MINOR.PATCH` grammar.
 
 ## The widget snippet
 

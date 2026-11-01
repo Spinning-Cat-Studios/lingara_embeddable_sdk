@@ -9,6 +9,7 @@ use Lingara\Embed\SnippetOptions;
 use Lingara\Embed\TokenHandoff;
 use Lingara\Embed\Version;
 use Lingara\Embed\WidgetSnippet;
+use Lingara\Model\UpdateAvailable;
 use PHPUnit\Framework\TestCase;
 
 final class VectorsTest extends TestCase
@@ -19,8 +20,11 @@ final class VectorsTest extends TestCase
      * 1.10.26af AC8: every case of conformance/vectors/snippet.json renders
      * exactly its `html` ({{version}} replaced by Version::VERSION) or is
      * refused with SnippetException naming its `field`; and every case of
-     * token-handoff.json gives exactly its `body` through handoffBody().
+     * token-handoff.json gives exactly its `body` through handoffBody(), its
+     * `update_available` decoded to the library's typed UpdateAvailable
+     * first, so key order is the encoder's.
      */
+    // 31.10.26f AC4
     public function testEverySnippetAndHandoffVector(): void
     {
         $snippets = self::read('snippet.json');
@@ -32,14 +36,36 @@ final class VectorsTest extends TestCase
         }
         $handoffs = self::read('token-handoff.json');
         self::assertNotEmpty($handoffs);
+        $notices = 0;
         foreach ($handoffs as $case) {
             self::assertIsArray($case);
             self::assertIsArray($case['input']);
             [$token, $expiresAt, $body] = [$case['input']['token'], $case['input']['expires_at'], $case['body']];
             self::assertIsString($token);
             self::assertIsString($expiresAt);
-            self::assertSame($body, TokenHandoff::handoffBody($token, $expiresAt), (string) json_encode($case['name']));
+            $notice = self::notice($case['input']);
+            $notices += $notice === null ? 0 : 1;
+            self::assertSame($body, TokenHandoff::handoffBody($token, $expiresAt, $notice), (string) json_encode($case['name']));
         }
+        self::assertGreaterThanOrEqual(3, $notices, "31.10.26f's three vectors are here");
+    }
+
+    /**
+     * The vector's `update_available` as the library's typed value, the
+     * one MintedToken carries; null when the vector has none.
+     *
+     * @param array<mixed> $input
+     */
+    private static function notice(array $input): ?UpdateAvailable
+    {
+        if (!array_key_exists('update_available', $input)) {
+            return null;
+        }
+        $raw = $input['update_available'];
+        self::assertIsArray($raw);
+        self::assertTrue(array_key_exists('latest', $raw) && array_key_exists('message', $raw), 'all three keys');
+        self::assertIsBool($raw['deprecated']);
+        return new UpdateAvailable(['latest' => $raw['latest'], 'deprecated' => $raw['deprecated'], 'message' => $raw['message']]);
     }
 
     /** @param array<mixed> $case */

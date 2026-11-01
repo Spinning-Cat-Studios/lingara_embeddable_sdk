@@ -22,7 +22,7 @@ public static class LingaraRoutes
         }, new SqlPlayerDirectory(db));
 
         // Your own session says who the player is. Rate-limit this route per session.
-        app.MapPost("/lingara/token", async (ClaimsPrincipal user, CancellationToken ct) =>
+        app.MapPost("/lingara/token", async (ClaimsPrincipal user, HttpRequest request, CancellationToken ct) =>
         {
             var playerRef = user.FindFirstValue(ClaimTypes.NameIdentifier);
             if (playerRef is null)
@@ -30,9 +30,14 @@ public static class LingaraRoutes
                 return Results.Unauthorized();
             }
 
-            // This page's origin, one of your client's embed origins. A game's server omits it.
-            var minted = await lingara.MintTokenAsync(playerRef, new MintOptions { Origin = "https://game.example" }, ct);
-            return Results.Text(TokenHandoff.Body(minted), "application/json"); // {"token":"lgr_et_…","expires_at":"…"}
+            var minted = await lingara.MintTokenAsync(playerRef, new MintOptions
+            {
+                Origin = "https://game.example", // this page's origin, one of your client's embed origins; a game's server omits it
+                // The build's Lingara-Embed-Version, so Lingara can say when it is outdated.
+                EmbedVersion = EmbedServer.EmbedVersionFrom(name => request.Headers.TryGetValue(name, out var v) ? v.ToString() : null),
+            }, ct);
+            // {"token":"lgr_et_…","expires_at":"…"}, and "update_available" when the build is outdated.
+            return Results.Text(TokenHandoff.Body(minted), "application/json");
         }).RequireAuthorization().RequireRateLimiting("lingara-token");
         // lingara:end
         // lingara:begin deletePlayer

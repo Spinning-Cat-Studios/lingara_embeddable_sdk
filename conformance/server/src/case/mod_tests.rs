@@ -155,7 +155,7 @@ serve:
     expect_request: { path: "/v1/embed/players/p1", body_equals: {} }
     respond: { status: 204 }
 kit:
-  - mint: { player_ref: p1, scopes: [events:read], origin: "https://game.example" }
+  - mint: { player_ref: p1, scopes: [events:read], origin: "https://game.example", headers: { Lingara-Embed-Version: " 1.1.0 " } }
   - delete: { player_ref: p1 }
   - handoff: {}
   - render: {}
@@ -183,8 +183,10 @@ fn the_es_kit_script_is_closed() {
     use super::{Called, DeleteJob, HandlerMode, KitStep as K, MintJob, SecretName};
     let es = case(KIT);
     let steps = es.kit.as_deref().expect("kit");
-    let Some(K::Mint(MintJob { player_ref, scopes: Some(scopes), origin: Some(_) })) = steps.first() else { panic!("mint first") };
+    let Some(K::Mint(MintJob { player_ref, scopes: Some(scopes), origin: Some(_), headers: Some(headers) })) = steps.first() else { panic!("mint first") };
     assert_eq!((player_ref.as_str(), scopes.as_slice()), ("p1", ["events:read".to_string()].as_slice()));
+    // 31.10.26f: ES8's headers reach the harness verbatim, untrimmed.
+    assert_eq!(headers.get("Lingara-Embed-Version").map(String::as_str), Some(" 1.1.0 "));
     assert!(matches!(&steps[1..], [K::Delete(DeleteJob { .. }), K::Handoff(_), K::Render(_)]));
     assert_eq!(es.directory.as_ref().map(|d| d.seed.len()), Some(1));
     let deliver = &es.deliver.as_deref().expect("deliver")[0];

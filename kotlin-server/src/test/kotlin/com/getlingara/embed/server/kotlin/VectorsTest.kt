@@ -1,7 +1,10 @@
 package com.getlingara.embed.server.kotlin
 
+import com.getlingara.kotlin.model.UpdateAvailable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -16,6 +19,9 @@ class VectorsTest {
      * 1.10.26af AC10: every `snippet.json` vector through [widgetSnippet], and every
      * `token-handoff.json` vector through the internal [handoffBody], gives its expected answer,
      * with `{{version}}` read as this kit's VERSION.
+     *
+     * 31.10.26f AC4: a handoff vector's `update_available` is passed as the library's
+     * `UpdateAvailable`, and the body is byte-equal to the vector's.
      */
     @Test
     fun everySnippetAndHandoffVector() {
@@ -39,10 +45,20 @@ class VectorsTest {
         assertTrue(handoffs.isNotEmpty(), "token-handoff.json holds cases")
         for (v in handoffs) {
             val input = v.jsonObject.getValue("input").jsonObject
-            val body = handoffBody(input.text("token"), input.text("expires_at"))
+            val body = handoffBody(input.text("token"), input.text("expires_at"), notice(input))
             assertEquals(v.jsonObject.text("body"), body, v.jsonObject.text("name"))
         }
     }
+
+    /** The vector's `update_available`, when present, as the library's typed value. */
+    private fun notice(input: JsonObject): UpdateAvailable? =
+        input["update_available"]?.jsonObject?.let {
+            UpdateAvailable(
+                latest = it.getValue("latest").jsonPrimitive.contentOrNull,
+                deprecated = it.getValue("deprecated").jsonPrimitive.boolean,
+                message = it.getValue("message").jsonPrimitive.contentOrNull,
+            )
+        }
 
     private fun read(property: String) = Json.parseToJsonElement(File(System.getProperty(property)).readText())
 

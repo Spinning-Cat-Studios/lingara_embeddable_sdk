@@ -14,7 +14,8 @@ use super::{Empty, SecretName};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum KitStep {
-    /// `mintToken(player_ref, {scopes?, origin?})`.
+    /// `mintToken(player_ref, {scopes?, origin?, embed_version?})`, the last
+    /// from `embedVersionFrom(headers)` when the job has `headers`.
     Mint(MintJob),
     /// `deletePlayer(player_ref)`.
     Delete(DeleteJob),
@@ -33,6 +34,11 @@ pub struct MintJob {
     pub scopes: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub origin: Option<String>,
+    /// ES8 (ADR 31.10.26f): the token route's request headers. The harness
+    /// passes `embedVersionFrom(headers)` as the mint's `embed_version`, so
+    /// `expect_request` judges the helper and the option together.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headers: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

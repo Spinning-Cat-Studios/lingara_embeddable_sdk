@@ -170,7 +170,9 @@ module EsHarness
 
     def one(job)
       if (m = job["mint"])
-        @minted = @server.mint_token(m["player_ref"], scopes: m["scopes"], origin: m["origin"])
+        # ES8: the route's headers through the helper, into the mint.
+        embed_version = Lingara::Embed.embed_version_from(m["headers"] || {})
+        @minted = @server.mint_token(m["player_ref"], scopes: m["scopes"], origin: m["origin"], embed_version: embed_version)
       elsif (d = job["delete"])
         @server.delete_player(d["player_ref"])
       elsif job.key?("handoff")

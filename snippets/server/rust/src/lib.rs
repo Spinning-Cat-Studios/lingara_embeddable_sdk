@@ -9,7 +9,8 @@ use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use lingara::BoxFuture;
 use lingara_embed::server::{
-    DirectoryError, EmbedServer, MintOptions, PlayerDirectory, PlayerRouter, ServerError, SnippetOptions, token_handoff, widget_snippet,
+    DirectoryError, EmbedServer, MintOptions, PlayerDirectory, PlayerRouter, ServerError, SnippetOptions, embed_version_from, token_handoff,
+    widget_snippet,
 };
 
 /// What your routes share.
@@ -45,10 +46,13 @@ pub async fn token_route(State(app): State<AppState>, headers: HeaderMap) -> imp
         return (StatusCode::UNAUTHORIZED, [(header::CACHE_CONTROL, "no-store")], String::new());
     };
     // This page's origin, one of your client's embed origins. A game's own
-    // server mints without one.
-    let options = MintOptions { origin: Some("https://game.example".into()), ..MintOptions::default() };
+    // server mints without one. The build's declared version, when its
+    // player kit sent one, so Lingara can say it is out of date.
+    let embed_version = embed_version_from(&headers);
+    let options = MintOptions { origin: Some("https://game.example".into()), embed_version, ..MintOptions::default() };
     match app.embed.mint_token(&player_ref, options).await {
-        // {"token":"lgr_et_…","expires_at":"…"}
+        // {"token":"lgr_et_…","expires_at":"…"}, and "update_available"
+        // when Lingara answered one.
         Ok(minted) => (StatusCode::OK, [(header::CACHE_CONTROL, "no-store")], token_handoff(&minted)),
         Err(_) => (StatusCode::BAD_GATEWAY, [(header::CACHE_CONTROL, "no-store")], String::new()),
     }

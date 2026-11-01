@@ -5,6 +5,7 @@ use serde_json::Value;
 
 use super::handoff::handoff_body;
 use super::{SnippetOptions, widget_snippet};
+use crate::types::UpdateAvailable;
 
 fn vectors(name: &str) -> Value {
     let path = format!("{}/../conformance/vectors/{name}", env!("CARGO_MANIFEST_DIR"));
@@ -28,10 +29,11 @@ fn options(o: &Value) -> SnippetOptions {
     }
 }
 
-// 1.10.26af AC11
+// 1.10.26af AC11; 31.10.26f AC1
 /// Every `snippet.json` vector through `widget_snippet`, and every
 /// `token-handoff.json` vector through the internal `handoff_body`, gives its
-/// expected answer.
+/// expected answer: the third key only when the input has one, decoded to the
+/// typed `UpdateAvailable` first so key order is the encoder's.
 #[test]
 fn every_snippet_and_handoff_vector() {
     let snippet = vectors("snippet.json");
@@ -49,9 +51,12 @@ fn every_snippet_and_handoff_vector() {
         }
     }
     let handoff = vectors("token-handoff.json");
-    for case in handoff.as_array().expect("a list") {
+    let cases = handoff.as_array().expect("a list");
+    assert!(cases.iter().filter(|c| c["input"].get("update_available").is_some()).count() >= 3, "31.10.26f's three vectors are here");
+    for case in cases {
         let input = &case["input"];
-        let got = handoff_body(input["token"].as_str().expect("token"), input["expires_at"].as_str().expect("expires_at"));
+        let notice = input.get("update_available").map(|v| UpdateAvailable::parse(v).expect("a well-formed notice"));
+        let got = handoff_body(input["token"].as_str().expect("token"), input["expires_at"].as_str().expect("expires_at"), notice.as_ref());
         assert_eq!(Some(got.as_str()), case["body"].as_str(), "{}", case["name"]);
     }
 }

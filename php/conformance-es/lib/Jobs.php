@@ -64,7 +64,25 @@ final class Jobs
     {
         $scopes = is_array($m['scopes'] ?? null) ? array_values(array_filter($m['scopes'], 'is_string')) : null;
         $origin = is_string($m['origin'] ?? null) ? $m['origin'] : null;
-        return $server->mintToken(self::text($m, 'player_ref'), $scopes, $origin);
+        // ES8: the route's headers through the helper, into the mint.
+        $embedVersion = EmbedServer::embedVersionFrom(self::headers($m['headers'] ?? null));
+        return $server->mintToken(self::text($m, 'player_ref'), $scopes, $origin, $embedVersion);
+    }
+
+    /**
+     * A mint job's `headers`, name to value; none when it has none.
+     *
+     * @return array<string, string>
+     */
+    private static function headers(mixed $headers): array
+    {
+        $out = [];
+        foreach (is_array($headers) ? $headers : [] as $name => $value) {
+            if (is_string($value)) {
+                $out[(string) $name] = $value;
+            }
+        }
+        return $out;
     }
 
     /** @param array<mixed> $v */

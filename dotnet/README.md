@@ -77,11 +77,15 @@ Your own route, behind your own session. The widget calls it with the page's
 cookies; a game calls it however it talks to your server.
 
 ```csharp
-app.MapPost("/lingara/token", async (ClaimsPrincipal user, CancellationToken ct) =>
+app.MapPost("/lingara/token", async (ClaimsPrincipal user, HttpRequest request, CancellationToken ct) =>
 {
     var playerRef = user.FindFirstValue(ClaimTypes.NameIdentifier); // your user, never a request value
     if (playerRef is null) return Results.Unauthorized();
-    var minted = await lingara.MintTokenAsync(playerRef, new MintOptions { Origin = "https://game.example" }, ct);
+    var minted = await lingara.MintTokenAsync(playerRef, new MintOptions
+    {
+        Origin = "https://game.example",
+        EmbedVersion = EmbedServer.EmbedVersionFrom(name => request.Headers.TryGetValue(name, out var v) ? v.ToString() : null),
+    }, ct);
     return Results.Text(TokenHandoff.Body(minted), "application/json"); // {"token":"lgr_et_…","expires_at":"…"}
 }).RequireAuthorization().RequireRateLimiting("lingara-token");
 ```
@@ -93,14 +97,35 @@ app.MapPost("/lingara/token", async (ClaimsPrincipal user, CancellationToken ct)
 - `Origin` is your page's origin, one of your client's registered embed
   origins. The kit never reads it from a request. A game's server omits it.
   `Scopes` narrows the token; none asks for every handable scope.
+- `EmbedVersion` is the player build's declared version. Every Lingara player
+  kit sends it to your token route as the `Lingara-Embed-Version` header;
+  `EmbedServer.EmbedVersionFrom(header)` reads it (through a case-insensitive
+  lookup, the same `Func<string, string?>` `PlayerRouter.HandleAsync` takes)
+  and trims it. A missing or blank header is `null`, and the mint then sends
+  no `embed_version` at all. The kit does not validate the value: Lingara is
+  the authority, and answers an outdated build with
+  `MintedToken.UpdateAvailable` (`Latest`, `Deprecated`, `Message`). A
+  malformed notice is dropped, never fatal to the token.
+- Three mint refusals are **developer** conditions, about your build rather
+  than your player. Your route turns each into its own error, and the player
+  kit then sees `TokenUnavailable`, as for any failed fetch:
+  - `409 embed_version_withdrawn`: a new player on a build you yanked.
+    Players who already minted on it keep minting.
+  - `400 embed_version_unknown`: a well-formed version that is not one of
+    this embed's published versions.
+  - `400 invalid_request_body`: an `embed_version` that fails the version
+    grammar.
 - On success the kit calls `RememberAsync(playerRef, minted.Subject)` on your
   directory. On failure it remembers nothing and throws: a
   `LingaraApiException` (`Status`, `Code`, `RetryAfter`), an `OAuthException`
   from the token endpoint, or a `MaintenanceException`, all
   `LingaraException`s. A `429` or `503` with a `Retry-After` of at most 60 s
   has already been retried, three attempts in all.
-- `TokenHandoff.Body` writes exactly `{"token", "expires_at"}`, the body every
-  player kit and the widget read. It is the one place the token is exposed:
+- `TokenHandoff.Body` writes `{"token", "expires_at"}`, the body every
+  player kit and the widget read, and forwards the mint's notice as a third
+  key, `update_available` (`{"latest", "deprecated", "message"}`, nulls
+  kept), only when Lingara answered one; without it the body is exactly the
+  two keys. It is the one place the token is exposed:
   a `MintedToken` has no token property, and its `ToString()` and debugger
   display render `[REDACTED]`. `ExposeToken()` is the one accessor.
 

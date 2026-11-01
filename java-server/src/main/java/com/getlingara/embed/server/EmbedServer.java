@@ -4,6 +4,8 @@ import com.getlingara.client.LingaraClient;
 import com.getlingara.client.MintedToken;
 import com.getlingara.client.model.EmbedTokenRequest;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -16,6 +18,8 @@ import java.util.Set;
  * retries and deprecation hook are the library's. Safe for concurrent use when the directory is.
  */
 public final class EmbedServer {
+  private static final String EMBED_VERSION_HEADER = "Lingara-Embed-Version";
+
   private final LingaraClient client;
   private final PlayerDirectory directory;
 
@@ -60,7 +64,7 @@ public final class EmbedServer {
    * remember(playerRef, subject)}. On a failure nothing is remembered.
    *
    * @param playerRef your reference for the player: 1 to 128 bytes of UTF-8
-   * @param options the scopes and origin, each sent only when given
+   * @param options the scopes, origin and embed version, each sent only when given
    * @return the library's minted token; hand it over with {@link TokenHandoff#body}
    * @throws IllegalArgumentException for a scope the library does not know
    */
@@ -68,6 +72,7 @@ public final class EmbedServer {
     EmbedTokenRequest request = new EmbedTokenRequest().playerRef(playerRef);
     options.scopes().ifPresent(scopes -> request.scopes(scopeSet(scopes)));
     options.origin().ifPresent(request::origin);
+    options.embedVersion().ifPresent(request::embedVersion);
     MintedToken minted = client.createEmbedToken(request).body();
     if (directory != null) {
       directory.remember(playerRef, minted.subject());
@@ -86,6 +91,27 @@ public final class EmbedServer {
     if (directory != null) {
       directory.forget(playerRef);
     }
+  }
+
+  /**
+   * Reads the {@code Lingara-Embed-Version} header a player kit sends to your token route (ADR
+   * 31.10.26f D1): the name matched in any case, the value trimmed. A missing header, or one blank
+   * after trimming, is null, so {@link MintOptions#withEmbedVersion} sends no key. The value is not
+   * validated: Lingara is the authority.
+   *
+   * @param headers the request's headers, any case
+   * @return the trimmed version, or null
+   */
+  public static String embedVersionFrom(Map<String, List<String>> headers) {
+    for (Map.Entry<String, List<String>> h : headers.entrySet()) {
+      if (EMBED_VERSION_HEADER.equalsIgnoreCase(h.getKey())
+          && h.getValue() != null
+          && !h.getValue().isEmpty()) {
+        String value = h.getValue().get(0).trim();
+        return value.isEmpty() ? null : value;
+      }
+    }
+    return null;
   }
 
   private static Set<EmbedTokenRequest.ScopesEnum> scopeSet(Iterable<String> scopes) {

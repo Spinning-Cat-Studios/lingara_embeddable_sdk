@@ -16,9 +16,20 @@ class VectorsTest < Minitest::Test
     {"refused" => e.field}
   end
 
+  # The vector's update_available as the library's typed value, the one
+  # MintedToken carries; nil when the vector has none.
+  def notice(input)
+    raw = input["update_available"]
+    return nil if raw.nil?
+    assert_equal %w[latest deprecated message], raw.keys, "all three keys"
+    Lingara::UpdateAvailable.new(latest: raw["latest"], deprecated: raw["deprecated"], message: raw["message"])
+  end
+
   # 1.10.26af AC7: every snippet.json vector (through widget_snippet) and
-  # every token-handoff.json vector (through the internal TokenHandoff.body)
-  # gives its expected answer.
+  # every token-handoff.json vector (through the internal TokenHandoff.body,
+  # its update_available decoded to the typed value first, so key order is
+  # the encoder's) gives its expected answer.
+  # 31.10.26f AC4
   def test_every_snippet_and_handoff_vector
     cases = KitTest.vectors("snippet.json").fetch("cases")
     assert_operator cases.size, :>=, 40, "the snippet vectors are all here"
@@ -29,9 +40,11 @@ class VectorsTest < Minitest::Test
 
     handoffs = KitTest.vectors("token-handoff.json")
     refute_empty handoffs
+    assert_operator handoffs.count { |c| c.fetch("input").key?("update_available") }, :>=, 3,
+      "31.10.26f's three vectors are here"
     handoffs.each do |c|
       input = c.fetch("input")
-      assert_equal c["body"], Lingara::Embed::TokenHandoff.body(input["token"], input["expires_at"]), c["name"]
+      assert_equal c["body"], Lingara::Embed::TokenHandoff.body(input["token"], input["expires_at"], notice(input)), c["name"]
     end
   end
 

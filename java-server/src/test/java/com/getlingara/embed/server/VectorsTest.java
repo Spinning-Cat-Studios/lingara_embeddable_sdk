@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.getlingara.client.model.UpdateAvailable;
 import java.io.File;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -16,8 +17,10 @@ class VectorsTest {
   /**
    * 1.10.26af AC9: every {@code snippet.json} vector through {@link WidgetSnippet#render}, and
    * every {@code token-handoff.json} vector through the internal {@code handoffBody}, gives its
-   * expected answer, with {@code {{version}}} read as this kit's VERSION.
+   * expected answer, with {@code {{version}}} read as this kit's VERSION. Since ADR 31.10.26f a
+   * handoff vector's {@code update_available} is passed as the library's {@code UpdateAvailable}.
    */
+  // 31.10.26f AC4
   @Test
   void everySnippetAndHandoffVector() throws Exception {
     String version = System.getProperty("lingara.version");
@@ -44,9 +47,22 @@ class VectorsTest {
     for (JsonNode v : handoffs) {
       JsonNode in = v.get("input");
       String body =
-          TokenHandoff.handoffBody(in.get("token").asText(), in.get("expires_at").asText());
+          TokenHandoff.handoffBody(
+              in.get("token").asText(), in.get("expires_at").asText(), notice(in));
       assertEquals(v.get("body").asText(), body, v.get("name").asText());
     }
+  }
+
+  /** The vector's {@code update_available}, when present, as the library's typed value. */
+  private static UpdateAvailable notice(JsonNode in) {
+    JsonNode n = in.get("update_available");
+    if (n == null) {
+      return null;
+    }
+    return new UpdateAvailable()
+        .latest(n.get("latest").textValue())
+        .deprecated(n.get("deprecated").booleanValue())
+        .message(n.get("message").textValue());
   }
 
   /** The vector's camelCase options through the builder. */

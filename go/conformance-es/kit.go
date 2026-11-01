@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"time"
 
@@ -14,16 +15,36 @@ import (
 
 // job is one entry of a case's kit: list. Exactly one field is set.
 type job struct {
-	Mint *struct {
-		PlayerRef string   `json:"player_ref"`
-		Scopes    []string `json:"scopes"`
-		Origin    string   `json:"origin"`
-	} `json:"mint"`
-	Delete *struct {
-		PlayerRef string `json:"player_ref"`
-	} `json:"delete"`
-	Handoff *struct{} `json:"handoff"`
-	Render  *struct{} `json:"render"`
+	Mint    *mintJob   `json:"mint"`
+	Delete  *deleteJob `json:"delete"`
+	Handoff *struct{}  `json:"handoff"`
+	Render  *struct{}  `json:"render"`
+}
+
+// deleteJob is a delete: the player.
+type deleteJob struct {
+	PlayerRef string `json:"player_ref"`
+}
+
+// mintJob is a mint: the player, its options, and the request headers
+// (ES8) the declared version is read from.
+type mintJob struct {
+	PlayerRef string            `json:"player_ref"`
+	Scopes    []string          `json:"scopes"`
+	Origin    string            `json:"origin"`
+	Headers   map[string]string `json:"headers"`
+}
+
+// options is the job's MintOptions, EmbedVersion read by EmbedVersionFrom
+// from the headers as given: each key is assigned directly, not through Set,
+// so a non-canonical spelling reaches the helper and its case-insensitive
+// read is genuinely exercised.
+func (m *mintJob) options() lingaraembed.MintOptions {
+	h := http.Header{}
+	for key, value := range m.Headers {
+		h[key] = []string{value}
+	}
+	return lingaraembed.MintOptions{Scopes: m.Scopes, Origin: m.Origin, EmbedVersion: lingaraembed.EmbedVersionFrom(h)}
 }
 
 // outcome is what the jobs left behind.
@@ -43,7 +64,7 @@ func runJobs(ctx context.Context, server *lingaraembed.Server, jobs []job) outco
 		switch {
 		case j.Mint != nil:
 			var minted *lingara.MintedToken
-			minted, err = server.MintToken(ctx, j.Mint.PlayerRef, lingaraembed.MintOptions{Scopes: j.Mint.Scopes, Origin: j.Mint.Origin})
+			minted, err = server.MintToken(ctx, j.Mint.PlayerRef, j.Mint.options())
 			if err == nil {
 				out.minted = minted
 			}

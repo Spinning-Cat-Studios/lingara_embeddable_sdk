@@ -14,6 +14,7 @@ namespace LingaraEmbedSnippets;
 use Lingara\Client;
 use Lingara\Embed\EmbedServer;
 use Lingara\Embed\TokenHandoff;
+use Psr\Http\Message\ServerRequestInterface;
 // lingara:end
 // lingara:begin mint
 // Once, at startup. The credentials are your metered client's (lgr_ci_…,
@@ -28,8 +29,9 @@ function embedServer(\PDO $db): EmbedServer
 }
 
 // POST /lingara/token: your own route, behind your own login. Rate-limit it
-// per session; every call is one mint.
-function tokenRoute(EmbedServer $embed): void
+// per session; every call is one mint. $request is any PSR-7 request (or
+// pass getallheaders() to embedVersionFrom()).
+function tokenRoute(EmbedServer $embed, ServerRequestInterface $request): void
 {
     session_start();
     $playerId = $_SESSION['player_id'] ?? null;
@@ -37,9 +39,13 @@ function tokenRoute(EmbedServer $embed): void
         http_response_code(401);
         return;
     }
-    $minted = $embed->mintToken($playerId, origin: 'https://game.example');
+    // The player build's Lingara-Embed-Version header; null when it sent none.
+    $embedVersion = EmbedServer::embedVersionFrom($request);
+    $minted = $embed->mintToken($playerId, origin: 'https://game.example', embedVersion: $embedVersion);
     header('Content-Type: application/json');
     header('Cache-Control: no-store');
-    echo TokenHandoff::body($minted); // {"token":"lgr_et_…","expires_at":"…"}
+    // {"token":"lgr_et_…","expires_at":"…"}, plus "update_available" when
+    // the player's build is behind, deprecated or withdrawn.
+    echo TokenHandoff::body($minted);
 }
 // lingara:end

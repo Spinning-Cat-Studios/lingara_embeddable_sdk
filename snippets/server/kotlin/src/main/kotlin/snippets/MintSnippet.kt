@@ -3,6 +3,7 @@ package snippets
 // lingara:begin mint
 import com.getlingara.embed.server.kotlin.EmbedServer
 import com.getlingara.embed.server.kotlin.PlayerDirectory
+import com.getlingara.embed.server.kotlin.embedVersionFrom
 import com.getlingara.embed.server.kotlin.tokenHandoff
 import com.getlingara.kotlin.LingaraClient
 import io.ktor.http.ContentType
@@ -38,7 +39,15 @@ fun Route.tokenRoute(embed: EmbedServer) {
     // same-origin cookies.
     post("/lingara/token") {
         val playerId = call.request.headers["X-Example-Player"] ?: return@post call.respond(HttpStatusCode.Unauthorized)
-        val minted = embed.mintToken(playerId, origin = "https://game.example")
+        // The player kit sends its build's version as Lingara-Embed-Version; a
+        // missing or blank header sends none.
+        val headers =
+            call.request.headers
+                .entries()
+                .associate { it.key to it.value }
+        val embedVersion = embedVersionFrom(headers)
+        val minted = embed.mintToken(playerId, origin = "https://game.example", embedVersion = embedVersion)
+        // Adds "update_available" when Lingara says this build is behind.
         call.response.header(HttpHeaders.CacheControl, "no-store")
         call.respondText(tokenHandoff(minted), ContentType.Application.Json) // {"token":"lgr_et_…","expires_at":"…"}
     }

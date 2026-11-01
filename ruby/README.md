@@ -47,14 +47,15 @@ Here it is in Sinatra:
 ```ruby
 post "/lingara/token" do
   halt 401 unless current_user
-  minted = server.mint_token(current_user.id.to_s, origin: "https://game.example")
+  minted = server.mint_token(current_user.id.to_s, origin: "https://game.example",
+    embed_version: Lingara::Embed.embed_version_from(request.env))
   content_type :json
   cache_control :no_store
-  Lingara::Embed.token_handoff(minted)  # {"token":"lgr_et_…","expires_at":"…Z"}
+  Lingara::Embed.token_handoff(minted)  # {"token":"lgr_et_…","expires_at":"…Z"}, plus update_available when answered
 end
 ```
 
-- `mint_token(player_ref, scopes: nil, origin: nil)` makes exactly one
+- `mint_token(player_ref, scopes: nil, origin: nil, embed_version: nil)` makes exactly one
   `POST /v1/embed/tokens` and returns the library's `Lingara::MintedToken`.
   It then calls `directory.remember(player_ref, subject)`. Nothing is
   cached. Each token lives 900 s, and the player kit asks again before it
@@ -71,6 +72,30 @@ end
   `OAuthError`, `MaintenanceError`, `TransportError`) unchanged, and nothing
   is remembered. The library does the retries and the token refresh, so the
   kit adds none of its own.
+
+### The player's declared version
+
+- A player kit sends its build's version to your token route as the
+  `Lingara-Embed-Version` header. `Lingara::Embed.embed_version_from(headers)`
+  reads it from a Rack `request.env` (`HTTP_LINGARA_EMBED_VERSION`) or a Hash
+  of header names, case-insensitively, and returns it trimmed; a missing or
+  blank header is `nil`, so the mint sends no `embed_version` key.
+- Pass it as `mint_token(…, embed_version:)`. It is sent only when given, and
+  the kit does not validate it: Lingara is the authority.
+- When that build is behind, deprecated or withdrawn, the mint answers
+  `minted.update_available` (the library's `Lingara::UpdateAvailable`), and
+  `token_handoff` forwards it as a third key,
+  `"update_available":{"latest":…,"deprecated":…,"message":…}`, for the
+  player kit to show. Without one the body is the two-key body.
+- Lingara refuses three mints over the version. Each is a **developer**
+  condition: your route turns the `Lingara::ApiError` into its own error, and
+  the player kit then sees `TokenUnavailable`, as for any failed fetch.
+  - `409 embed_version_withdrawn`: a new player on a yanked build. Existing
+    players keep minting.
+  - `400 embed_version_unknown`: a well-formed version that is not one of this
+    embed's published versions.
+  - `400 invalid_request_body`: an `embed_version` that fails the version
+    grammar.
 
 ## 2. Route a webhook to its player
 

@@ -7,7 +7,7 @@
     "homepage": "https://getlingara.com",
     "require": {
         "php": ">=8.2",
-        "spinningcatstudios/lingara": "^0.2.0-alpha.6"
+        "spinningcatstudios/lingara": "^0.2.0-alpha.7"
     },
     "require-dev": {
         "guzzlehttp/guzzle": "^7.9",

@@ -55,13 +55,14 @@ behaviour below never re-decides one.
 
 ## Behaviours
 
-Seven behaviours, listed in [`behaviours.toml`](behaviours.toml). ES1–ES5 are
+Eight behaviours, listed in [`behaviours.toml`](behaviours.toml). ES1–ES5 are
 the four jobs and the secret rule; ES6 and ES7 close the two gaps the jobs
-leave, the handoff body and the transport under each kit. The vocabulary is
+leave, the handoff body and the transport under each kit; ES8 is the build's
+declared version, carried from the token route to the mint. The vocabulary is
 every kit's, spelled in its language's idiom: `EmbedServer` (`mintToken`,
 `deletePlayer`), `PlayerRouter` (`route`, `handle`), `PlayerDirectory`
 (`remember`, `playerRefFor`, `forget`) with `MemoryPlayerDirectory`, and the
-pure `widgetSnippet` and `tokenHandoff`.
+pure `widgetSnippet`, `tokenHandoff` and `embedVersionFrom`.
 
 - **ES1 — Mint.** `mintToken(playerRef, {scopes?, origin?})` gets a
   client-credentials token holding `embed:mint` and makes exactly one
@@ -121,22 +122,36 @@ pure `widgetSnippet` and `tokenHandoff`.
   router, directory, minted token), no error and no log line carries
   `lgr_cs_`, `lgr_whsec_` or `lgr_et_`. `tokenHandoff`'s output is the one
   place the token appears, on purpose.
-- **ES6 — The handoff.** `tokenHandoff(minted)` returns exactly
-  `{"token":"lgr_et_…","expires_at":"…"}`: compact, these two keys in this
-  order, `/` unescaped, no HTML escaping. A library that keeps `expires_at` as
-  the server's string copies it byte for byte; one that holds a parsed
-  instant writes RFC 3339 in UTC with `Z`, fractional seconds only when
-  non-zero (trailing zeros trimmed, at most nine digits). The pure
-  `handoffBody(token, expiresAt)` beneath it is held to
-  [`../vectors/token-handoff.json`](../vectors/token-handoff.json)
-  (`[{name, input: {token, expires_at}, body}]`, `body` the exact text), and
-  the path from a real mint to `es6.handoff-from-a-mint`.
+- **ES6 — The handoff.** `tokenHandoff(minted)` returns
+  `{"token":"lgr_et_…","expires_at":"…"}`, and `update_available` as a third
+  key when the mint answered one (ADR 31.10.26f): compact, the keys in this
+  order, `/` and non-ASCII unescaped, no HTML escaping. Inside
+  `update_available` the keys are `latest`, `deprecated`, `message`, all three
+  always written, JSON `null` kept; the kit encodes its typed value, never a
+  raw map. Without the field the body is byte-identical to the two-key one. A
+  library that keeps `expires_at` as the server's string copies it byte for
+  byte; one that holds a parsed instant writes RFC 3339 in UTC with `Z`,
+  fractional seconds only when non-zero (trailing zeros trimmed, at most nine
+  digits). The pure `handoffBody(token, expiresAt, updateAvailable?)` beneath
+  it is held to [`../vectors/token-handoff.json`](../vectors/token-handoff.json)
+  (`[{name, input: {token, expires_at, update_available?}, body}]`, `body` the
+  exact text), and the path from a real mint to `es6.handoff-from-a-mint` and
+  `es6.handoff-carries-update-available`.
 - **ES7 — The transport under the kit.** A library error reaches the caller
   unchanged (variant, status, code). The contract-K4 retry (`429`/`503` with
   `Retry-After` ≤ 60 s) and the one `401` re-exchange happen once, in the
   library, never again in the kit; the client-credentials token is reused
   across calls. `Lingara.Embed.Server`, which has no library beneath it,
   implements that subset itself and is held to the same cases.
+- **ES8 — The declared version.** `embedVersionFrom(headers)` reads the
+  token route's `Lingara-Embed-Version` header case-insensitively and returns
+  it trimmed; a missing header, or one empty after trimming, returns nothing.
+  `mintToken`'s `embed_version` option (each language's casing) is sent in
+  the body only when given, so a mint over a blank header sends no such key.
+  The kit never validates the value: Lingara answers a malformed one
+  `400 invalid_request_body`, an unknown one `400 embed_version_unknown`, and
+  a new player on a withdrawn one `409 embed_version_withdrawn`, each raised
+  through ES7 unchanged (ADR 31.10.26f).
 
 ### What a harness reports
 
@@ -153,7 +168,8 @@ router's `onError` and the language's default log facility write to. Then:
    and `secondary` are the two values of `LINGARA_EMBED_WEBHOOK_SECRETS`, in
    that order), whose `onEvent` raises when `deliver[n].handler` is `raise`.
 2. It runs the `kit:` jobs in order: `mint`, `delete`, `handoff` (over the
-   last minted token) and `render`. A raised error is recorded as
+   last minted token) and `render`. A `mint` with `headers` passes
+   `embedVersionFrom(headers)` as its `embed_version` (ES8). A raised error is recorded as
    `{status, code}` (a maintenance error's code is `maintenance`, an OAuth
    error's its `error`) and the next job runs.
 3. It waits until every delivery has been answered, then compares, each

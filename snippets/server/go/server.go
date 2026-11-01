@@ -35,15 +35,16 @@ func TokenRoute(embed *lingaraembed.Server) http.HandlerFunc {
 			return
 		}
 		minted, err := embed.MintToken(r.Context(), playerRef, lingaraembed.MintOptions{
-			Origin: "https://game.example", // this page's origin, one of your client's embed origins
+			Origin:       "https://game.example",                  // this page's origin, one of your client's embed origins
+			EmbedVersion: lingaraembed.EmbedVersionFrom(r.Header), // the player's build, from Lingara-Embed-Version
 		})
-		if err != nil {
+		if err != nil { // a refused embed_version (409/400) is yours to answer, like any failed mint
 			http.Error(w, "no token", http.StatusBadGateway)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
-		_, _ = w.Write(lingaraembed.TokenHandoff(minted)) // {"token":"lgr_et_…","expires_at":"…"}
+		_, _ = w.Write(lingaraembed.TokenHandoff(minted)) // {"token","expires_at"} and update_available when Lingara sent one
 	}
 	// lingara:end
 }

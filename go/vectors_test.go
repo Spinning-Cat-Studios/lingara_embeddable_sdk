@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	lingara "github.com/Spinning-Cat-Studios/lingara_api_clients/go"
 )
 
 // readVectors decodes conformance/vectors/<name>, read from the repository
@@ -65,9 +67,39 @@ func checkSnippet(t *testing.T, v snippetVector) {
 	}
 }
 
+type handoffVector struct {
+	Name  string `json:"name"`
+	Input struct {
+		Token     string `json:"token"`
+		ExpiresAt string `json:"expires_at"`
+		// UpdateAvailable decodes into the library's typed notice, never a
+		// map, so the key order written is the encoder's (31.10.26f D1.4).
+		UpdateAvailable *lingara.UpdateAvailable `json:"update_available"`
+	} `json:"input"`
+	Body string `json:"body"`
+}
+
+// checkHandoffs runs every token-handoff.json vector through handoffBody,
+// update_available passed when the vector has one.
+func checkHandoffs(t *testing.T) {
+	t.Helper()
+	var handoffs []handoffVector
+	readVectors(t, "token-handoff.json", &handoffs)
+	if len(handoffs) == 0 {
+		t.Fatal("no handoff vectors")
+	}
+	for _, v := range handoffs {
+		if got := string(handoffBody(v.Input.Token, v.Input.ExpiresAt, v.Input.UpdateAvailable)); got != v.Body {
+			t.Errorf("%s: got %s, want %s", v.Name, got, v.Body)
+		}
+	}
+}
+
 // TestEverySnippetAndHandoffVector: 1.10.26af AC6. Every snippet.json vector
 // through WidgetSnippet, and every token-handoff.json vector through the
-// internal handoffBody, gives its expected answer.
+// internal handoffBody, gives its expected answer, the three carrying
+// update_available included.
+// 31.10.26f AC4
 func TestEverySnippetAndHandoffVector(t *testing.T) {
 	var snippets struct {
 		Cases []snippetVector `json:"cases"`
@@ -79,21 +111,5 @@ func TestEverySnippetAndHandoffVector(t *testing.T) {
 	for _, v := range snippets.Cases {
 		checkSnippet(t, v)
 	}
-	var handoffs []struct {
-		Name  string `json:"name"`
-		Input struct {
-			Token     string `json:"token"`
-			ExpiresAt string `json:"expires_at"`
-		} `json:"input"`
-		Body string `json:"body"`
-	}
-	readVectors(t, "token-handoff.json", &handoffs)
-	if len(handoffs) == 0 {
-		t.Fatal("no handoff vectors")
-	}
-	for _, v := range handoffs {
-		if got := string(handoffBody(v.Input.Token, v.Input.ExpiresAt)); got != v.Body {
-			t.Errorf("%s: got %s, want %s", v.Name, got, v.Body)
-		}
-	}
+	checkHandoffs(t)
 }

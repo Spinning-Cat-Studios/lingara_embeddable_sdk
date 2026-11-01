@@ -27,14 +27,27 @@ fn parses(body: &Value) {
     let issued = IssuedToken::from_handoff_json(text.as_bytes()).unwrap_or_else(|e| panic!("{body}: {e}"));
     assert_eq!(issued.token.expose_secret(), body["token"].as_str().unwrap());
     assert_eq!(issued.expires_at.as_deref(), body["expires_at"].as_str());
+    // 31.10.26f AC2: a body with the third key yields it field for field; one
+    // without yields none.
+    let notice = &body["update_available"];
+    match &issued.update_available {
+        None => assert!(notice.is_null(), "{body}: update_available was dropped"),
+        Some(n) => {
+            assert_eq!(n.latest.as_deref(), notice["latest"].as_str(), "{body}");
+            assert_eq!(Some(n.deprecated), notice["deprecated"].as_bool(), "{body}");
+            assert_eq!(n.message.as_deref(), notice["message"].as_str(), "{body}");
+        }
+    }
 }
 
-// 1.10.26y AC31
+// 1.10.26y AC31; 31.10.26f AC2
 #[test]
 fn the_handoff_vector_parses() {
     match vector_bodies() {
         Some(bodies) => {
             assert!(!bodies.is_empty(), "token-handoff.json holds bodies");
+            let with_notice = bodies.iter().filter(|b| b["body"].as_str().is_some_and(|t| t.contains("\"update_available\""))).count();
+            assert!(with_notice >= 3, "31.10.26f's three bodies carry update_available");
             bodies.iter().for_each(parses);
         }
         None => eprintln!("note: conformance/vectors/token-handoff.json is V1's (1.10.26af) and has not landed; the inline fixtures run alone"),

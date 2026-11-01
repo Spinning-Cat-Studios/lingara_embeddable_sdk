@@ -65,7 +65,9 @@ Your own route, behind your own login. It mints with this page's origin and retu
 server.createContext("/lingara/token", exchange -> {
   String playerId = yourSession(exchange);                      // your own login
   if (playerId == null) { exchange.sendResponseHeaders(401, -1); return; }
-  MintedToken minted = embed.mintToken(playerId, MintOptions.none().withOrigin("https://game.example"));
+  String embedVersion = EmbedServer.embedVersionFrom(exchange.getRequestHeaders());
+  MintedToken minted = embed.mintToken(playerId,
+      MintOptions.none().withOrigin("https://game.example").withEmbedVersion(embedVersion));
   byte[] body = TokenHandoff.body(minted).getBytes(StandardCharsets.UTF_8);
   exchange.getResponseHeaders().set("Content-Type", "application/json");
   exchange.getResponseHeaders().set("Cache-Control", "no-store");
@@ -80,6 +82,20 @@ server.createContext("/lingara/token", exchange -> {
 - `withScopes(List.of("events:read", "embed:play"))` narrows the token; without it, the token gets every handable scope the client holds.
 - On success the kit calls `players.remember(playerId, minted.subject())`. On a failure it remembers nothing and throws the library's own `LingaraException` (`ApiException`, `OAuthException`, `MaintenanceException`, `TransportException`) unchanged.
 - `MintedToken` renders as `[REDACTED]`; `TokenHandoff.body` is the one place its token is read.
+
+### The player's embed version
+
+A player kit sends its build's version to your token route as the `Lingara-Embed-Version` header. `EmbedServer.embedVersionFrom(headers)` reads it, the name in any case, and returns it trimmed; a missing header, or one blank after trimming, is `null`. Pass it as `MintOptions.withEmbedVersion(...)`: the mint sends `embed_version` only when it is non-null. The kit does not validate the value; Lingara does.
+
+When Lingara answers that this build is behind, deprecated or withdrawn, `minted.updateAvailable()` holds the notice and `TokenHandoff.body` forwards it as a third key, `"update_available":{"latest":…,"deprecated":…,"message":…}`. Without one the body is exactly `{"token":"…","expires_at":"…"}`, as before.
+
+Three mint refusals are **developer** conditions, thrown as `ApiException`. Your route turns each into its own error, and the player kit then sees `TokenUnavailable`, as for any failed fetch:
+
+| Refusal | Means |
+|---|---|
+| `409 embed_version_withdrawn` | a new player on a withdrawn (yanked) build; existing players keep minting |
+| `400 embed_version_unknown` | a well-formed version that is not one of this embed's published versions |
+| `400 invalid_request_body` | an `embed_version` that fails the grammar (`MAJOR.MINOR.PATCH`, no `v`, no leading zeros) |
 
 ## 2. The widget snippet
 

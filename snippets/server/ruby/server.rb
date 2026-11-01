@@ -55,7 +55,11 @@ module LingaraEmbedSnippets
   # POST /lingara/token, behind your own sign-in. Rate-limit it per session.
   def self.token(env, server)
     player = env["warden"]&.user or return [401, {}, []]
-    minted = server.mint_token(player.id.to_s, origin: "https://game.example")
+    # The player build's Lingara-Embed-Version header; nil when it sent none.
+    embed_version = Lingara::Embed.embed_version_from(env)
+    minted = server.mint_token(player.id.to_s, origin: "https://game.example", embed_version: embed_version)
+    # {"token":…,"expires_at":…}, plus "update_available" when the player's
+    # build is behind, deprecated or withdrawn.
     [200, {"content-type" => "application/json", "cache-control" => "no-store"}, [Lingara::Embed.token_handoff(minted)]]
   end
   # lingara:end

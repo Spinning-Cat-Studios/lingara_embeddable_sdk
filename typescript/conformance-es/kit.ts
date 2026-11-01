@@ -2,7 +2,7 @@
 // kit's caller can make (ES `CONTRACT.md`, *What a harness reports*).
 
 import { ApiError, MaintenanceError, OAuthError, TransportError } from '@lingara/api'
-import { tokenHandoff, type EmbedServer, type MintedToken } from '@lingara/embed/server'
+import { embedVersionFrom, tokenHandoff, type EmbedServer, type MintedToken } from '@lingara/embed/server'
 
 import type { Json } from './receiver.js'
 import type { Recording } from './recording.js'
@@ -29,10 +29,12 @@ export async function run(server: EmbedServer, jobs: Json[]): Promise<Outcome> {
 }
 
 async function one(server: EmbedServer, job: Json, out: Outcome): Promise<void> {
-  const mint = job['mint'] as { player_ref: string; scopes?: string[]; origin?: string } | undefined
+  const mint = job['mint'] as { player_ref: string; scopes?: string[]; origin?: string; headers?: Record<string, string> } | undefined
   const del = job['delete'] as { player_ref: string } | undefined
   if (mint !== undefined) {
-    out.minted = await server.mintToken(mint.player_ref, { scopes: mint.scopes, origin: mint.origin })
+    // ES8: the route's headers through the helper, into the mint.
+    const embedVersion = mint.headers === undefined ? undefined : embedVersionFrom(mint.headers)
+    out.minted = await server.mintToken(mint.player_ref, { scopes: mint.scopes, origin: mint.origin, embedVersion })
   } else if (del !== undefined) {
     await server.deletePlayer(del.player_ref)
   } else if ('handoff' in job) {

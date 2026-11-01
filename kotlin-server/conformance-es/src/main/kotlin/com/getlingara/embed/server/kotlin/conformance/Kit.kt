@@ -1,6 +1,7 @@
 package com.getlingara.embed.server.kotlin.conformance
 
 import com.getlingara.embed.server.kotlin.EmbedServer
+import com.getlingara.embed.server.kotlin.embedVersionFrom
 import com.getlingara.embed.server.kotlin.tokenHandoff
 import com.getlingara.kotlin.ApiException
 import com.getlingara.kotlin.MaintenanceException
@@ -53,7 +54,7 @@ class Kit {
         val mint = job["mint"]?.jsonObject
         val delete = job["delete"]?.jsonObject
         when {
-            mint != null -> minted = server.mintToken(mint.text("player_ref")!!, scopes(mint), mint.text("origin"))
+            mint != null -> minted = server.mintToken(mint.text("player_ref")!!, scopes(mint), mint.text("origin"), embedVersion(mint))
             delete != null -> server.deletePlayer(delete.text("player_ref")!!)
             "handoff" in job -> handoff = minted?.let(::tokenHandoff)
             else -> render = true
@@ -61,6 +62,12 @@ class Kit {
     }
 
     private fun scopes(m: JsonObject): List<String>? = (m["scopes"] as? JsonArray)?.map { it.jsonPrimitive.content }
+
+    // ES8: the route's headers through the helper, into the mint.
+    private fun embedVersion(m: JsonObject): String? =
+        (m["headers"] as? JsonObject)
+            ?.mapValues { listOf(it.value.jsonPrimitive.content) }
+            ?.let(::embedVersionFrom)
 
     /** `{status, code}`: an API error's, an OAuth error's `error`, maintenance. */
     private fun raised(e: Exception): JsonElement {

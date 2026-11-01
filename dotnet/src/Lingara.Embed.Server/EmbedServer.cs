@@ -48,6 +48,14 @@ public sealed class MintOptions
 
     /// <summary>Your page's origin, one of your client's embed origins. A game's server mints without one.</summary>
     public string? Origin { get; init; }
+
+    /// <summary>
+    /// The player build's declared embed version, read from its request with
+    /// <see cref="EmbedServer.EmbedVersionFrom"/> (ADR 31.10.26f). Lingara
+    /// answers an outdated one with <see cref="MintedToken.UpdateAvailable"/>.
+    /// The kit does not validate it: Lingara is the authority.
+    /// </summary>
+    public string? EmbedVersion { get; init; }
 }
 
 /// <summary>
@@ -59,6 +67,9 @@ public sealed class MintOptions
 /// </summary>
 public sealed class EmbedServer : IDisposable
 {
+    /// <summary>The header a player kit names its build's embed version in.</summary>
+    public const string EmbedVersionHeader = "Lingara-Embed-Version";
+
     private static readonly TimeSpan TokenRequestTimeout = TimeSpan.FromSeconds(30);
 
     private readonly EmbedServerOptions options;
@@ -79,6 +90,23 @@ public sealed class EmbedServer : IDisposable
         var transport = new Transport(http ?? owned!, KitVersion.UserAgent, options.TimeProvider);
         tokens = new TokenCache(transport, options.TokenUrl ?? new Uri(options.BaseUrl, "/oauth/token"), options.ClientId, options.ClientSecret, options.Scopes, TokenRequestTimeout);
         this.http = new LingaraHttp(transport, tokens, options.BaseUrl, options.LingaraVersion);
+    }
+
+    /// <summary>
+    /// The <c>Lingara-Embed-Version</c> header a player kit sends to your token
+    /// route, trimmed (ADR 31.10.26f), for <see cref="MintOptions.EmbedVersion"/>.
+    /// A missing or blank header is null, so the mint sends no key. The value
+    /// is not validated: Lingara is the authority.
+    /// </summary>
+    /// <param name="header">
+    /// A case-insensitive header lookup, the shape <see cref="PlayerRouter.HandleAsync"/>
+    /// takes: <c>name =&gt; request.Headers.TryGetValue(name, out var v) ? v.ToString() : null</c>.
+    /// </param>
+    public static string? EmbedVersionFrom(Func<string, string?> header)
+    {
+        ArgumentNullException.ThrowIfNull(header);
+        var value = header(EmbedVersionHeader)?.Trim();
+        return string.IsNullOrEmpty(value) ? null : value;
     }
 
     /// <summary>
@@ -119,7 +147,7 @@ public sealed class EmbedServer : IDisposable
 
     public override string ToString() => $"EmbedServer {{ ClientId = {options.ClientId}, ClientSecret = [REDACTED], Directory = {directory is not null} }}";
 
-    /// <summary><c>{player_ref, scopes?, origin?}</c>, the options present only when given.</summary>
+    /// <summary><c>{player_ref, scopes?, origin?, embed_version?}</c>, the options present only when given.</summary>
     private static byte[] MintBody(string playerRef, MintOptions? options)
     {
         ArgumentNullException.ThrowIfNull(playerRef);
@@ -148,6 +176,11 @@ public sealed class EmbedServer : IDisposable
             if (options?.Origin is { } origin)
             {
                 w.WriteString("origin", origin);
+            }
+
+            if (options?.EmbedVersion is { } embedVersion)
+            {
+                w.WriteString("embed_version", embedVersion);
             }
 
             w.WriteEndObject();

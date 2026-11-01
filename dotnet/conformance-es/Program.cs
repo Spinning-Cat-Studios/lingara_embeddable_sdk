@@ -281,7 +281,11 @@ internal static class Jobs
         if (job["mint"] is JsonObject mint)
         {
             var scopes = (mint["scopes"] as JsonArray)?.Select(s => s!.GetValue<string>()).ToList();
-            var options = new MintOptions { Scopes = scopes, Origin = mint["origin"]?.GetValue<string>() };
+            // ES8: the request's headers, looked up case-insensitively as ASP.NET Core's are.
+            var headers = (mint["headers"] as JsonObject)?.ToDictionary(h => h.Key, h => h.Value!.GetValue<string>(), StringComparer.OrdinalIgnoreCase)
+                ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var embedVersion = EmbedServer.EmbedVersionFrom(name => headers.TryGetValue(name, out var v) ? v : null);
+            var options = new MintOptions { Scopes = scopes, Origin = mint["origin"]?.GetValue<string>(), EmbedVersion = embedVersion };
             outcome.Minted = await server.MintTokenAsync(mint["player_ref"]!.GetValue<string>(), options);
         }
         else if (job["delete"] is JsonObject delete)

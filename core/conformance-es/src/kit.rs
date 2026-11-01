@@ -1,9 +1,10 @@
 //! A case's `kit:` jobs through `EmbedServer`, and the comparisons only the
 //! kit's caller can make (ES `CONTRACT.md`, *What a harness reports*).
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
-use lingara_embed::server::{EmbedServer, MintOptions, MintedToken, ServerError, token_handoff};
+use lingara_embed::server::{EmbedServer, MintOptions, MintedToken, ServerError, embed_version_from, token_handoff};
 use serde_json::{Value, json};
 
 use crate::recording::Recording;
@@ -46,7 +47,10 @@ fn text<'a>(v: &'a Value, key: &str) -> &'a str {
 
 fn options(m: &Value) -> MintOptions {
     let scopes = m.get("scopes").and_then(Value::as_array).map(|s| s.iter().filter_map(Value::as_str).map(String::from).collect());
-    MintOptions { scopes, origin: m.get("origin").and_then(Value::as_str).map(String::from) }
+    // ES8: the route's headers through the helper, into the mint.
+    let headers: Option<HashMap<String, String>> = m.get("headers").and_then(|h| serde_json::from_value(h.clone()).ok());
+    let embed_version = headers.as_ref().and_then(embed_version_from);
+    MintOptions { scopes, origin: m.get("origin").and_then(Value::as_str).map(String::from), embed_version }
 }
 
 /// `{status, code}`: an API error's, an OAuth error's `error`, `maintenance`.

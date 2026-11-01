@@ -5,7 +5,7 @@
 // a Next.js route handler, Bun or Deno, and Express through its raw body.
 
 import { Lingara } from '@lingara/api'
-import { EmbedServer, PlayerRouter, tokenHandoff, widgetSnippet, type PlayerDirectory } from '@lingara/embed/server'
+import { EmbedServer, PlayerRouter, embedVersionFrom, tokenHandoff, widgetSnippet, type PlayerDirectory } from '@lingara/embed/server'
 
 // Your own session, database and queue.
 declare function signedInUser(request: Request): Promise<{ id: string } | null>
@@ -51,7 +51,9 @@ const server = new EmbedServer(lingara, { directory })
 export async function token(request: Request): Promise<Response> {
   const user = await signedInUser(request)
   if (user === null) return new Response(null, { status: 401 })
-  const minted = await server.mintToken(user.id, { origin: 'https://www.example.com' })
+  // The player kit names its build; an outdated one comes back as update_available in the handoff.
+  const embedVersion = embedVersionFrom(request.headers)
+  const minted = await server.mintToken(user.id, { origin: 'https://www.example.com', embedVersion })
   return new Response(tokenHandoff(minted), { headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } })
 }
 // lingara:end

@@ -13,6 +13,7 @@ import com.getlingara.embed.server.MintOptions;
 import com.getlingara.embed.server.TokenHandoff;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -62,6 +63,14 @@ final class Kit {
       List<String> scopes = new ArrayList<>();
       m.get("scopes").forEach(s -> scopes.add(s.asText()));
       o = o.withScopes(scopes);
+    }
+    // ES8: the route's headers through the helper, into the mint.
+    if (m.has("headers")) {
+      Map<String, List<String>> headers = new LinkedHashMap<>();
+      for (Map.Entry<String, JsonNode> h : m.get("headers").properties()) {
+        headers.put(h.getKey(), List.of(h.getValue().asText()));
+      }
+      o = o.withEmbedVersion(EmbedServer.embedVersionFrom(headers));
     }
     return m.hasNonNull("origin") ? o.withOrigin(m.get("origin").asText()) : o;
   }

@@ -8,13 +8,16 @@ import (
 )
 
 // TokenHandoff is the JSON body your token route returns to the player (ADR
-// 1.10.26af D6, ES6): exactly {"token":"lgr_et_…","expires_at":"…"}, the
-// shape every player kit and the widget read. The library holds expires_at
-// as a time.Time, so it is written back as RFC 3339 in UTC with a Z, with
-// fractional seconds only when non-zero. expires_in and subject are not
-// forwarded. This is the one place the kit exposes the token, on purpose.
+// 1.10.26af D6, ES6): {"token":"lgr_et_…","expires_at":"…"}, the shape every
+// player kit and the widget read, plus a third key update_available when the
+// mint answered one (ADR 31.10.26f D1): {"latest","deprecated","message"} in
+// that order, null kept. Without it the body is exactly the two keys. The
+// library holds expires_at as a time.Time, so it is written back as RFC 3339
+// in UTC with a Z, with fractional seconds only when non-zero. expires_in and
+// subject are not forwarded. This is the one place the kit exposes the token,
+// on purpose.
 func TokenHandoff(m *lingara.MintedToken) []byte {
-	return handoffBody(m.Token.ExposeSecret(), expiresAt(m.ExpiresAt))
+	return handoffBody(m.Token.ExposeSecret(), expiresAt(m.ExpiresAt), m.UpdateAvailable)
 }
 
 // expiresAt is ES6's instant: UTC, Z, trailing fractional zeros trimmed.
@@ -23,10 +26,35 @@ func expiresAt(t time.Time) string {
 	return t.UTC().Format(time.RFC3339Nano)
 }
 
-// handoffBody is the pure body over two strings, held to token-handoff.json:
-// compact, these two keys in this order, nothing reformatted.
-func handoffBody(token, expiresAt string) []byte {
-	return []byte(`{"token":` + jsonString(token) + `,"expires_at":` + jsonString(expiresAt) + `}`)
+// handoffBody is the pure body, held to token-handoff.json: compact, token
+// then expires_at, then update_available only when non-nil, nothing
+// reformatted.
+func handoffBody(token, expiresAt string, update *lingara.UpdateAvailable) []byte {
+	body := `{"token":` + jsonString(token) + `,"expires_at":` + jsonString(expiresAt)
+	if update != nil {
+		body += `,"update_available":` + updateJSON(update)
+	}
+	return []byte(body + `}`)
+}
+
+// updateJSON writes the notice's three keys in V1's order, every one always
+// present. It is hand-written rather than encoding/json, which would escape
+// < > & in the message, against ES6.
+func updateJSON(u *lingara.UpdateAvailable) string {
+	deprecated := "false"
+	if u.Deprecated {
+		deprecated = "true"
+	}
+	return `{"latest":` + nullableJSON(u.Latest) + `,"deprecated":` + deprecated +
+		`,"message":` + nullableJSON(u.Message) + `}`
+}
+
+// nullableJSON is a string literal, or null for nil.
+func nullableJSON(s *string) string {
+	if s == nil {
+		return "null"
+	}
+	return jsonString(*s)
 }
 
 // jsonString is a JSON string literal escaping only what JSON requires: '"',

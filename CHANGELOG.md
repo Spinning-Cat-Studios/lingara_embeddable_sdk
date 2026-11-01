@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.2.0-alpha.7 — 2026-11-01
+
+
+Generated from Lingara API 2026-10-dauntless-hoopoe (development) at spec backend@897aae2fcf74cebd19aa9ccf9dd116bc2c3a043f.
+
+### Added
+
+- Every server kit takes the player build's declared version: an `embed_version` mint option (each language's casing) and an `embedVersionFrom(headers)` helper that reads the `Lingara-Embed-Version` header case-insensitively, trimmed, and returns nothing for a missing or blank one (ADR 31.10.26f).
+- `tokenHandoff` forwards Lingara's update notice as a third key, `update_available` (`{latest, deprecated, message}`, `null`s kept), when the mint answered one. Without it the body is byte-identical to before; an integrator who parses the handoff strictly must now accept the third key (ADR 31.10.26f).
+- Conformance: ES8 (the declared version), a second ES6 case, and three `token-handoff.json` vectors carrying `update_available`.
+
+### Changed
+
+- The library floor rises to `lingara` 0.2.0-alpha.7, the first release whose mint takes `embed_version` and whose `MintedToken` exposes `update_available` (ADR 31.10.26f).
+
+### Fixed
+
+### Removed
+
 ## v0.2.0-alpha.6 — 2026-10-31
 
 

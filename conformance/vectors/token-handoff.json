@@ -38,5 +38,32 @@
       "expires_at": "2026-10-01t09:27:44z"
     },
     "body": "{\"token\":\"lgr_et_zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\",\"expires_at\":\"2026-10-01t09:27:44z\"}"
+  },
+  {
+    "name": "deprecated with a message",
+    "input": {
+      "token": "lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3",
+      "expires_at": "2026-10-01T09:27:44Z",
+      "update_available": { "latest": "1.2.0", "deprecated": true, "message": "Use 1.2.0 — see https://example.com/changelog" }
+    },
+    "body": "{\"token\":\"lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3\",\"expires_at\":\"2026-10-01T09:27:44Z\",\"update_available\":{\"latest\":\"1.2.0\",\"deprecated\":true,\"message\":\"Use 1.2.0 — see https://example.com/changelog\"}}"
+  },
+  {
+    "name": "behind, message null",
+    "input": {
+      "token": "lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3",
+      "expires_at": "2026-10-01T09:27:44Z",
+      "update_available": { "latest": "1.2.0", "deprecated": false, "message": null }
+    },
+    "body": "{\"token\":\"lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3\",\"expires_at\":\"2026-10-01T09:27:44Z\",\"update_available\":{\"latest\":\"1.2.0\",\"deprecated\":false,\"message\":null}}"
+  },
+  {
+    "name": "latest null",
+    "input": {
+      "token": "lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3",
+      "expires_at": "2026-10-01T09:27:44Z",
+      "update_available": { "latest": null, "deprecated": true, "message": "Withdrawn: please update" }
+    },
+    "body": "{\"token\":\"lgr_et_Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7jKl0nPq3\",\"expires_at\":\"2026-10-01T09:27:44Z\",\"update_available\":{\"latest\":null,\"deprecated\":true,\"message\":\"Withdrawn: please update\"}}"
   }
 ]

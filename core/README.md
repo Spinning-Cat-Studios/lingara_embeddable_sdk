@@ -316,9 +316,11 @@ use lingara_embed::server::*;
 let players = Arc::new(MemoryPlayerDirectory::new());
 let embed = EmbedServer::new(client).with_directory(players.clone());
 
-// Your token route (rate-limit it per session): mint, then hand off.
-let minted = embed.mint_token(&player_ref, MintOptions::default()).await?;
-let body = token_handoff(&minted); // {"token":"lgr_et_…","expires_at":"…"}
+// Your token route (rate-limit it per session): mint, then hand off. The
+// build's declared version rides the Lingara-Embed-Version header.
+let embed_version = embed_version_from(&request_headers);
+let minted = embed.mint_token(&player_ref, MintOptions { embed_version, ..MintOptions::default() }).await?;
+let body = token_handoff(&minted); // {"token":"lgr_et_…","expires_at":"…"[,"update_available":{…}]}
 
 // Your webhook route, on the raw body: 204, 401, 400 or 500.
 let router = PlayerRouter::new(lingara::events::Webhook::with_secrets(secrets)?, players);
@@ -332,8 +334,23 @@ embed.delete_player(&player_ref).await?;
   `delete_player` revoked is never handed out again. It remembers the
   player's `subject` in your directory after a success only. Pass
   `MintOptions { origin }` for a web page; a game's server mints without one.
-- **`token_handoff`** is exactly `{"token","expires_at"}`, the body every
-  player kit's token source and the widget's `tokenProvider` read.
+- **`embed_version_from`** reads the `Lingara-Embed-Version` header a player
+  kit sends to your token route, trimmed; a missing or blank header is `None`,
+  so the mint sends no `embed_version`. The kit does not validate it: Lingara
+  does, and refuses a mint with one of three **developer** conditions, which
+  your route turns into its own error (the player kit then sees
+  `TokenUnavailable`, as for any failed fetch):
+  - `409 embed_version_withdrawn`: a new player on a build you withdrew.
+    Players who already minted on it keep minting.
+  - `400 embed_version_unknown`: a well-formed version that is not one of
+    this embed's published versions.
+  - `400 invalid_request_body`: an `embed_version` that fails the grammar
+    (`MAJOR.MINOR.PATCH`). The library's request model refuses one longer
+    than 20 characters before sending, as `ServerError::Request`.
+- **`token_handoff`** is `{"token","expires_at"}`, the body every player
+  kit's token source and the widget's `tokenProvider` read, plus
+  `update_available` (`{latest, deprecated, message}`) when the mint answered
+  one, which the player kit surfaces as its update notice.
 - **`PlayerDirectory`** is the one thing a kit cannot derive: Lingara's
   `subject` is pairwise. Keep a table of `player_ref` and `subject`, unique
   on `subject` (a player who links an account owns a second one).

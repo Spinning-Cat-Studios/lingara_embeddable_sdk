@@ -7,6 +7,7 @@ namespace Lingara\Embed;
 use Lingara\Client;
 use Lingara\MintedToken;
 use Lingara\Model\EmbedTokenRequest;
+use Psr\Http\Message\MessageInterface;
 
 /**
  * Mint and delete (ADR 1.10.26af D4, D9): one library call each, the
@@ -32,29 +33,59 @@ final class EmbedServer
 
     /**
      * Mints a token for one player: one `POST /v1/embed/tokens`, then
-     * `remember($playerRef, $minted->subject)`. `scopes` and `origin` are
-     * sent only when given; `origin` is your page's origin, one of your
-     * client's embed origins (a game's server mints without one). On a
-     * failure nothing is remembered.
+     * `remember($playerRef, $minted->subject)`. `scopes`, `origin` and
+     * `embedVersion` are sent only when given; `origin` is your page's
+     * origin, one of your client's embed origins (a game's server mints
+     * without one), and `embedVersion` is the player build's declared
+     * version, read with embedVersionFrom(). Lingara answers an outdated one
+     * with `$minted->updateAvailable`. On a failure nothing is remembered.
      *
      * @param list<string>|null $scopes
      *
      * @throws \Lingara\Exception\LingaraException
      * @throws \InvalidArgumentException for a value the request model refuses before anything is sent
      */
-    public function mintToken(string $playerRef, ?array $scopes = null, ?string $origin = null): MintedToken
+    public function mintToken(string $playerRef, ?array $scopes = null, ?string $origin = null, ?string $embedVersion = null): MintedToken
     {
-        // `origin` goes in through the constructor, not setOrigin(): the
-        // library's 0.2.0-alpha.1 setter calls an ObjectSerializer::toString()
-        // that does not exist, so it throws \Error for any non-null origin.
-        // Lingara checks the origin's shape and registration either way (B1).
-        $request = (new EmbedTokenRequest($origin === null ? null : ['origin' => $origin]))->setPlayerRef($playerRef);
+        // `origin` and `embed_version` go in through the constructor, not
+        // their setters: the library's setters call an
+        // ObjectSerializer::toString() that does not exist, so they throw
+        // \Error for any non-null value. Lingara checks both values either
+        // way (B1; ADR 31.10.26f D1: the kit does not validate the version).
+        $fields = array_filter(['origin' => $origin, 'embed_version' => $embedVersion], static fn (?string $v): bool => $v !== null);
+        $request = (new EmbedTokenRequest($fields === [] ? null : $fields))->setPlayerRef($playerRef);
         if ($scopes !== null) {
             $request->setScopes($scopes);
         }
         $minted = $this->client->createEmbedToken($request)->value;
         $this->directory?->remember($playerRef, $minted->subject);
         return $minted;
+    }
+
+    /**
+     * The `Lingara-Embed-Version` header a player kit sends to your token
+     * route, read case-insensitively and trimmed (ADR 31.10.26f D1): pass it
+     * to mintToken() as `embedVersion`. A missing or blank header is null, so
+     * the mint sends no key. The value is not validated: Lingara is the
+     * authority.
+     *
+     * @param array<string, string|list<string>>|MessageInterface $headers getallheaders(), or any PSR-7 request, as PlayerRouter::handle()
+     */
+    public static function embedVersionFrom(array|MessageInterface $headers): ?string
+    {
+        $name = 'Lingara-Embed-Version';
+        if ($headers instanceof MessageInterface) {
+            $found = $headers->hasHeader($name) ? $headers->getHeaderLine($name) : null;
+        } else {
+            $found = null;
+            foreach ($headers as $key => $value) {
+                if (strcasecmp((string) $key, $name) === 0) {
+                    $found = is_array($value) ? implode(', ', $value) : $value;
+                }
+            }
+        }
+        $trimmed = $found === null ? '' : trim($found);
+        return $trimmed === '' ? null : $trimmed;
     }
 
     /**

@@ -5,7 +5,9 @@
 //! - [`EmbedServer::mint_token`] mints a player's token and remembers its
 //!   `subject` in your [`PlayerDirectory`];
 //! - [`token_handoff`] is the body your token route returns to the player,
-//!   and [`widget_snippet`] the markup that mounts the web widget;
+//!   forwarding the mint's update notice, and [`widget_snippet`] the markup
+//!   that mounts the web widget; [`embed_version_from`] reads the build's
+//!   declared version for the mint;
 //! - [`PlayerRouter::handle`] verifies a webhook and resolves it to a player;
 //! - [`EmbedServer::delete_player`] forgets a player, at Lingara and here.
 //!
@@ -16,8 +18,10 @@
 //!
 //! let client = lingara::Client::builder().client_credentials("lgr_ci_…", "lgr_cs_…").build()?;
 //! let server = EmbedServer::new(client).with_directory(Arc::new(MemoryPlayerDirectory::new()));
-//! let minted = server.mint_token("player-42", MintOptions::default()).await?;
-//! let body = token_handoff(&minted); // {"token":"lgr_et_…","expires_at":"…"}
+//! # let headers = std::collections::HashMap::<String, String>::new();
+//! let embed_version = lingara_embed::server::embed_version_from(&headers);
+//! let minted = server.mint_token("player-42", MintOptions { embed_version, ..MintOptions::default() }).await?;
+//! let body = token_handoff(&minted); // {"token":"lgr_et_…","expires_at":"…"[,"update_available":{…}]}
 //! # let _ = body; Ok(()) }
 //! ```
 
@@ -34,7 +38,7 @@ mod router_tests;
 mod vectors_tests;
 
 pub use directory::{DirectoryError, MemoryPlayerDirectory, PlayerDirectory};
-pub use embed_server::{EmbedServer, MintOptions, ServerError};
+pub use embed_server::{EmbedServer, MintOptions, ServerError, embed_version_from};
 pub use handoff::token_handoff;
 pub use lingara::embed::MintedToken;
 pub use router::{HandleFailure, PlayerRouter, RouteError, RoutedEvent};

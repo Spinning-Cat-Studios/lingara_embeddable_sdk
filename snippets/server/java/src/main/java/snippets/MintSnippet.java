@@ -53,8 +53,14 @@ public final class MintSnippet {
       exchange.sendResponseHeaders(401, -1);
       return;
     }
+    // The player kit sends its build's version as Lingara-Embed-Version; a
+    // missing or blank header sends none.
+    String embedVersion = EmbedServer.embedVersionFrom(exchange.getRequestHeaders());
     MintedToken minted =
-        embed.mintToken(playerId, MintOptions.none().withOrigin("https://game.example"));
+        embed.mintToken(
+            playerId,
+            MintOptions.none().withOrigin("https://game.example").withEmbedVersion(embedVersion));
+    // Adds "update_available" when Lingara says this build is behind.
     byte[] body = TokenHandoff.body(minted).getBytes(StandardCharsets.UTF_8);
     exchange.getResponseHeaders().set("Content-Type", "application/json");
     exchange.getResponseHeaders().set("Cache-Control", "no-store");

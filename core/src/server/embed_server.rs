@@ -7,17 +7,29 @@ use std::fmt;
 use std::sync::Arc;
 
 use lingara::embed::MintedToken;
+use lingara::events::WebhookHeaders;
 use lingara::models::EmbedTokenRequest;
 
 use super::directory::{DirectoryError, PlayerDirectory};
 
-/// What a mint may send beside the player: both optional, and sent only
+/// What a mint may send beside the player: each optional, and sent only
 /// when given. `origin` is your page's origin, one of your client's embed
-/// origins; a game's server mints without one.
+/// origins; a game's server mints without one. `embed_version` is the
+/// player build's declared version, read with [`embed_version_from`]; Lingara
+/// answers an outdated one with `MintedToken::update_available`.
 #[derive(Clone, Debug, Default)]
 pub struct MintOptions {
     pub scopes: Option<Vec<String>>,
     pub origin: Option<String>,
+    pub embed_version: Option<String>,
+}
+
+/// The `Lingara-Embed-Version` header a player kit sends to your token route,
+/// trimmed (ADR 31.10.26f D1). A missing or blank header is `None`, so the
+/// mint sends no key. The value is not validated: Lingara is the authority.
+pub fn embed_version_from(headers: &impl WebhookHeaders) -> Option<String> {
+    let declared = headers.header(crate::EMBED_VERSION_HEADER)?.trim();
+    (!declared.is_empty()).then(|| declared.to_string())
 }
 
 /// Why a job failed. A failed API call is the library's error, unchanged.
@@ -86,6 +98,7 @@ fn request(player_ref: &str, options: MintOptions) -> Result<EmbedTokenRequest, 
         player_ref: player_ref.parse().map_err(refused("player_ref"))?,
         scopes: scopes.transpose()?,
         origin: options.origin.map(|o| o.parse().map_err(refused("origin"))).transpose()?,
+        embed_version: options.embed_version.map(|v| v.parse().map_err(refused("embed_version"))).transpose()?,
     })
 }
 

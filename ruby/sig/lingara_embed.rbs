@@ -19,9 +19,16 @@ module Lingara
                               ?nonce: String?, ?element_src: String?) -> String
     def self.token_handoff: (untyped minted) -> String
 
+    EMBED_VERSION_HEADER: String
+    EMBED_VERSION_RACK: String
+
+    # A Rack env or a Hash of header names to values, as PlayerRouter#handle.
+    def self.embed_version_from: (Hash[untyped, untyped] headers) -> String?
+
     class Server
       def initialize: (untyped client, ?directory: _Directory?) -> void
-      def mint_token: (String player_ref, ?scopes: Array[String]?, ?origin: String?) -> untyped
+      def mint_token: (String player_ref, ?scopes: Array[String]?, ?origin: String?,
+                       ?embed_version: String?) -> untyped
       def delete_player: (String player_ref) -> nil
     end
 
@@ -63,7 +70,9 @@ module Lingara
     # Internal: integrators call Lingara::Embed.token_handoff.
     module TokenHandoff
       def self.from: (untyped minted) -> String
-      def self.body: (String token, String expires_at) -> String
+      # +update_available+ is the library's Lingara::UpdateAvailable.
+      def self.body: (String token, String expires_at, ?untyped update_available) -> String
+      def self.notice: (untyped update) -> Hash[String, untyped]
       def self.rfc3339: (Time | String time) -> String
     end
   end

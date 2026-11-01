@@ -15,12 +15,12 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use axum::Router;
 use axum::extract::State;
-use axum::http::{StatusCode, header};
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use lingara::AccessToken;
 use lingara::embed::MintedToken;
-use lingara_embed::server::{EmbedServer, MintOptions, token_handoff};
+use lingara_embed::server::{EmbedServer, MintOptions, embed_version_from, token_handoff};
 use tokio::net::TcpListener;
 
 #[cfg(test)]
@@ -98,15 +98,18 @@ fn fake_token() -> MintedToken {
         subject: "lgr_sub_fake".into(),
         scopes: PLAYER_SCOPES.map(String::from).to_vec(),
         account_linked: false,
+        update_available: None,
     }
 }
 
 /// The request body is ignored: K1's Http source sends `{}`, Godot may send none.
-async fn token(State(server): State<Arc<Server>>) -> Response {
+/// The build's `Lingara-Embed-Version` header is forwarded to the mint (ADR 31.10.26f).
+async fn token(State(server): State<Arc<Server>>, headers: HeaderMap) -> Response {
     let minted = match &server.minter {
         Minter::Fake => Ok(fake_token()),
         Minter::Lingara(embed) => {
-            let options = MintOptions { scopes: Some(PLAYER_SCOPES.map(String::from).to_vec()), origin: None };
+            let scopes = Some(PLAYER_SCOPES.map(String::from).to_vec());
+            let options = MintOptions { scopes, origin: None, embed_version: embed_version_from(&headers) };
             embed.mint_token(&server.player_ref, options).await
         }
     };

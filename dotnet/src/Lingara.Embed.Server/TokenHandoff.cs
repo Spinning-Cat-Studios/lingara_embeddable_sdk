@@ -14,20 +14,31 @@ public static class TokenHandoff
     /// <summary>
     /// The JSON your token route returns to the player. <c>expires_at</c> is
     /// the server's string, copied byte for byte; <c>expires_in</c> and
-    /// <c>subject</c> are not forwarded.
+    /// <c>subject</c> are not forwarded. The mint's
+    /// <see cref="MintedToken.UpdateAvailable"/> is forwarded as a third key,
+    /// <c>update_available</c>, when present (ADR 31.10.26f).
     /// </summary>
     public static string Body(MintedToken minted)
     {
         ArgumentNullException.ThrowIfNull(minted);
-        return HandoffBody(minted.ExposeToken(), minted.ExpiresAtText);
+        return HandoffBody(minted.ExposeToken(), minted.ExpiresAtText, minted.UpdateAvailable);
     }
 
     /// <summary>
-    /// The pure body over two strings, held to <c>token-handoff.json</c>:
-    /// compact, these two keys in this order, <c>/</c> and non-ASCII unescaped.
+    /// The pure body, held to <c>token-handoff.json</c>: compact, <c>token</c>
+    /// then <c>expires_at</c>, then <c>update_available</c> only when given
+    /// (its keys <c>latest</c>, <c>deprecated</c>, <c>message</c>, nulls kept);
+    /// <c>/</c> and non-ASCII unescaped.
     /// </summary>
-    internal static string HandoffBody(string token, string expiresAt) =>
-        "{\"token\":" + JsonString(token) + ",\"expires_at\":" + JsonString(expiresAt) + "}";
+    internal static string HandoffBody(string token, string expiresAt, UpdateAvailable? updateAvailable = null)
+    {
+        var notice = updateAvailable is { } n
+            ? ",\"update_available\":{\"latest\":" + Nullable(n.Latest) + ",\"deprecated\":" + (n.Deprecated ? "true" : "false") + ",\"message\":" + Nullable(n.Message) + "}"
+            : string.Empty;
+        return "{\"token\":" + JsonString(token) + ",\"expires_at\":" + JsonString(expiresAt) + notice + "}";
+    }
+
+    private static string Nullable(string? value) => value is null ? "null" : JsonString(value);
 
     /// <summary>A JSON string escaping only what JSON requires: <c>"</c>, <c>\</c> and U+0000–U+001F.</summary>
     private static string JsonString(string value)

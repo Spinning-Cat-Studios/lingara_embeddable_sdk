@@ -24,9 +24,13 @@ title = "No secret surfaces in a rendering, an error or a log line"
 
 [[behaviour]]
 id = "ES6"
-title = "The handoff body: exactly {token, expires_at}"
+title = "The handoff body: {token, expires_at}, and update_available when the mint answered one"
 vectors = "token-handoff.json"
 
 [[behaviour]]
 id = "ES7"
 title = "The transport under the kit: the library's errors and retries, once"
+
+[[behaviour]]
+id = "ES8"
+title = "The declared version: a mint with embed_version sends it in the body and a mint without sends no such key; embedVersionFrom reads Lingara-Embed-Version case-insensitively and trims it"
