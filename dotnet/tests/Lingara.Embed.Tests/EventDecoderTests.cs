@@ -67,7 +67,7 @@ namespace Lingara.Embed.Tests
                     Assert.Equal((4L, "ask_about_brother", "explained", CrossedVia.Judge), (e.Dialogue.Value, e.Checkpoint, e.Edge, e.Via));
                     break;
                 case EmbedEvent.DialogueEnded e:
-                    Assert.Equal((DialogueOutcome.Success, "ask_about_brother", "gate"), (e.Outcome, e.Checkpoint, e.Edge));
+                    Assert.Equal(("success", "ask_about_brother", "gate"), (e.Outcome, e.Checkpoint, e.Edge));
                     break;
                 default:
                     CarriedStored(evt);
@@ -128,6 +128,21 @@ namespace Lingara.Embed.Tests
             const string future = "{\"type\":\"weather\",\"sky\":\"clear\"}";
             var unknown = Assert.IsType<EmbedEvent.Unknown>(EventDecoder.Decode(Encoding.UTF8.GetBytes(future), keepRaw: false));
             Assert.Equal(("weather", future), (unknown.Type, unknown.Json));
+        }
+
+        // 3.11.26g AC27
+        [Fact]
+        public void Dialogue_ended_carries_any_ending()
+        {
+            using var vector = JsonDocument.Parse(File.ReadAllText(Support.Vector("json-shape.json")));
+            var named = vector.RootElement.GetProperty("structs").GetProperty("DialogueEnded")[0];
+            var fled = Assert.IsType<EmbedEvent.DialogueEnded>(Decode(named));
+            Assert.Equal(("fled", "introduction", "threat"), (fled.Outcome, fled.Checkpoint, fled.Edge));
+
+            const string closed = "{\"type\":\"dialogue_ended\",\"dialogue\":4,\"outcome\":\"abandoned\",\"checkpoint\":\"intro\",\"edge\":null}";
+            var abandoned = Assert.IsType<EmbedEvent.DialogueEnded>(EventDecoder.Decode(Encoding.UTF8.GetBytes(closed), keepRaw: false));
+            Assert.Equal(DialogueOutcome.Abandoned, abandoned.Outcome);
+            Assert.Null(abandoned.Edge);
         }
     }
 }

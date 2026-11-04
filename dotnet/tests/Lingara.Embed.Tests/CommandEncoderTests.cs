@@ -154,10 +154,10 @@ namespace Lingara.Embed.Tests
             var reached = Assert.IsType<Lingara.Embed.Events.EmbedEvent.CheckpointReached>(events[0]);
             Assert.Equal((4L, "ask_about_brother", "explained", CrossedVia.Judge), (reached.Dialogue.Value, reached.Checkpoint, reached.Edge, reached.Via));
             var ended = Assert.IsType<Lingara.Embed.Events.EmbedEvent.DialogueEnded>(events[1]);
-            Assert.Equal((DialogueOutcome.Success, "ask_about_brother", "gate"), (ended.Outcome, ended.Checkpoint, ended.Edge));
+            Assert.Equal(("success", "ask_about_brother", "gate"), (ended.Outcome, ended.Checkpoint, ended.Edge));
 
             var snapshot = Lingara.Embed.Json.TypeDecoders.OptDialogue(Lingara.Embed.Json.JsonReader.Parse(System.Text.Encoding.UTF8.GetBytes(root.GetProperty("structs").GetProperty("DialogueSnapshot")[0].GetRawText())))!;
-            Assert.Equal((DialoguePhase.Ended, "elena", "ask", DialogueOutcome.Success), (snapshot.Phase, snapshot.Graph!.Npc, snapshot.Graph.Checkpoint, snapshot.Graph.Outcome));
+            Assert.Equal((DialoguePhase.Ended, "elena", "ask", "success"), (snapshot.Phase, snapshot.Graph!.Npc, snapshot.Graph.Checkpoint, snapshot.Graph.Outcome));
             Assert.Equal(0.4, Assert.IsType<FactValue.Number>(snapshot.Graph.Facts["trust"]).Value);
         }
     }

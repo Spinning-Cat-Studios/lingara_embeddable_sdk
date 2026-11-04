@@ -2,7 +2,7 @@
 
 use serde_json::Value;
 
-use crate::build::{Checkpoint, Dialogue, Edge, Fact, Npc, Outcome};
+use crate::build::{Checkpoint, Dialogue, Edge, Fact, Npc, Outcome, Target};
 use crate::{DialogueIr, IrError, Level, Pedagogy, from_json, validate};
 
 /// A file of `conformance/vectors/dialogue/`, read at run time so the
@@ -145,4 +145,39 @@ fn levels_defaults_and_build_refusals() {
     assert_eq!(refused(Dialogue::new("Bad-Id", "a").npc(Npc::new("n", "N")).checkpoint(Checkpoint::new("a", "A")).build()), "id");
     let speaks_ten = Npc::new("n", "N").speaks("en", Level(10), Level(1));
     assert!(Dialogue::new("d", "a").npc(speaks_ten).checkpoint(Checkpoint::new("a", "A").edge(judged())).build().is_err());
+}
+
+/// AC21's two documents, which the C# and GDScript builders also write: one
+/// on the v1 shorthands, one with named endings (ADR 3.11.26g §11.5).
+pub(super) fn gate_keeper(named: bool) -> Result<DialogueIr, IrError> {
+    let (pass, refuse): (crate::build::Target, crate::build::Target) =
+        if named { (Target::ending("passed"), Target::ending("fled")) } else { (Outcome::Success.into(), Outcome::Failure.into()) };
+    let dialogue = Dialogue::new("gate_keeper", "greet").npc(Npc::new("guard", "Guard"));
+    let dialogue = if named { dialogue.ending("passed", "Let through").ending("fled", "Ran off") } else { dialogue };
+    dialogue
+        .checkpoint(
+            Checkpoint::new("greet", "Ask the player their business at the gate")
+                .edge(Edge::new("pass", pass).when("the player gives a good reason"))
+                .edge(Edge::new("refuse", refuse).when("the player is rude to the guard"))
+                .edge(Edge::new("leave", Outcome::Abandoned).when("the player walks away")),
+        )
+        .build()
+}
+
+// 3.11.26g AC21
+#[test]
+fn endings_write_v2_and_shorthands_stay_v1() {
+    let v1 = gate_keeper(false).unwrap();
+    assert_eq!(v1.to_canonical_json(), vector("gate-keeper.v1.canonical.json").trim_end());
+    assert!(v1.to_canonical_json().starts_with(r#"{"checkpoints""#) && v1.schema == crate::SCHEMA_V1);
+    let v2 = gate_keeper(true).unwrap();
+    assert_eq!(v2.to_canonical_json(), vector("gate-keeper.v2.canonical.json").trim_end());
+    assert_eq!(v2.schema, crate::SCHEMA_V2);
+    // An edge to an undeclared ending is refused once endings are declared.
+    let undeclared = Dialogue::new("d", "a")
+        .npc(Npc::new("n", "N"))
+        .ending("won", "")
+        .checkpoint(Checkpoint::new("a", "A").edge(Edge::new("e", Outcome::Success).when("w")))
+        .build();
+    assert_eq!(refused(undeclared), "checkpoints[0].edges[0].to");
 }

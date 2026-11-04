@@ -85,6 +85,17 @@ void FLingaraEventDecodeSpec::Define()
 		}
 	});
 
+	// 3.11.26g: a named ending decodes as its id, as json-shape.json's
+	// structs.DialogueEnded case writes it (not run in CI: no local Unreal Engine).
+	It("decodes a dialogue_ended with a named ending", [this]()
+	{
+		FLingaraDecodedEvent Decoded;
+		const FString Json = TEXT("{\"type\":\"dialogue_ended\",\"dialogue\":4,\"outcome\":\"fled\",\"checkpoint\":\"introduction\",\"edge\":\"threat\"}");
+		TestTrue(TEXT("decodes"), LingaraEventDecoder::DecodeEvent(Json, Decoded) && Decoded.Type == ELingaraDecodedType::DialogueEnded);
+		TestEqual(TEXT("outcome"), Decoded.Graph.Outcome, FString(TEXT("fled")));
+		TestEqual(TEXT("edge"), Decoded.Graph.Edge, FString(TEXT("threat")));
+	});
+
 	It("decodes every stream state and npc turn update", [this]()
 	{
 		for (const TSharedPtr<FJsonObject>& State : LingaraSpec::Examples(Shape, TEXT("StreamState")))

@@ -177,14 +177,37 @@ namespace Lingara.Embed.Dialogues
             return obj;
         }
 
+        /// <summary>
+        /// The write rule, a copy of the crate's <c>version::write_schema</c> (ADR 3.11.26g §2) for what this
+        /// builder can hold: <c>dialogue.v1</c> unless an ending is not <c>success</c> / <c>failure</c> or has a
+        /// label. The builder writes no <c>disposition</c> or <c>steer_to</c>, so that is the whole rule here;
+        /// AC20 pins its bytes to the Rust builder's.
+        /// </summary>
+        public static string WriteSchema(Dialogue d) =>
+            d.Endings.All(e => (e.Id == "success" || e.Id == "failure") && e.Label == null) ? "dialogue.v1" : "dialogue.v2";
+
         /// <summary>The dialogue in normal form (D2 rule 1): the always-written members, empty or not.</summary>
         public static JsonValue Tree(Dialogue d)
         {
-            var root = Obj(("schema", Str("dialogue.v1")), ("id", Str(d.Id)), ("pedagogy", Str(d.Pedagogy == Pedagogy.None ? "none" : "subtle")),
+            var schema = WriteSchema(d);
+            var root = Obj(("schema", Str(schema)), ("id", Str(d.Id)), ("pedagogy", Str(d.Pedagogy == Pedagogy.None ? "none" : "subtle")),
                 ("npcs", Arr(d.Npcs.Select(NpcTree))), ("facts", Arr(d.Facts.Select(FactTree))), ("start", Str(d.Start)),
                 ("checkpoints", Arr(d.Checkpoints.Select(CheckpointTree))));
             Opt(root, "title", d.Title);
+            if (schema == "dialogue.v2")
+            {
+                root.Members.Add(new KeyValuePair<string, JsonValue>("kind", Str("static")));
+                root.Members.Add(new KeyValuePair<string, JsonValue>("endings", Arr(d.Endings.Select(EndingTree))));
+            }
+
             return root;
+        }
+
+        private static JsonValue EndingTree(DialogueEnding ending)
+        {
+            var o = Obj(("id", Str(ending.Id)));
+            Opt(o, "label", ending.Label);
+            return o;
         }
 
         private static JsonValue NpcTree(DialogueNpc npc)

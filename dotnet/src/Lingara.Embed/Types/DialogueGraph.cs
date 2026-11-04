@@ -25,13 +25,13 @@ namespace Lingara.Embed
         Judge,
     }
 
-    /// <summary>The reserved names a graph dialogue's story ends on.</summary>
-    public enum DialogueOutcome
+    /// <summary>
+    /// A story's outcome is the id of the ending it reached, a string (ADR 3.11.26g §11.3).
+    /// The one ending no dialogue declares is <see cref="Abandoned"/>: the game closed the story unfinished.
+    /// </summary>
+    public static class DialogueOutcome
     {
-        Unknown = -1,
-        Success,
-        Failure,
-        Abandoned,
+        public const string Abandoned = "abandoned";
     }
 
     /// <summary>One of an NPC's languages (N1): levels 1–9.</summary>
@@ -142,7 +142,8 @@ namespace Lingara.Embed
 
         public IReadOnlyDictionary<string, FactValue> Facts { get; init; } = new Dictionary<string, FactValue>();
 
-        public DialogueOutcome? Outcome { get; init; }
+        /// <summary>The ending reached, by id, or <see cref="DialogueOutcome.Abandoned"/>; null while the story runs.</summary>
+        public string? Outcome { get; init; }
     }
 
     internal static class GraphWords
@@ -152,9 +153,6 @@ namespace Lingara.Embed
 
         public static readonly WordTable<CrossedVia> CrossedVias = new WordTable<CrossedVia>(
             CrossedVia.Unknown, W("start", CrossedVia.Start), W("auto", CrossedVia.Auto), W("judge", CrossedVia.Judge));
-
-        public static readonly WordTable<DialogueOutcome> Outcomes = new WordTable<DialogueOutcome>(
-            DialogueOutcome.Unknown, W("success", DialogueOutcome.Success), W("failure", DialogueOutcome.Failure), W("abandoned", DialogueOutcome.Abandoned));
 
         private static KeyValuePair<string, T> W<T>(string word, T value) => new KeyValuePair<string, T>(word, value);
     }

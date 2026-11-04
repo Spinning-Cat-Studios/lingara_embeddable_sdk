@@ -21,6 +21,8 @@ mod tests;
 pub use config::{DEFAULT_MAX_EVENTS_PER_FRAME, LingaraConfig};
 pub use core::Lingara;
 pub use dialogue::{NpcDialogue, NpcTranscript, Turn};
+// Every Message, the stored load's `DialogueLoaded` / `DialogueLoadFailed`
+// (ADR 3.11.26f §5) included.
 pub use messages::*;
 pub use plugin::{LingaraPlugin, LingaraSystems};
 pub use practice::{PracticeAction, PracticeSession};

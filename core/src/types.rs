@@ -103,7 +103,8 @@ data! {
         Practice { session: SessionId, snapshot: PracticeSnapshot },
         NpcTurn { dialogue: DialogueId, request: RequestId, update: NpcTurnUpdate },
         CheckpointReached { dialogue: DialogueId, checkpoint: String, edge: Option<String>, via: CrossedVia },
-        DialogueEnded { dialogue: DialogueId, outcome: DialogueOutcome, checkpoint: String, edge: Option<String> },
+        /// The story ended: `outcome` is the ending's id, or `abandoned` (ADR 3.11.26g §11.3).
+        DialogueEnded { dialogue: DialogueId, outcome: String, checkpoint: String, edge: Option<String> },
         /// A stored dialogue's revision `rev` is loaded; `CheckpointReached { via: start }` follows.
         DialogueLoaded { dialogue: DialogueId, dialogue_id: String, rev: u64 },
         /// A stored dialogue could not load; its id is gone.

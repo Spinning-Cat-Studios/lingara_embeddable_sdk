@@ -11,7 +11,8 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::ir::DialogueIr;
+use crate::ir::{DialogueIr, SCHEMA_V2};
+use crate::limits::ABANDONED;
 use crate::path::edge;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -72,4 +73,16 @@ pub(crate) fn unreachable(ir: &DialogueIr) -> Vec<usize> {
         }
     }
     ir.checkpoints.iter().enumerate().filter(|(_, c)| !seen.contains(c.id.as_str())).map(|(i, _)| i).collect()
+}
+
+/// Whether no path from `start` reaches an ending (ADR 3.11.26g §11.1). In
+/// v2, `abandoned` does not count, because the runtime reaches it on close
+/// regardless; a v1 document keeps v1's rule, which counts it, so no saved v1
+/// document starts to warn for reaching only `abandoned`.
+pub(crate) fn no_ending_reachable(ir: &DialogueIr) -> bool {
+    let counts_abandoned = ir.schema != SCHEMA_V2;
+    let counts = |to: &str| ir.is_ending(to) && (counts_abandoned || to != ABANDONED);
+    let unreached: HashSet<usize> = unreachable(ir).into_iter().collect();
+    let reached = ir.checkpoints.iter().enumerate().filter(|(i, _)| !unreached.contains(i)).map(|(_, c)| c);
+    !reached.flat_map(|c| &c.edges).any(|edge| counts(&edge.to))
 }

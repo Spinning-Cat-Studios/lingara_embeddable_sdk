@@ -1,8 +1,8 @@
 # lingara-dialogue-ir
 
-The Lingara dialogue graph format, `dialogue.v1`: its Rust types, its
-load-time checks, and the fact-predicate language an edge's `predicate` is
-written in.
+The Lingara dialogue graph format, `dialogue.v1` and `dialogue.v2`: its Rust
+types, its load-time checks, and the fact-predicate language an edge's
+`predicate` is written in.
 
 A dialogue is a cast of NPCs, the facts a game tracks, and checkpoints joined
 by edges. An edge's `predicate` is a game condition the embed core evaluates
@@ -45,7 +45,37 @@ unreachable checkpoint, and text the schema allows but a turn refuses (a blank
 (a canvas's `x-layout`) are kept and ignored.
 
 The frozen `dialogue.v1` bounds are in `limits`, under the schema's names
-(`MAX_TITLE_CHARS`, `MAX_PREDICATE_CHARS`, `MAX_IR_BYTES` …).
+(`MAX_TITLE_CHARS`, `MAX_PREDICATE_CHARS`, `MAX_IR_BYTES` …), and v2's new
+ones beside them. Each refusal also carries a `rule` (`Rule::UnknownTarget`,
+`Rule::SteerTarget` …) and each warning a `code`, spelled as the Lingara
+server publishes them. `validate_with(&doc, Strictness::Save)` refuses the
+text faults a load only warns about.
+
+## dialogue.v2: endings, the stance, and two kinds
+
+`dialogue.v2` adds three things, and a document v1 can still say is written
+back as `dialogue.v1`, byte for byte (`version::write_schema` is the rule).
+
+- **Named endings.** `endings` declares 1–8 ways the story can end, in its
+  own words (`{"id": "fled", "label": "Ran off"}`). An edge's `to` names a
+  checkpoint, a declared ending or the built-in `abandoned`; the three share
+  one namespace. A v1 document reads as declaring `success` and `failure`.
+- **The steering stance.** An NPC's `disposition` holds `suggestibility` (how
+  readily it follows the player off its goal) and `initiative` (how hard it
+  drives back), both 0 to 1. A model only ever reads them as bands
+  (`disposition::Stance`: Low, Medium, High, and Railroad at 0.9 initiative).
+  A checkpoint's `steer_to` names the edge with a `when` the NPC drives toward.
+- **Two kinds.** `kind: "static"` is a graph its author writes. `kind:
+  "procedural"` replaces `start` and `checkpoints` with a `ProceduralSpec`: a
+  premise, the facts that may be disclosed, topics, goals, the atoms the
+  planner may compose (Open, Elicit, Reveal, Practise, Close), the horizon and
+  when to stop. A planner returns a `PlanFragment` of atom instances only;
+  `procedural::within_spec` checks it, and `procedural::expand` turns it into
+  an ordinary static `DialogueIr`, the same way every time. A procedural
+  frontier *is* a static graph, so the runner walks it unchanged.
+
+`from_json` and `load` answer a static graph and refuse a procedural document
+by name; `load_document` reads either kind.
 
 ## Predicates
 

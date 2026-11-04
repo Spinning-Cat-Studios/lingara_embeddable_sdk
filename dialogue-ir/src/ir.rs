@@ -1,5 +1,7 @@
-//! The `dialogue.v1` IR as Rust reads it (ADR 28.10.26f D1). The shape is
-//! Backend ADR 28.10.26e §10's, unchanged.
+//! The dialogue IR as Rust reads it (ADR 28.10.26f D1): `dialogue.v1`, the
+//! shape of Backend ADR 28.10.26e §10, and the static half of `dialogue.v2`
+//! (ADR 3.11.26g §1), which adds `endings`, `disposition` and `steer_to`.
+//! The procedural kind is [`crate::procedural`]'s.
 //!
 //! Serialising one writes the normal form: `pedagogy`, `facts`,
 //! `may_disclose` and `edges` always written, every other optional omitted
@@ -15,8 +17,52 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Number, Value};
 
-/// The one `schema` string this version reads.
+/// The first `schema` string, still read and still written (§2).
 pub const SCHEMA_V1: &str = "dialogue.v1";
+/// The second, for a document v1 cannot say (ADR 3.11.26g).
+pub const SCHEMA_V2: &str = "dialogue.v2";
+
+/// Which of the two kinds of checkpointed graph a v2 document is (§1).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum DialogueKind {
+    /// Written by its author: `start` and `checkpoints`.
+    #[default]
+    Static,
+    /// Written at runtime inside a [`crate::procedural::ProceduralSpec`].
+    Procedural,
+}
+
+/// A way a conversation can end (§11.1). A v1 document is read as declaring
+/// `success` and `failure`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Ending {
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+}
+
+impl Ending {
+    /// An ending with no label.
+    pub fn bare(id: &str) -> Self {
+        Ending { id: id.into(), label: None }
+    }
+}
+
+/// An NPC's steering stance (§3). Both in 0..=1, held as the `Number` written,
+/// like a [`FactValue`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Disposition {
+    /// How readily the NPC follows the player off its goal.
+    pub suggestibility: Number,
+    /// How hard the NPC drives toward its goal or `steer_to`.
+    pub initiative: Number,
+}
 
 /// How much the NPC adapts its speech to the learner (N1). Per dialogue.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,7 +121,7 @@ pub struct NpcLanguage {
 }
 
 /// A member of the cast. A run opens with one of them.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct NpcProfile {
@@ -86,6 +132,9 @@ pub struct NpcProfile {
     /// Absent means N1's native speaker.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub languages: Option<Vec<NpcLanguage>>,
+    /// `dialogue.v2`: the stance (§3). Absent plans as Medium / Medium.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disposition: Option<Disposition>,
 }
 
 /// A fact the game tracks. It must be declared to be read by a predicate or
@@ -107,7 +156,7 @@ pub struct FactDecl {
 #[serde(deny_unknown_fields)]
 pub struct Edge {
     pub id: String,
-    /// A checkpoint id, or one of [`crate::limits::OUTCOMES`].
+    /// A checkpoint id, a declared ending, or [`crate::limits::ABANDONED`].
     pub to: String,
     /// The game condition, in this crate's predicate language.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -130,13 +179,23 @@ pub struct Checkpoint {
     pub may_disclose: Vec<String>,
     #[serde(default)]
     pub edges: Vec<Edge>,
+    /// `dialogue.v2`: an edge id of this checkpoint with a `when`, where the
+    /// NPC drives the conversation (§3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub steer_to: Option<String>,
 }
 
-/// One `dialogue.v1` document.
+/// A static graph, `dialogue.v1` or `dialogue.v2`.
+///
+/// Serialised directly it writes every member; the canonical writer
+/// ([`DialogueIr::to_canonical_json`]) writes the schema
+/// [`crate::version::write_schema`] chooses, and strips v2's members from a v1
+/// write.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct DialogueIr {
-    /// Always [`SCHEMA_V1`].
+    /// The schema that was read: informational. Every writer uses
+    /// [`crate::version::write_schema`]'s answer instead.
     pub schema: String,
     /// The author's slug. Not a store id.
     pub id: String,
@@ -147,6 +206,9 @@ pub struct DialogueIr {
     pub npcs: Vec<NpcProfile>,
     #[serde(default)]
     pub facts: Vec<FactDecl>,
+    /// The declared endings; a v1 read fills `[success, failure]` (§2).
+    #[serde(default)]
+    pub endings: Vec<Ending>,
     pub start: String,
     pub checkpoints: Vec<Checkpoint>,
     /// Top-level `x-` members (P1's `x-layout`), kept as written and ignored.
@@ -163,5 +225,10 @@ impl DialogueIr {
     /// The checkpoint named `id`, if there is one.
     pub fn checkpoint(&self, id: &str) -> Option<&Checkpoint> {
         self.checkpoints.iter().find(|checkpoint| checkpoint.id == id)
+    }
+
+    /// Whether `id` ends the story: a declared ending or `abandoned` (§11.3).
+    pub fn is_ending(&self, id: &str) -> bool {
+        id == crate::limits::ABANDONED || self.endings.iter().any(|ending| ending.id == id)
     }
 }

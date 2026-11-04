@@ -15,3 +15,9 @@ pub(crate) fn index(base: &str, i: usize) -> String {
 pub(crate) fn edge(checkpoint: usize, edge: usize) -> String {
     format!("checkpoints[{checkpoint}].edges[{edge}]")
 }
+
+/// `beats[i]`: a fragment's beat (ADR 3.11.26g §8). A spec's members are
+/// `procedural.topics[i].about` and so on, built with [`member`] and [`index`].
+pub(crate) fn beat(i: usize) -> String {
+    index("beats", i)
+}

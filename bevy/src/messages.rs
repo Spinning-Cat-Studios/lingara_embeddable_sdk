@@ -5,7 +5,7 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::message::Message;
 use bevy::ecs::resource::Resource;
 use lingara_embed::{
-    CloseReason, CrossedVia, DialogueOutcome, EmbedError, EmbedEvent, EmbedStatus, FactValue, Header, LingaraEvent, PracticeSnapshot,
+    CloseReason, CrossedVia, EmbedError, EmbedEvent, EmbedStatus, FactValue, Header, LingaraEvent, PracticeSnapshot,
     PracticeSource, Reaction, RequestId, Secret, TokenReason, UpdateAvailable, WorldContext,
 };
 
@@ -67,12 +67,29 @@ pub struct CheckpointReached {
     pub via: CrossedVia,
 }
 
-/// A graph NPC's story ended on `outcome`. The component stays, and its
-/// removal closes the dialogue as it always does.
-#[derive(Message, Debug, Clone, Copy, PartialEq, Eq)]
+/// A graph NPC's story ended on `outcome`: a declared ending's id, or
+/// `abandoned` (ADR 3.11.26g §11.3). The component stays, and its removal
+/// closes the dialogue as it always does.
+#[derive(Message, Debug, Clone, PartialEq, Eq)]
 pub struct DialogueEnded {
     pub entity: Entity,
-    pub outcome: DialogueOutcome,
+    pub outcome: String,
+}
+
+/// A stored dialogue on `entity` loaded at revision `rev` (ADR 3.11.26f §5).
+#[derive(Message, Debug, Clone, PartialEq, Eq)]
+pub struct DialogueLoaded {
+    pub entity: Entity,
+    pub dialogue_id: String,
+    pub rev: u64,
+}
+
+/// It could not load. The component stays; removing it closes nothing further.
+/// The next `LingaraConnect` tries the load again.
+#[derive(Message, Debug, Clone, PartialEq)]
+pub struct DialogueLoadFailed {
+    pub entity: Entity,
+    pub error: EmbedError,
 }
 
 /// A practice session reached a terminal phase. Written once per session.

@@ -1,7 +1,9 @@
 class_name LingaraDialogue
 extends RefCounted
-## Writes a `dialogue.v1` graph in GDScript (ADR 28.10.26g D1): NPCs, facts
-## and checkpoints in the order they are added. Edge order matters: the core
+## Writes a dialogue graph in GDScript (ADR 28.10.26g D1): NPCs, facts,
+## endings and checkpoints in the order they are added. It writes
+## `dialogue.v1`, or `dialogue.v2` once [method ending] declares an ending v1
+## cannot say (ADR 3.11.26g §11.5). Edge order matters: the core
 ## crosses the first open edge with no `when`, and the judge takes the first
 ## match. A predicate is the core's text ("trust >= 0.4"), never a Callable.
 ##
@@ -16,11 +18,14 @@ extends RefCounted
 
 ## The top of the scale: what an NPC with no languages is treated as.
 const NATIVE := 9
-const OUTCOMES := ["success", "failure", "abandoned"]
+## The ending no dialogue declares: the game closed the story unfinished.
+const ABANDONED := "abandoned"
+## What a dialogue that declares no ending ends on, besides ABANDONED.
+const V1_ENDINGS := ["success", "failure"]
 const CEFR := ["A1", "A2", "B1", "B2", "C1", "C2"]
 ## From the easiest: N5 is 1, the mistake this helper prevents.
 const JLPT := ["N5", "N4", "N3", "N2", "N1"]
-const TYPES := ["string", "number", "boolean"]
+const Checks := preload("lingara_dialogue_checks.gd")
 
 var _id: String
 var _start: String
@@ -28,6 +33,7 @@ var _title := ""
 var _pedagogy := "subtle"
 var _npcs: Array[Npc] = []
 var _facts: Array[Dictionary] = []
+var _endings: Array[Dictionary] = []
 var _checkpoints: Array[Checkpoint] = []
 
 
@@ -67,8 +73,9 @@ class Checkpoint:
 		may_disclose.append(key)
 		return self
 
-	## An edge to a checkpoint or to "success", "failure" or "abandoned";
-	## `options` may hold "predicate" and "when".
+	## An edge to a checkpoint, to a declared ending, or to "abandoned" (with
+	## no ending declared, also "success" or "failure"); `options` may hold
+	## "predicate" and "when".
 	func edge(edge_id: String, to: String, options := {}) -> Checkpoint:
 		var e := {"id": edge_id, "to": to}
 		for key: String in ["predicate", "when"]:
@@ -124,6 +131,36 @@ func fact(key: String, type: String, default: Variant = null) -> LingaraDialogue
 	return self
 
 
+## A named ending (ADR 3.11.26g §11): once one is declared, the dialogue
+## ends only on the endings it declares, plus "abandoned".
+func ending(id: String, label := "") -> LingaraDialogue:
+	var e := {"id": id}
+	if label != "":
+		e["label"] = label
+	_endings.append(e)
+	return self
+
+
+## The declared endings, or v1's two when none was declared.
+func declared_endings() -> Array[Dictionary]:
+	if not _endings.is_empty():
+		return _endings
+	var v1: Array[Dictionary] = []
+	for id: String in V1_ENDINGS:
+		v1.append({"id": id})
+	return v1
+
+
+## The write rule, a copy of the crate's `version::write_schema` (ADR
+## 3.11.26g §2) for what this builder holds: "dialogue.v1" unless an ending
+## is not success / failure or has a label. AC22 pins its bytes to Rust's.
+func write_schema() -> String:
+	for e: Dictionary in declared_endings():
+		if e.has("label") or not e.id in V1_ENDINGS:
+			return "dialogue.v2"
+	return "dialogue.v1"
+
+
 func checkpoint(id: String, goal: String) -> Checkpoint:
 	var c := Checkpoint.new(id, goal)
 	_checkpoints.append(c)
@@ -137,11 +174,14 @@ func to_dictionary() -> Dictionary:
 		func(c: Checkpoint) -> Dictionary: return {"id": c.id, "goal": c.goal, "may_disclose": c.may_disclose, "edges": c.edges}
 	)
 	var d := {
-		"schema": "dialogue.v1", "id": _id, "pedagogy": _pedagogy, "npcs": npcs,
+		"schema": write_schema(), "id": _id, "pedagogy": _pedagogy, "npcs": npcs,
 		"facts": _facts, "start": _start, "checkpoints": checkpoints,
 	}
 	if _title != "":
 		d["title"] = _title
+	if d.schema == "dialogue.v2":
+		d["kind"] = "static"
+		d["endings"] = declared_endings()
 	return d
 
 
@@ -157,11 +197,7 @@ func to_canonical_json() -> String:
 
 ## The first structural fault, as "<json path>: <reason>", or "" for none.
 func structural_fault() -> String:
-	for check: Callable in [_ids, _unique, _targets, _disclosed, _defaults, _levels, _when_less_cycle]:
-		var fault: String = check.call()
-		if fault != "":
-			return fault
-	return ""
+	return Checks.first_fault(self)
 
 
 static func _npc_dictionary(n: Npc) -> Dictionary:
@@ -171,123 +207,3 @@ static func _npc_dictionary(n: Npc) -> Dictionary:
 	if not n.languages.is_empty():
 		d["languages"] = n.languages
 	return d
-
-
-static func _is_id(value: String) -> bool:
-	var pattern := RegEx.create_from_string("^[a-z][a-z0-9_]{0,47}$")
-	return pattern.search(value) != null
-
-
-## Every id in path order: [path, id].
-func _all_ids() -> Array:
-	var ids := [["id", _id], ["start", _start]]
-	for i in _npcs.size():
-		ids.append(["npcs[%d].id" % i, _npcs[i].id])
-	for i in _facts.size():
-		ids.append(["facts[%d].key" % i, _facts[i].key])
-	for i in _checkpoints.size():
-		ids.append(["checkpoints[%d].id" % i, _checkpoints[i].id])
-		for j in _checkpoints[i].edges.size():
-			ids.append(["checkpoints[%d].edges[%d].id" % [i, j], _checkpoints[i].edges[j].id])
-	return ids
-
-
-func _ids() -> String:
-	for pair: Array in _all_ids():
-		if not _is_id(pair[1]):
-			return "%s: \"%s\" is not an id" % pair
-	for i in _checkpoints.size():
-		if _checkpoints[i].id in OUTCOMES:
-			return "checkpoints[%d].id: \"%s\" is an outcome's name" % [i, _checkpoints[i].id]
-	return ""
-
-
-## Rule 1: unique within each list, and edge ids across the whole dialogue.
-func _unique() -> String:
-	var seen := {}
-	for pair: Array in _all_ids().slice(2):
-		var path: String = pair[0]
-		var list := path.get_slice("[", 0) + ("edges" if path.contains("edges") else "")
-		var key := "%s/%s" % [list, pair[1]]
-		if seen.has(key):
-			return "%s: repeats the id \"%s\"" % pair
-		seen[key] = true
-	return ""
-
-
-## Rule 2: `start` and every non-outcome `to` name a checkpoint.
-func _targets() -> String:
-	var ids := _checkpoints.map(func(c: Checkpoint) -> String: return c.id)
-	if not _start in ids:
-		return "start: names no checkpoint: \"%s\"" % _start
-	for i in _checkpoints.size():
-		for j in _checkpoints[i].edges.size():
-			var to: String = _checkpoints[i].edges[j].to
-			if not to in OUTCOMES and not to in ids:
-				return "checkpoints[%d].edges[%d].to: names no checkpoint or outcome: \"%s\"" % [i, j, to]
-	return ""
-
-
-## Rule 3, for `may_disclose`.
-func _disclosed() -> String:
-	var keys := _facts.map(func(f: Dictionary) -> String: return f.key)
-	for i in _checkpoints.size():
-		for k in _checkpoints[i].may_disclose.size():
-			if not _checkpoints[i].may_disclose[k] in keys:
-				return "checkpoints[%d].may_disclose[%d]: unknown fact \"%s\"" % [i, k, _checkpoints[i].may_disclose[k]]
-	return ""
-
-
-## Rule 5, and D2's builder range for a number.
-func _defaults() -> String:
-	for i in _facts.size():
-		var f := _facts[i]
-		if not f.type in TYPES:
-			return "facts[%d].type: \"%s\" is not string, number or boolean" % [i, f.type]
-		if not f.has("default"):
-			continue
-		var value: Variant = f.default
-		var ok := false
-		match f.type:
-			"string":
-				ok = value is String
-			"boolean":
-				ok = value is bool
-			"number":
-				ok = (value is int or value is float) and LingaraCanonicalJson.number(value) != ""
-		if not ok:
-			return "facts[%d].default: must match the fact's type, and a number the builders' range" % i
-	return ""
-
-
-func _levels() -> String:
-	for i in _npcs.size():
-		for j in _npcs[i].languages.size():
-			var language := _npcs[i].languages[j]
-			if language.speaking < 1 or language.speaking > 9 or language.comprehension < 1 or language.comprehension > 9:
-				return "npcs[%d].languages[%d]: levels run from 1 to 9" % [i, j]
-	return ""
-
-
-## Rule 6: no cycle made only of edges without `when`.
-func _when_less_cycle() -> String:
-	var state := {}  # 1 on the path, 2 done
-	for i in _checkpoints.size():
-		if _visit(_checkpoints[i].id, state):
-			return "checkpoints[%d]: closes a cycle of edges without `when`, which would loop with no turn" % i
-	return ""
-
-
-func _visit(id: String, state: Dictionary) -> bool:
-	if state.has(id):
-		return state[id] == 1
-	state[id] = 1
-	var found := false
-	for c: Checkpoint in _checkpoints:
-		if c.id != id:
-			continue
-		for e: Dictionary in c.edges:
-			if not e.has("when") and not e.to in OUTCOMES and _visit(e.to, state):
-				found = true
-	state[id] = 2
-	return found

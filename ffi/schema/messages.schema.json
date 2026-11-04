@@ -687,15 +687,6 @@
       ],
       "type": "object"
     },
-    "DialogueOutcome": {
-      "description": "The reserved `to` names a story ends on.",
-      "enum": [
-        "success",
-        "failure",
-        "abandoned"
-      ],
-      "type": "string"
-    },
     "DialoguePhase": {
       "description": "`Ended` once a graph dialogue crosses an edge to an outcome (ADR\n28.10.26f D4); `Loading` while a stored one is fetched (ADR 28.10.26i D2).",
       "enum": [
@@ -757,7 +748,7 @@
       "description": "Where a graph dialogue comes from.",
       "oneOf": [
         {
-          "description": "A `dialogue.v1` document, as text.",
+          "description": "A `dialogue.v1` or `dialogue.v2` document, as text.",
           "properties": {
             "ir_json": {
               "type": "string"
@@ -1109,6 +1100,7 @@
           "type": "object"
         },
         {
+          "description": "The story ended: `outcome` is the ending's id, or `abandoned` (ADR 3.11.26g §11.3).",
           "properties": {
             "checkpoint": {
               "type": "string"
@@ -1125,7 +1117,7 @@
               ]
             },
             "outcome": {
-              "$ref": "#/$defs/DialogueOutcome"
+              "type": "string"
             },
             "type": {
               "const": "dialogue_ended",
@@ -1420,13 +1412,10 @@
           "type": "string"
         },
         "outcome": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DialogueOutcome"
-            },
-            {
-              "type": "null"
-            }
+          "description": "The ending reached: a declared ending's id, or `abandoned`.",
+          "type": [
+            "string",
+            "null"
           ]
         }
       },

@@ -107,5 +107,7 @@ fn add_messages(app: &mut App) {
         .add_message::<NpcCancel>()
         .add_message::<CheckpointReached>()
         .add_message::<DialogueEnded>()
+        .add_message::<DialogueLoaded>()
+        .add_message::<DialogueLoadFailed>()
         .add_message::<NpcSetFact>();
 }

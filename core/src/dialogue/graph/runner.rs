@@ -14,8 +14,8 @@ use std::sync::Arc;
 
 use lingara_dialogue_ir::{Checkpoint, DialogueIr, Edge, FactValue, NpcProfile, limits, predicate};
 
-use crate::dialogue::graph::{Step, facts, log};
-use crate::types::{CrossedVia, DialogueOutcome, GraphSnapshot, LogLevel};
+use crate::dialogue::graph::{Step, facts, log, stance_notice};
+use crate::types::{ABANDONED, CrossedVia, GraphSnapshot, LogLevel};
 
 pub(crate) struct GraphState {
     /// Validated.
@@ -25,7 +25,7 @@ pub(crate) struct GraphState {
     checkpoint: usize,
     /// The game's values; defaults are read from the IR.
     facts: BTreeMap<String, FactValue>,
-    outcome: Option<DialogueOutcome>,
+    outcome: Option<String>,
 }
 
 impl GraphState {
@@ -70,6 +70,7 @@ impl GraphState {
     /// `CheckpointReached { via: start }` where the run begins, then any auto crossings.
     pub fn start(&mut self) -> Vec<Step> {
         let mut steps = vec![Step::Reached { checkpoint: self.current().id.clone(), edge: None, via: CrossedVia::Start }];
+        steps.extend(stance_notice(&self.ir));
         steps.extend(self.auto_run());
         steps
     }
@@ -97,8 +98,9 @@ impl GraphState {
         let ir = Arc::clone(&self.ir);
         let left = &ir.checkpoints[self.checkpoint];
         let edge = &left.edges[edge];
-        if let Some(outcome) = DialogueOutcome::from_name(&edge.to) {
-            self.outcome = Some(outcome);
+        if ir.is_ending(&edge.to) {
+            let outcome = edge.to.clone();
+            self.outcome = Some(outcome.clone());
             return Step::Ended { outcome, checkpoint: left.id.clone(), edge: Some(edge.id.clone()) };
         }
         match ir.checkpoints.iter().position(|c| c.id == edge.to) {
@@ -129,8 +131,8 @@ impl GraphState {
         if self.ended() {
             return None;
         }
-        self.outcome = Some(DialogueOutcome::Abandoned);
-        Some(Step::Ended { outcome: DialogueOutcome::Abandoned, checkpoint: self.current().id.clone(), edge: None })
+        self.outcome = Some(ABANDONED.to_owned());
+        Some(Step::Ended { outcome: ABANDONED.to_owned(), checkpoint: self.current().id.clone(), edge: None })
     }
 
     /// Stores the game's value for `key`, or says why it is refused.
@@ -141,6 +143,6 @@ impl GraphState {
     }
 
     pub fn snapshot(&self) -> GraphSnapshot {
-        GraphSnapshot { id: self.ir.id.clone(), npc: self.npc().id.clone(), checkpoint: self.current().id.clone(), facts: self.facts.clone(), outcome: self.outcome }
+        GraphSnapshot { id: self.ir.id.clone(), npc: self.npc().id.clone(), checkpoint: self.current().id.clone(), facts: self.facts.clone(), outcome: self.outcome.clone() }
     }
 }

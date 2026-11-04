@@ -10,7 +10,7 @@ pub struct Npc(NpcProfile);
 
 impl Npc {
     pub fn new(id: &str, name: &str) -> Self {
-        Npc(NpcProfile { id: id.into(), name: name.into(), persona: None, languages: None })
+        Npc(NpcProfile { id: id.into(), name: name.into(), persona: None, languages: None, disposition: None })
     }
 
     pub fn persona(mut self, persona: &str) -> Self {
@@ -35,7 +35,7 @@ pub struct Checkpoint(IrCheckpoint);
 
 impl Checkpoint {
     pub fn new(id: &str, goal: &str) -> Self {
-        Checkpoint(IrCheckpoint { id: id.into(), goal: goal.into(), may_disclose: Vec::new(), edges: Vec::new() })
+        Checkpoint(IrCheckpoint { id: id.into(), goal: goal.into(), may_disclose: Vec::new(), edges: Vec::new(), steer_to: None })
     }
 
     /// A fact key the NPC may voice here.

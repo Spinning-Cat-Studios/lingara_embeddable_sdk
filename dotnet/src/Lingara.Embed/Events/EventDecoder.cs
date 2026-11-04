@@ -47,7 +47,7 @@ namespace Lingara.Embed.Events
             ["dialogue_ended"] = v => new EmbedEvent.DialogueEnded
             {
                 Dialogue = new DialogueId(v.Long("dialogue")),
-                Outcome = GraphWords.Outcomes.Parse(v.Str("outcome")),
+                Outcome = v.Str("outcome"),
                 Checkpoint = v.Str("checkpoint"),
                 Edge = v.OptStr("edge"),
             },

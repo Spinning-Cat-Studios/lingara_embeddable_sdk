@@ -13,7 +13,7 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
-use crate::types::{DialogueOutcome, WindowEntry};
+use crate::types::WindowEntry;
 
 /// A fact's value: what the game sets, and what a snapshot holds.
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
@@ -85,6 +85,7 @@ record! {
         pub checkpoint: String,
         pub facts: HashMap<String, FactValue>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub outcome: Option<DialogueOutcome>,
+        // The ending's id, or `abandoned` (ADR 3.11.26g §11.3).
+        pub outcome: Option<String>,
     }
 }

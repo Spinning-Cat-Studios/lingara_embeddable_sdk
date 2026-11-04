@@ -105,7 +105,9 @@ fn ir_validates_and_every_refusal_names_its_path() {
 
     // Each of D2's refusals names its path.
     let cases: Vec<(&str, Mutation)> = vec![
-        ("schema", Box::new(|v| v["schema"] = json!("dialogue.v2"))),
+        // dialogue.v2 is read since ADR 3.11.26g; a v2 document needs `endings`.
+        ("schema", Box::new(|v| v["schema"] = json!("dialogue.v3"))),
+        ("endings", Box::new(|v| v["schema"] = json!("dialogue.v2"))),
         ("id", Box::new(|v| v["id"] = json!("Night-Market"))),
         ("title", Box::new(|v| v["title"] = json!("t".repeat(81)))),
         ("checkpoints[1].id", Box::new(|v| v["checkpoints"][1]["id"] = json!("success"))),

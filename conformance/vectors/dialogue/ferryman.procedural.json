@@ -1,0 +1,51 @@
+{
+  "schema": "dialogue.v2",
+  "kind": "procedural",
+  "id": "the_ferryman",
+  "title": "The ferryman",
+  "pedagogy": "subtle",
+  "endings": [
+    { "id": "crossed", "label": "Got across" },
+    { "id": "turned_back" }
+  ],
+  "npcs": [
+    { "id": "old_li", "name": "Old Li", "persona": "a talkative ferryman who knows every family on the river",
+      "disposition": { "suggestibility": 0.7, "initiative": 0.4 } },
+    { "id": "ma_ren", "name": "Ma Ren", "persona": "a brisk ferrywoman who wants to cast off before dark",
+      "disposition": { "suggestibility": 0.5, "initiative": 0.7 } },
+    { "id": "boss_wu", "name": "Boss Wu", "persona": "the boat owner, who talks only about money",
+      "disposition": { "suggestibility": 0.2, "initiative": 0.95 } }
+  ],
+  "facts": [
+    { "key": "fare_paid", "type": "boolean", "default": false },
+    { "key": "flood_rumour", "type": "string", "default": "the upper weir cracked last spring" },
+    { "key": "family_name", "type": "string", "default": "the Chens of Willow Bend" }
+  ],
+  "procedural": {
+    "premise": "The player needs to cross the river before dark",
+    "disclosable": ["flood_rumour", "family_name"],
+    "topics": [
+      { "id": "cargo", "about": "what the player is carrying across" },
+      { "id": "fare", "about": "the price of the crossing" },
+      { "id": "flood", "about": "the flood on the upper river", "discloses": ["flood_rumour"] },
+      { "id": "family", "about": "the family waiting on the far bank", "when": "fare_paid", "discloses": ["family_name"] },
+      { "id": "smuggling", "about": "the crates nobody asks about", "npcs": ["boss_wu"] }
+    ],
+    "forbidden": [ { "about": "the ferryman's debts" } ],
+    "goals": [
+      { "id": "fare_agreed", "describe": "a fare both sides accept",
+        "predicate": "fare_paid", "when": "The player and the ferryman agree on a fare." }
+    ],
+    "atoms": [
+      { "atom": "open" }, { "atom": "elicit" }, { "atom": "reveal", "prefer": 0.3 }, { "atom": "practise", "prefer": 0.8 }, { "atom": "close" }
+    ],
+    "horizon": { "plan_depth": 2, "sketch_depth": 1, "max_nodes": 10 },
+    "termination": {
+      "max_turns": 40,
+      "max_beats": 12,
+      "success": { "goal": "fare_agreed", "ending": "crossed" },
+      "stall": { "turns": 6, "ending": "turned_back" },
+      "on_limit": "turned_back"
+    }
+  }
+}

@@ -1,11 +1,11 @@
 [package]
 name = "lingara-dialogue-ir"
 # The trio's one VERSION (roadmap D10); the release tooling writes it.
-version = "0.2.0-alpha.7"
+version = "0.3.0-alpha.1"
 edition = "2024"
 rust-version = "1.87"
 license = "MIT"
-description = "The Lingara dialogue graph format (dialogue.v1): its types, its load-time checks and the fact-predicate language, shared by the embed kits and the server."
+description = "The Lingara dialogue graph format (dialogue.v1 and dialogue.v2, static and procedural): its types, its load-time checks, the procedural expansion and the fact-predicate language, shared by the embed kits and the server."
 repository = "https://github.com/Spinning-Cat-Studios/lingara_embeddable_sdk"
 homepage = "https://getlingara.com"
 readme = "README.md"

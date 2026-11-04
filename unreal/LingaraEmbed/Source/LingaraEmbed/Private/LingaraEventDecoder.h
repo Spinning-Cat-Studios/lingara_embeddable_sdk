@@ -14,7 +14,8 @@ enum class ELingaraDecodedType : uint8
 };
 
 // A graph dialogue's story step (ADR 28.10.26f): `checkpoint_reached` sets
-// Via, `dialogue_ended` sets Outcome; an absent edge is empty. A stored
+// Via, `dialogue_ended` sets Outcome, the ending's id as the dialogue
+// declares it or "abandoned" (ADR 3.11.26g §11.3); an absent edge is empty. A stored
 // dialogue's `dialogue_loaded` sets StoreId and Rev, and its
 // `dialogue_load_failed` sets Dialogue and the event's Error (ADR 28.10.26i).
 // No delegate carries it until K2 types it.

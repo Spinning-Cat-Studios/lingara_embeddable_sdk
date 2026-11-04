@@ -81,7 +81,7 @@ tagged! {
         Practice { session: i64, snapshot: PracticeSnapshot },
         NpcTurn { dialogue: i64, request: i64, update: NpcTurnUpdate },
         CheckpointReached { dialogue: i64, checkpoint: String, edge: Option<String>, via: CrossedVia },
-        DialogueEnded { dialogue: i64, outcome: DialogueOutcome, checkpoint: String, edge: Option<String> },
+        DialogueEnded { dialogue: i64, outcome: String, checkpoint: String, edge: Option<String> },
         /// A stored dialogue's revision `rev` is loaded (ADR 28.10.26i); `CheckpointReached` follows.
         DialogueLoaded { dialogue: i64, dialogue_id: String, rev: i64 },
         /// A stored dialogue could not load; its id is gone.
@@ -153,9 +153,6 @@ word! {
 
     /// How a checkpoint was reached.
     pub enum CrossedVia { Start, Auto, Judge }
-
-    /// The reserved names a story ends on.
-    pub enum DialogueOutcome { Success, Failure, Abandoned }
 
     /// How much the NPC adapts its speech to the learner.
     pub enum Pedagogy { Subtle, None }

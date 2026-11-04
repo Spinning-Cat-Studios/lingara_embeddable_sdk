@@ -114,6 +114,49 @@ namespace Lingara.Embed.Tests
             Assert.Equal(2, judgedLoop.Build().Checkpoints.Count);
         }
 
+        /// <summary>AC21's two documents in the crate's builder test (<c>gate_keeper</c>), written in C#.</summary>
+        private static DialogueBuilder GateKeeper(bool named)
+        {
+            var b = new DialogueBuilder("gate_keeper", start: "greet").Npc("guard", "Guard");
+            if (named)
+            {
+                b.Ending("passed", "Let through").Ending("fled", "Ran off");
+            }
+
+            return b.Checkpoint("greet", "Ask the player their business at the gate", c =>
+            {
+                if (named)
+                {
+                    c.Edge("pass", "passed", when: "the player gives a good reason").Edge("refuse", "fled", when: "the player is rude to the guard");
+                }
+                else
+                {
+                    c.Edge("pass", Outcome.Success, when: "the player gives a good reason").Edge("refuse", Outcome.Failure, when: "the player is rude to the guard");
+                }
+
+                c.Edge("leave", Outcome.Abandoned, when: "the player walks away");
+            });
+        }
+
+        // 3.11.26g AC20
+        [Fact]
+        public void Endings_follow_the_write_rule()
+        {
+            Assert.Equal(DialogueVector("gate-keeper.v1.canonical.json"), GateKeeper(named: false).Build().ToCanonicalJson());
+            Assert.Equal(DialogueVector("gate-keeper.v2.canonical.json"), GateKeeper(named: true).Build().ToCanonicalJson());
+
+            // The structural checks read the declared endings plus `abandoned`.
+            var declared = (Action<CheckpointBuilder>)(c => c.Edge("e", "won", when: "w"));
+            Assert.Single(Small(b => b.Ending("won")).Checkpoint("a", "A", declared).Build().Checkpoints);
+            Assert.Equal("checkpoints[0].edges[0].to", Refused(Small(b => b.Ending("won")).Checkpoint("a", "A", c => c.Edge("e", Outcome.Success, when: "w"))));
+            Assert.Equal("checkpoints[1].id", Refused(Small(b => b.Ending("won")).Checkpoint("a", "A", declared).Checkpoint("won", "W")));
+            Assert.Equal("endings[0].id", Refused(Small(b => b.Ending("abandoned")).Checkpoint("a", "A", declared)));
+
+            // Rule 6 walks the declared set: an auto edge to an ending closes no cycle.
+            var auto = Small(b => b.Ending("won")).Checkpoint("a", "A", c => c.Edge("forth", "b", predicate: "x > 1")).Checkpoint("b", "B", c => c.Edge("done", "won", predicate: "x < 1"));
+            Assert.Equal(2, auto.Build().Checkpoints.Count);
+        }
+
         // 28.10.26g AC12
         [Fact]
         public void LoadSendsTheCanonicalText()

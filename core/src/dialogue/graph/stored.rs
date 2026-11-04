@@ -130,7 +130,7 @@ impl Inner {
             entry.fetched_at = now;
             return Ok((Loaded { rev, ir: Arc::clone(&entry.ir) }, Vec::new()));
         }
-        let (ir, found) = lingara_dialogue_ir::load(ir_json).map_err(|e| EmbedError::invalid(format!("stored dialogue {id} revision {rev} is refused: {e}")))?;
+        let (ir, found) = super::load_ir(ir_json).map_err(|e| EmbedError::invalid(format!("stored dialogue {id} revision {rev} is refused: {e}")))?;
         let ir = Arc::new(ir);
         self.insert(id, Entry { rev, etag, ir: Arc::clone(&ir), fetched_at: now, used: self.tick });
         Ok((Loaded { rev, ir }, found.iter().map(ToString::to_string).collect()))

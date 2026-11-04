@@ -20,6 +20,7 @@ func _initialize() -> void:
 		problems.append_array(test_the_worked_dialogues_match_the_golden_bytes())
 		problems.append_array(test_the_corpus_and_integral_numbers())
 		problems.append_array(test_levels_and_structural_refusals())
+		problems.append_array(test_endings_follow_the_write_rule())
 	for problem: String in problems:
 		printerr("✗ ", problem)
 	if problems.is_empty():
@@ -179,3 +180,39 @@ func _refused(path: String, change: Callable) -> Array[String]:
 	if not fault.begins_with(path + ":") or d.to_canonical_json() != "":
 		return ["expected a refusal at %s, got \"%s\"" % [path, fault]]
 	return []
+
+
+## AC21's two documents in the crate's builder test (`gate_keeper`), in GDScript.
+static func gate_keeper(named: bool) -> LingaraDialogue:
+	var d := LingaraDialogue.new("gate_keeper", "greet")
+	d.npc("guard", "Guard")
+	if named:
+		d.ending("passed", "Let through").ending("fled", "Ran off")
+	d.checkpoint("greet", "Ask the player their business at the gate") \
+		.edge("pass", "passed" if named else "success", {"when": "the player gives a good reason"}) \
+		.edge("refuse", "fled" if named else "failure", {"when": "the player is rude to the guard"}) \
+		.edge("leave", "abandoned", {"when": "the player walks away"})
+	return d
+
+
+## 3.11.26g AC22: the C# checks' cases, and the Rust builder's bytes.
+func test_endings_follow_the_write_rule() -> Array[String]:
+	var problems: Array[String] = []
+	for named: bool in [false, true]:
+		var name := "gate-keeper.v2.canonical.json" if named else "gate-keeper.v1.canonical.json"
+		var written := gate_keeper(named).to_canonical_json().to_utf8_buffer()
+		if written != _bytes(name):
+			problems.append("%s: wrote %s" % [name, written.get_string_from_utf8()])
+	var declared := func(d: LingaraDialogue) -> void: d.ending("won").checkpoint("a", "A").edge("e", "won", {"when": "w"})
+	if _small(declared).structural_fault() != "":
+		problems.append("an edge to a declared ending was refused: %s" % _small(declared).structural_fault())
+	var faults := {
+		"checkpoints[0].edges[0].to": func(d: LingaraDialogue) -> void: d.ending("won").checkpoint("a", "A").edge("e", "success", {"when": "w"}),
+		"checkpoints[0].id": func(d: LingaraDialogue) -> void: d.ending("won").checkpoint("won", "W"),
+		"endings[0].id": func(d: LingaraDialogue) -> void: d.ending("abandoned").checkpoint("a", "A").edge("e", "abandoned", {"when": "w"}),
+	}
+	for path: String in faults:
+		var fault := _small(faults[path]).structural_fault()
+		if not fault.begins_with(path + ":"):
+			problems.append("expected a refusal at %s, got \"%s\"" % [path, fault])
+	return problems

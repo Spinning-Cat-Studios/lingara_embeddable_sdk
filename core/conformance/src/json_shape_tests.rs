@@ -107,7 +107,11 @@ fn graph_variants_match_the_shape_vector() {
     // enums above, whose tag sets this pins.
     tagged::<DialogueSource>("DialogueSource", &v);
     words::<CrossedVia>("CrossedVia", &v);
-    words::<DialogueOutcome>("DialogueOutcome", &v);
+    // The outcome is an open string since ADR 3.11.26g; the three v1 words stay as cases.
+    for word in v["words"]["DialogueOutcome"].as_array().unwrap() {
+        let ended = serde_json::json!({ "type": "dialogue_ended", "dialogue": 4, "outcome": word, "checkpoint": "ask", "edge": null });
+        round_trip::<EmbedEvent>(&ended);
+    }
     words::<Pedagogy>("Pedagogy", &v);
     let tags = |name: &str| v["tagged"][name].as_array().unwrap().iter().map(|e| e["type"].as_str().unwrap().to_owned()).collect::<BTreeSet<_>>();
     for tag in ["dialogue_load", "dialogue_set_fact", "dialogue_validate"] {
@@ -120,7 +124,7 @@ fn graph_variants_match_the_shape_vector() {
     let config: DialogueConfig = round_trip(&v["structs"]["DialogueConfig"][0]);
     assert_eq!((config.languages.len(), config.pedagogy), (2, Some(Pedagogy::None)));
     let snapshot: DialogueSnapshot = round_trip(&v["structs"]["DialogueSnapshot"][0]);
-    assert_eq!(snapshot.graph.and_then(|g| g.outcome), Some(DialogueOutcome::Success));
+    assert_eq!(snapshot.graph.and_then(|g| g.outcome).as_deref(), Some("success"));
     every_command_is_its_flat_method(&v);
 
     // The C ABI's committed message schema is schemars' over these types
@@ -159,6 +163,23 @@ fn update_variants_match_the_shape_vector() {
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../ffi/schema/messages.schema.json");
     let committed = std::fs::read_to_string(path).expect("messages.schema.json");
     assert!(committed.contains("\"update_available\""), "messages.schema.json lacks update_available: run make ffi-schema");
+}
+
+// 3.11.26g AC18
+#[test]
+fn dialogue_ended_carries_any_ending() {
+    let v = vector();
+    let event: EmbedEvent = round_trip(&v["structs"]["DialogueEnded"][0]);
+    assert!(matches!(&event, EmbedEvent::DialogueEnded { outcome, .. } if outcome == "fled" && !is_abandoned(outcome)));
+    assert!(is_abandoned(ABANDONED));
+
+    // The C ABI's schema types the outcome as a string, never a closed enum.
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../ffi/schema/messages.schema.json");
+    let schema: Value = serde_json::from_str(&std::fs::read_to_string(path).expect("messages.schema.json")).unwrap();
+    assert!(schema.pointer("/$defs/DialogueOutcome").is_none(), "run make ffi-schema");
+    let events = schema.pointer("/$defs/EmbedEvent/oneOf").and_then(Value::as_array).expect("EmbedEvent's variants");
+    let ended = events.iter().find(|e| e.pointer("/properties/type/const").and_then(Value::as_str) == Some("dialogue_ended")).unwrap();
+    assert_eq!(ended.pointer("/properties/outcome/type").and_then(Value::as_str), Some("string"));
 }
 
 /// What a call answered: the outcome's tag, or the error's kind.

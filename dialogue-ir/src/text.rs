@@ -8,7 +8,7 @@
 //! `400 invalid_request`.
 
 /// Why a text is not one visible line.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LineFault {
     /// Nothing left after trim.
     Blank,
@@ -25,6 +25,9 @@ impl LineFault {
         }
     }
 }
+
+/// The name `Warning::Text` and spec rule 7's refusals use (ADR 3.11.26g §9).
+pub type TextFault = LineFault;
 
 /// Whether `text` would pass the turn's one-line rule.
 pub fn one_line(text: &str) -> Result<(), LineFault> {

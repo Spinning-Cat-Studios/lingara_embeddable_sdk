@@ -4,9 +4,9 @@ use bevy::app::App;
 use bevy::ecs::entity::Entity;
 use lingara_embed::dialogue_ir::DialogueIr;
 use lingara_embed::dialogue_ir::build::{Checkpoint, Dialogue, Edge, Fact, Npc, Outcome};
-use lingara_embed::{Command, CrossedVia, DialogueOutcome, DialogueSource, EmbedEvent, ErrorKind, FactValue};
+use lingara_embed::{CloseReason, Command, CrossedVia, DialogueSource, EmbedEvent, ErrorKind, FactValue};
 
-use super::fake_core::{Fake, app, read, write};
+use super::fake_core::{Fake, app, error, read, write};
 use crate::config::LingaraConfig;
 use crate::messages::*;
 use crate::{NpcDialogue, NpcTranscript};
@@ -55,13 +55,13 @@ fn a_graph_npc_loads_sets_facts_and_hears_its_story() {
 
     // The story's two events, as typed Messages on the right entity only.
     fake.push(EmbedEvent::CheckpointReached { dialogue: id, checkpoint: "haggle".into(), edge: None, via: CrossedVia::Start });
-    let ended = EmbedEvent::DialogueEnded { dialogue: id, outcome: DialogueOutcome::Success, checkpoint: "haggle".into(), edge: Some("deal".into()) };
+    let ended = EmbedEvent::DialogueEnded { dialogue: id, outcome: "success".into(), checkpoint: "haggle".into(), edge: Some("deal".into()) };
     fake.push(ended);
     fake.push(EmbedEvent::CheckpointReached { dialogue: 999, checkpoint: "elsewhere".into(), edge: None, via: CrossedVia::Auto });
     app.update();
     let reached = read::<CheckpointReached>(&mut app);
     assert_eq!(reached, [CheckpointReached { entity: npc, checkpoint: "haggle".into(), edge: None, via: CrossedVia::Start }]);
-    assert_eq!(read::<DialogueEnded>(&mut app), [DialogueEnded { entity: npc, outcome: DialogueOutcome::Success }]);
+    assert_eq!(read::<DialogueEnded>(&mut app), [DialogueEnded { entity: npc, outcome: "success".into() }]);
     assert_eq!(transcript(&app, npc).checkpoint.as_deref(), Some("haggle"));
     assert_eq!(transcript(&app, free).checkpoint, None);
 
@@ -71,6 +71,86 @@ fn a_graph_npc_loads_sets_facts_and_hears_its_story() {
     // A cast member the IR does not have is refused at construction.
     assert_eq!(NpcDialogue::graph(&ir, "elena", "zh", 2).unwrap_err().kind, ErrorKind::InvalidInput);
     assert_eq!(NpcDialogue::graph(&ir, "mei", "zh", 10).unwrap_err().kind, ErrorKind::InvalidInput);
+}
+
+const STORE_ID: &str = "0b9f6c1e-3c1d-4f7a-9a51-2d1e8b7c6a40";
+
+// 3.11.26f AC5
+/// A stored NPC opens `DialogueLoad { Stored }` as cast member `mei`; a blank
+/// store id and an over-long cast id are refused at construction; `npc()`
+/// names the cast id until `with_display_name`, before and after the load.
+#[test]
+fn a_stored_npc_opens_by_id() {
+    let fake = Fake::default();
+    let mut app = app(LingaraConfig::new().source_lang("zh"), &fake);
+    let stored = NpcDialogue::stored(STORE_ID, "mei", "en", 3).unwrap();
+    assert_eq!(stored.npc().name, "mei");
+    let npc = app.world_mut().spawn(stored).id();
+    app.update();
+    let loads = fake.sent("dialogue_load");
+    let [Command::DialogueLoad { source: DialogueSource::Stored { dialogue_id }, session }] = loads.as_slice() else { panic!("{loads:?}") };
+    assert_eq!(dialogue_id, STORE_ID);
+    assert_eq!((session.npc.as_deref(), session.source_lang.as_str(), session.target_lang.as_str(), session.level), (Some("mei"), "zh", "en", 3));
+
+    let id = transcript(&app, npc).id().unwrap();
+    fake.push(EmbedEvent::DialogueLoaded { dialogue: id, dialogue_id: STORE_ID.into(), rev: 4 });
+    app.update();
+    let dialogue = app.world().get::<NpcDialogue>(npc).unwrap();
+    assert_eq!(dialogue.npc().name, "mei", "DialogueLoaded carries no name");
+
+    let named = NpcDialogue::stored(STORE_ID, "mei", "en", 3).unwrap().with_display_name("Mei").unwrap();
+    assert_eq!(named.npc().name, "Mei");
+    for (store, cast) in [("  ", "mei"), (STORE_ID, ""), (STORE_ID, &"m".repeat(49))] {
+        assert_eq!(NpcDialogue::stored(store, cast, "en", 3).unwrap_err().kind, ErrorKind::InvalidInput, "{store:?} {cast:?}");
+    }
+    assert!(NpcDialogue::stored(STORE_ID, "m".repeat(48), "en", 3).is_ok(), "48 characters is the IR's limit");
+    assert_eq!(NpcDialogue::stored(STORE_ID, "mei", "en", 10).unwrap_err().kind, ErrorKind::InvalidInput);
+}
+
+// 3.11.26f AC6
+/// `DialogueLoaded` and `DialogueLoadFailed` reach the entity typed and still
+/// raw; a failure drops the route, so a line is `unknown_id` on the entity,
+/// and the next Connect loads it again.
+#[test]
+fn load_events_reach_the_entity() {
+    let fake = Fake::default();
+    let mut app = app(LingaraConfig::new().source_lang("zh"), &fake);
+    let npc = app.world_mut().spawn(NpcDialogue::stored(STORE_ID, "mei", "en", 3).unwrap()).id();
+    app.update();
+    let id = transcript(&app, npc).id().unwrap();
+    read::<LingaraRawEvent>(&mut app);
+
+    let loaded = EmbedEvent::DialogueLoaded { dialogue: id, dialogue_id: STORE_ID.into(), rev: 2 };
+    fake.push(loaded.clone());
+    app.update();
+    assert_eq!(read::<DialogueLoaded>(&mut app), [DialogueLoaded { entity: npc, dialogue_id: STORE_ID.into(), rev: 2 }]);
+    assert!(read::<LingaraRawEvent>(&mut app).contains(&LingaraRawEvent(loaded)));
+
+    let failed = EmbedEvent::DialogueLoadFailed { dialogue: id, error: error(ErrorKind::NotFound) };
+    fake.push(failed.clone());
+    app.update();
+    let failures = read::<DialogueLoadFailed>(&mut app);
+    assert_eq!(failures.iter().map(|f| (f.entity, f.error.kind)).collect::<Vec<_>>(), [(npc, ErrorKind::NotFound)]);
+    assert!(read::<LingaraRawEvent>(&mut app).contains(&LingaraRawEvent(failed)));
+    assert_eq!(transcript(&app, npc).id(), None, "the route and the id are gone");
+    assert!(app.world().get::<NpcDialogue>(npc).is_some(), "the component stays");
+
+    read::<LingaraError>(&mut app);
+    write(&mut app, NpcSay { entity: npc, line: "hello".into() });
+    app.update();
+    let errors = read::<LingaraError>(&mut app);
+    assert_eq!(errors.iter().map(|e| (e.error.kind, e.entity)).collect::<Vec<_>>(), [(ErrorKind::UnknownId, Some(npc))]);
+    assert!(fake.sent("dialogue_say").is_empty(), "no DialogueSay to a dead id");
+
+    write(&mut app, LingaraDisconnect);
+    app.update();
+    fake.push(EmbedEvent::Closed { reason: CloseReason::Requested });
+    app.update();
+    write(&mut app, LingaraConnect);
+    app.update();
+    let loads = fake.sent("dialogue_load");
+    assert_eq!(loads.len(), 2, "the next Connect loads it again: {loads:?}");
+    assert!(matches!(&loads[1], Command::DialogueLoad { source: DialogueSource::Stored { dialogue_id }, .. } if dialogue_id == STORE_ID));
 }
 
 /// A fact for an entity with no dialogue is an error on that entity; removing
@@ -85,4 +165,17 @@ fn a_fact_without_a_dialogue_fails_and_removal_closes(app: &mut App, fake: &Fake
     app.world_mut().entity_mut(npc).remove::<NpcDialogue>();
     app.update();
     assert_eq!(fake.sent("dialogue_close"), [Command::DialogueClose { dialogue: id }]);
+}
+
+// 3.11.26g AC19
+#[test]
+fn named_ending_reaches_the_entity() {
+    let fake = Fake::default();
+    let mut app = app(LingaraConfig::new().source_lang("en"), &fake);
+    let npc = app.world_mut().spawn(NpcDialogue::graph(&market(), "mei", "zh", 2).unwrap()).id();
+    app.update();
+    let id = transcript(&app, npc).id().unwrap();
+    fake.push(EmbedEvent::DialogueEnded { dialogue: id, outcome: "fled".into(), checkpoint: "haggle".into(), edge: Some("bolt".into()) });
+    app.update();
+    assert_eq!(read::<DialogueEnded>(&mut app), [DialogueEnded { entity: npc, outcome: "fled".into() }]);
 }

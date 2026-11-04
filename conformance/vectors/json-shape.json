@@ -95,6 +95,9 @@
     ],
     "DialogueSnapshot": [
       { "phase": "ended", "npc": { "name": "Elena", "persona": null }, "scene": null, "level": 2, "window": [], "graph": { "id": "missing_brother", "npc": "elena", "checkpoint": "ask", "facts": { "eastern_gate": "the eastern gate", "trust": 0.4 }, "outcome": "success" } }
+    ],
+    "DialogueEnded": [
+      { "type": "dialogue_ended", "dialogue": 4, "outcome": "fled", "checkpoint": "introduction", "edge": "threat" }
     ]
   },
   "words": {

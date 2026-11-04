@@ -47,6 +47,52 @@ pub const MIN_LEVEL: u8 = 1;
 /// See [`MIN_LEVEL`].
 pub const MAX_LEVEL: u8 = 9;
 
+// dialogue.v2 (ADR 3.11.26g §1, §11.4). v1's constants above stay frozen and
+// govern every v2 member they already bound; these are the whole new set.
+
+/// The end that needs no declaration: the runtime reaches it on close.
+pub const ABANDONED: &str = "abandoned";
+/// The endings a v1 document is read as declaring (§2).
+pub const V1_ENDINGS: [&str; 2] = ["success", "failure"];
+/// `endings` holds 1 to this many.
+pub const MAX_ENDINGS: usize = 8;
+/// `procedural.disclosable` (= [`MAX_DISCLOSE`]).
+pub const MAX_DISCLOSABLE: usize = 16;
+/// `procedural.topics` (at least 1).
+pub const MAX_TOPICS: usize = 16;
+/// A topic's `discloses`.
+pub const MAX_TOPIC_DISCLOSES: usize = 4;
+/// `procedural.forbidden`.
+pub const MAX_FORBIDDEN: usize = 8;
+/// `procedural.goals`.
+pub const MAX_GOALS: usize = 8;
+/// `procedural.premise`.
+pub const MAX_PREMISE_CHARS: usize = 240;
+/// A topic's or a forbidden entry's `about`.
+pub const MAX_ABOUT_CHARS: usize = 80;
+/// A goal's `describe`.
+pub const MAX_DESCRIBE_CHARS: usize = 60;
+/// A beat's `angle`, the planner's only free text.
+pub const MAX_ANGLE_CHARS: usize = 60;
+/// A beat id.
+pub const MAX_BEAT_ID_CHARS: usize = 24;
+/// A beat's `exits`.
+pub const MAX_EXITS_PER_BEAT: usize = 3;
+/// `horizon.plan_depth` (at least 1).
+pub const MAX_PLAN_DEPTH: u8 = 3;
+/// `horizon.sketch_depth` (at least 0).
+pub const MAX_SKETCH_DEPTH: u8 = 1;
+/// `horizon.max_nodes` (at least `1 + plan_depth + sketch_depth`, and 3).
+pub const MAX_FRONTIER_NODES: u8 = 16;
+/// `termination.max_turns` (at least 1).
+pub const MAX_TURNS: u16 = 200;
+/// `termination.max_beats` (at least 1).
+pub const MAX_BEATS: u16 = 64;
+/// `termination.stall.turns`, lower bound.
+pub const MIN_STALL_TURNS: u8 = 2;
+/// `termination.stall.turns`, upper bound.
+pub const MAX_STALL_TURNS: u8 = 20;
+
 /// The deepest parenthesis nesting a predicate may hold. This crate's own
 /// bound, not the schema's: no server ever evaluates a predicate.
 pub const PREDICATE_MAX_DEPTH: usize = 8;

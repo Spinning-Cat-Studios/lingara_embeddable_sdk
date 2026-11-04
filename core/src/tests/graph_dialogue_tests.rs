@@ -9,9 +9,9 @@ use serde_json::{Value, json};
 use crate::embed::Embed;
 use crate::error::ErrorKind;
 use crate::tests::fake_lingara::{After, FakeLingara, Reply, frame, graphs_dark, transition};
-use crate::tests::{SECS, config, started, wait_for};
+use crate::tests::{SECS, config, dialogue_vector, started, wait_for};
 use crate::types::{
-    Command, CrossedVia, DialogueId, DialogueOutcome, DialoguePhase, DialogueSource, EmbedEvent, FactValue, GraphSession, LogLevel, NpcTurnUpdate,
+    Command, CrossedVia, DialogueId, DialoguePhase, DialogueSource, EmbedEvent, FactValue, GraphSession, LogLevel, NpcTurnUpdate,
 };
 
 const TURNS: &str = "/v1/embed/dialogue/turns";
@@ -193,7 +193,7 @@ fn restore_and_close(embed: &Embed) {
     assert_eq!((restored.graph, restored.window), (Some(graph), saved.window));
 
     embed.dialogue_close(d).unwrap();
-    let abandoned = |e: &EmbedEvent| matches!(e, EmbedEvent::DialogueEnded { dialogue, outcome: DialogueOutcome::Abandoned, edge: None, .. } if *dialogue == d);
+    let abandoned = |e: &EmbedEvent| matches!(e, EmbedEvent::DialogueEnded { dialogue, outcome, edge: None, .. } if *dialogue == d && outcome == "abandoned");
     wait_for(embed, 5 * SECS, abandoned);
     let ended = embed.dialogue_load(ir(), GraphSession { facts: [("alarm".to_owned(), FactValue::Boolean(true))].into(), ..session(Some("elena")) }).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(200));
@@ -254,4 +254,58 @@ fn set_fact_and_validate_refuse_cleanly() {
     assert!(error.message.starts_with("checkpoints[0].edges[1].predicate"), "{}", error.message);
     let next = embed.dialogue_load(ir(), session(Some("tomas"))).unwrap();
     assert_eq!(next, free + 1, "validate draws no id, so it opened no dialogue");
+}
+
+/// A v2 story whose `alarm` fact ends it on `fled`, with no turn.
+fn runaway() -> Value {
+    json!({
+        "schema": "dialogue.v2", "id": "runaway", "endings": [{ "id": "fled", "label": "Ran off" }, { "id": "talked" }],
+        "npcs": [{ "id": "elena", "name": "Elena" }], "facts": [{ "key": "alarm", "type": "boolean", "default": false }],
+        "start": "intro",
+        "checkpoints": [{ "id": "intro", "goal": "Elena is wary", "edges": [
+            { "id": "bolt", "to": "fled", "predicate": "alarm" }, { "id": "chat", "to": "talked", "when": "the player chats" }] }]
+    })
+}
+
+// 3.11.26g AC11
+#[test]
+fn procedural_documents_wait_for_the_runtime() {
+    let (Some(ferryman), Some(brother)) = (dialogue_vector("ferryman.procedural.json"), dialogue_vector("missing-brother.v2.json")) else { return };
+    let fake = FakeLingara::start(|_, _| Reply::Json(500, json!({})));
+    let embed = started(crate::types::EmbedConfig { log_level: LogLevel::Info, ..config(&fake.url) });
+    let procedural = DialogueSource::Ir { ir_json: ferryman };
+    let err = embed.dialogue_load(procedural, session(Some("old_li"))).unwrap_err();
+    assert_eq!((err.kind, err.message.as_str()), (ErrorKind::InvalidInput, "this kit cannot run procedural dialogues yet: upgrade lingara-embed"));
+    let v2 = DialogueSource::Ir { ir_json: brother };
+    let d = embed.dialogue_load(v2, session(None)).unwrap();
+    let (_, before) = wait_for(&embed, 5 * SECS, |e| matches!(e, EmbedEvent::CheckpointReached { dialogue, .. } if *dialogue == d));
+    let later: Vec<EmbedEvent> = std::iter::from_fn(|| embed.poll_event()).collect();
+    let stance = |e: &EmbedEvent| matches!(e, EmbedEvent::Log { level: LogLevel::Info, message, .. } if message.contains("steering stance"));
+    assert_eq!(before.iter().chain(&later).filter(|e| stance(e)).count(), 1, "one info line: the stance loads and is not sent yet");
+}
+
+// 3.11.26g AC17
+#[test]
+fn named_endings_end_the_story() {
+    let fake = FakeLingara::start(|_, _| Reply::Json(500, json!({})));
+    let embed = started(config(&fake.url));
+    let source = || DialogueSource::Ir { ir_json: runaway().to_string() };
+    let alarmed = GraphSession { facts: [("alarm".to_owned(), FactValue::Boolean(true))].into(), ..session(None) };
+    let d = embed.dialogue_load(source(), alarmed).unwrap();
+    let fled = |e: &EmbedEvent| matches!(e, EmbedEvent::DialogueEnded { dialogue, outcome, edge: Some(edge), .. } if *dialogue == d && outcome == "fled" && edge == "bolt");
+    wait_for(&embed, 5 * SECS, fled);
+    assert_eq!(embed.dialogue_snapshot(d).unwrap().graph.unwrap().outcome.as_deref(), Some("fled"));
+
+    let open = embed.dialogue_load(source(), session(None)).unwrap();
+    embed.dialogue_close(open).unwrap();
+    let abandoned = |e: &EmbedEvent| matches!(e, EmbedEvent::DialogueEnded { dialogue, outcome, edge: None, .. } if *dialogue == open && outcome == "abandoned");
+    wait_for(&embed, 5 * SECS, abandoned);
+
+    // A snapshot today's kit saved still reads.
+    let saved: crate::types::GraphSnapshot =
+        serde_json::from_value(json!({ "id": "story", "npc": "elena", "checkpoint": "ask", "facts": {}, "outcome": "success" })).unwrap();
+    assert_eq!(saved.outcome.as_deref(), Some("success"));
+    // Resuming at an ending is refused: endings and checkpoints share one namespace.
+    let at_ending = GraphSession { checkpoint: Some("fled".into()), ..session(None) };
+    assert_eq!(embed.dialogue_load(source(), at_ending).unwrap_err().kind, ErrorKind::InvalidInput);
 }

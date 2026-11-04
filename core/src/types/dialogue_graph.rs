@@ -50,7 +50,7 @@ data! {
     #[serde(tag = "type", rename_all = "snake_case")]
     #[non_exhaustive]
     pub enum DialogueSource {
-        /// A `dialogue.v1` document, as text.
+        /// A `dialogue.v1` or `dialogue.v2` document, as text.
         Ir { ir_json: String },
         /// The active revision of a dialogue saved on Lingara, by its store
         /// id (a UUID, never the IR's own `id`), fetched with the player's
@@ -89,26 +89,22 @@ data! {
         pub checkpoint: String,
         pub facts: BTreeMap<String, FactValue>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub outcome: Option<DialogueOutcome>,
+        /// The ending reached: a declared ending's id, or `abandoned`.
+        pub outcome: Option<String>,
     }
 }
 
 word! {
     /// How a checkpoint was reached: the load, an edge with no `when`, or the judge.
     pub enum CrossedVia { Start, Auto, Judge }
-
-    /// The reserved `to` names a story ends on.
-    pub enum DialogueOutcome { Success, Failure, Abandoned }
 }
 
-impl DialogueOutcome {
-    /// The outcome a reserved `to` name stands for.
-    pub(crate) fn from_name(name: &str) -> Option<Self> {
-        match name {
-            "success" => Some(DialogueOutcome::Success),
-            "failure" => Some(DialogueOutcome::Failure),
-            "abandoned" => Some(DialogueOutcome::Abandoned),
-            _ => None,
-        }
-    }
+/// The ending a story reaches when the game closes it unfinished. Every other
+/// outcome is a declared ending's id (ADR 3.11.26g §11.3): `outcome` is an
+/// open string, no longer a closed enum.
+pub const ABANDONED: &str = lingara_dialogue_ir::limits::ABANDONED;
+
+/// Whether `outcome` is the built-in [`ABANDONED`].
+pub fn is_abandoned(outcome: &str) -> bool {
+    outcome == ABANDONED
 }

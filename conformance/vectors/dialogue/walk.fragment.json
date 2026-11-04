@@ -1,0 +1,44 @@
+{
+  "anchor": "w0_1",
+  "beats": [
+    {
+      "id": "w0_1",
+      "atom": "elicit",
+      "depth": 0,
+      "topic": "cargo",
+      "exits": [
+        {
+          "to": "w1_1"
+        },
+        {
+          "to": "w1_2",
+          "detour": "fare"
+        }
+      ]
+    },
+    {
+      "id": "w1_1",
+      "atom": "close",
+      "depth": 1,
+      "ending": "turned_back"
+    },
+    {
+      "id": "w1_2",
+      "atom": "practise",
+      "depth": 1,
+      "topic": "fare",
+      "goal": "fare_agreed",
+      "exits": [
+        {
+          "to": "w1_3"
+        }
+      ]
+    },
+    {
+      "id": "w1_3",
+      "atom": "close",
+      "depth": 2,
+      "ending": "crossed"
+    }
+  ]
+}

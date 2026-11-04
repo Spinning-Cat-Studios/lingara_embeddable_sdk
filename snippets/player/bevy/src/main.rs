@@ -8,7 +8,7 @@ use bevy_lingara::*;
 // lingara:begin dialogueGraph
 use bevy_lingara::lingara_embed::dialogue_ir::build::{Checkpoint, Dialogue, Edge, Fact, Npc, Outcome};
 use bevy_lingara::lingara_embed::dialogue_ir::{DialogueIr, IrError, Level, Pedagogy};
-use bevy_lingara::lingara_embed::{DialogueOutcome, FactValue};
+use bevy_lingara::lingara_embed::FactValue;
 // lingara:end
 
 // lingara:begin tokenSource
@@ -200,7 +200,7 @@ fn follow_the_story(mut reached: MessageReader<CheckpointReached>, mut ended: Me
         info!("now at {} (via {:?})", step.checkpoint, step.via);
     }
     for end in ended.read() {
-        if end.outcome == DialogueOutcome::Success {
+        if end.outcome == "success" {
             info!("the player learned where the soldiers went");
         }
     }

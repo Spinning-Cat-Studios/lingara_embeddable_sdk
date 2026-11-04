@@ -1,0 +1,9 @@
+{
+  "_source": "Backend's crates/core/src/services/dialogue_ir/rules.rs: IrRule::ALL and WarningCode::ALL, read 2026-11-04. Refreshed by hand when Backend ADR 3.11.26h changes either list (ADR 3.11.26g AC10).",
+  "rules": [
+    "missing_member", "unknown_member", "id_pattern", "bound", "number_range", "duplicate_id", "unknown_target", "outcome_name",
+    "undeclared_fact", "predicate_unparsed", "predicate_type", "default_type", "when_less_cycle", "text_blank", "text_multiline", "text_char"
+  ],
+  "warnings": ["checkpoint_unreachable", "outcome_unreachable", "predicate_unchecked"],
+  "backend_only_warnings": ["predicate_unchecked", "schema_v2"]
+}

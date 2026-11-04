@@ -1,0 +1,31 @@
+{
+  "schema": "dialogue.v2",
+  "kind": "static",
+  "id": "missing_brother",
+  "title": "The missing brother",
+  "pedagogy": "none",
+  "endings": [
+    { "id": "found", "label": "Found the brother" },
+    { "id": "fled", "label": "Ran off" }
+  ],
+  "npcs": [
+    { "id": "elena", "name": "Elena", "persona": "a farmer who distrusts soldiers",
+      "languages": [ { "code": "es", "speaking": 9, "comprehension": 9 } ],
+      "disposition": { "suggestibility": 0.2, "initiative": 0.95 } }
+  ],
+  "facts": [
+    { "key": "trust", "type": "number", "default": 0 },
+    { "key": "eastern_gate", "type": "string" }
+  ],
+  "start": "introduction",
+  "checkpoints": [
+    { "id": "introduction", "goal": "Elena is wary and asks who the player is", "steer_to": "explained",
+      "edges": [ { "id": "explained", "to": "ask_about_brother", "when": "the player says who they are and why they are here" },
+                 { "id": "threat", "to": "fled", "when": "the player threatens Elena" } ] },
+    { "id": "ask_about_brother", "goal": "Admit she saw soldiers; reveal the gate only if she trusts the player",
+      "may_disclose": ["eastern_gate"],
+      "edges": [ { "id": "gate", "to": "found", "predicate": "trust >= 0.4",
+                   "when": "the player asks where soldiers take prisoners" },
+                 { "id": "leaves", "to": "abandoned", "when": "the player walks away" } ] }
+  ]
+}

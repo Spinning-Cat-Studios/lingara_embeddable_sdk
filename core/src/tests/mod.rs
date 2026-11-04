@@ -97,3 +97,18 @@ pub fn refusal(code: &str) -> Value {
 }
 
 pub const SECS: Duration = Duration::from_secs(1);
+
+/// A dialogue vector from `conformance/vectors/dialogue/`. `None` only when
+/// there is no `conformance/` tree beside the crate at all — the packaged
+/// crate `check-msrv-core` unpacks outside the repo, which ships `src/**`
+/// alone (the `notice_rows` rule in `token_tests`). In the workspace a
+/// missing vector still fails.
+pub fn dialogue_vector(name: &str) -> Option<String> {
+    let conformance = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../conformance");
+    if !conformance.is_dir() {
+        eprintln!("skipped: no conformance/ tree beside the packaged crate");
+        return None;
+    }
+    let path = conformance.join("vectors/dialogue").join(name);
+    Some(std::fs::read_to_string(&path).unwrap_or_else(|err| panic!("{}: {err}", path.display())))
+}

@@ -1,0 +1,1467 @@
+{
+  "_note": "ADR 3.11.26g §10: within_spec cases over ferryman.procedural.json. `spec_patch` is merged into the document's `procedural` after it loads, unvalidated: the only way to attack W2 and W6, which a valid spec cannot reach. W12 needs a bad wording, which a vector cannot carry (AC24).",
+  "cases": [
+    {
+      "name": "first_plan",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "accepted_replan",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "frontier": {
+        "anchor": "p1_3",
+        "beats": [
+          {
+            "id": "p1_3",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p2_1"
+              }
+            ]
+          },
+          {
+            "id": "p2_1",
+            "atom": "elicit",
+            "depth": 3,
+            "sketch": true,
+            "topic": "cargo"
+          }
+        ]
+      },
+      "open_topics": [],
+      "prefix": "p3",
+      "fragment": {
+        "anchor": "p2_1",
+        "beats": [
+          {
+            "id": "p2_1",
+            "atom": "elicit",
+            "depth": 0,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p3_1"
+              },
+              {
+                "to": "p3_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p3_1",
+            "atom": "practise",
+            "depth": 1,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p3_3"
+              }
+            ]
+          },
+          {
+            "id": "p3_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "angle": "as a warning",
+            "exits": [
+              {
+                "to": "p3_4"
+              }
+            ]
+          },
+          {
+            "id": "p3_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p3_4",
+            "atom": "elicit",
+            "depth": 2,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p3_5"
+              }
+            ]
+          },
+          {
+            "id": "p3_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "seed",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "s1",
+      "fragment": {
+        "anchor": "s1_0",
+        "beats": [
+          {
+            "id": "s1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "s1_1"
+              }
+            ]
+          },
+          {
+            "id": "s1_1",
+            "atom": "close",
+            "depth": 1,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "restored_mid_run",
+      "mode": "restore",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "",
+      "fragment": {
+        "anchor": "p3_4",
+        "beats": [
+          {
+            "id": "p3_4",
+            "atom": "elicit",
+            "depth": 0,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p4_1"
+              },
+              {
+                "to": "p4_2",
+                "detour": "fare"
+              }
+            ]
+          },
+          {
+            "id": "p4_1",
+            "atom": "close",
+            "depth": 1,
+            "ending": "crossed"
+          },
+          {
+            "id": "p4_2",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "fare",
+            "exits": [
+              {
+                "to": "p4_3"
+              }
+            ]
+          },
+          {
+            "id": "p4_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "turned_back"
+          }
+        ]
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "w1_anchor_differs_from_the_frontier",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "frontier": {
+        "anchor": "p1_3",
+        "beats": [
+          {
+            "id": "p1_3",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p2_1"
+              }
+            ]
+          },
+          {
+            "id": "p2_1",
+            "atom": "elicit",
+            "depth": 3,
+            "sketch": true,
+            "topic": "cargo"
+          }
+        ]
+      },
+      "open_topics": [],
+      "prefix": "p3",
+      "fragment": {
+        "anchor": "p2_1",
+        "beats": [
+          {
+            "id": "p2_1",
+            "atom": "elicit",
+            "depth": 0,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p3_1"
+              },
+              {
+                "to": "p3_2",
+                "detour": "flood"
+              }
+            ],
+            "angle": "as a joke"
+          },
+          {
+            "id": "p3_1",
+            "atom": "practise",
+            "depth": 1,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p3_3"
+              }
+            ]
+          },
+          {
+            "id": "p3_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "angle": "as a warning",
+            "exits": [
+              {
+                "to": "p3_4"
+              }
+            ]
+          },
+          {
+            "id": "p3_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p3_4",
+            "atom": "elicit",
+            "depth": 2,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p3_5"
+              }
+            ]
+          },
+          {
+            "id": "p3_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_anchor"
+    },
+    {
+      "name": "w1_first_plan_anchors_on_open_zero",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_9",
+        "beats": [
+          {
+            "id": "p1_9",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_anchor"
+    },
+    {
+      "name": "w2_atom_not_in_the_spec",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "spec_patch": {
+        "atoms": [
+          {
+            "atom": "open"
+          },
+          {
+            "atom": "elicit"
+          },
+          {
+            "atom": "practise"
+          },
+          {
+            "atom": "close"
+          }
+        ]
+      },
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_atom"
+    },
+    {
+      "name": "w3_elicit_without_a_topic",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_params"
+    },
+    {
+      "name": "w3_sketch_with_an_extra_parameter",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed",
+            "topic": "cargo"
+          }
+        ]
+      },
+      "expect": "plan_params"
+    },
+    {
+      "name": "w4_topic_this_npc_may_not_raise",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "smuggling",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_reference"
+    },
+    {
+      "name": "w5_topic_not_open",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "family"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "family",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_topic_closed"
+    },
+    {
+      "name": "w5_topic_open",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [
+        "family"
+      ],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "family"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "family",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "w6_reveal_outside_the_pool",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "spec_patch": {
+        "disclosable": [
+          "family_name"
+        ]
+      },
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "pool_escape"
+    },
+    {
+      "name": "w7_planned_beat_marked_sketch",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed",
+            "sketch": true
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_horizon"
+    },
+    {
+      "name": "w8_exit_to_an_unknown_beat",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_9"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_shape"
+    },
+    {
+      "name": "w9_id_without_the_prefix",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "q1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "q1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_ids"
+    },
+    {
+      "name": "w10_more_detours_than_the_stance_allows",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              },
+              {
+                "to": "p1_6",
+                "detour": "cargo"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_6",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_7"
+              }
+            ]
+          },
+          {
+            "id": "p1_7",
+            "atom": "close",
+            "depth": 2,
+            "ending": "turned_back"
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_exits"
+    },
+    {
+      "name": "w10_railroad_declines_every_detour",
+      "mode": "plan",
+      "npc": "boss_wu",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ]
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_exits"
+    },
+    {
+      "name": "w11_angle_on_two_lines",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "p1",
+      "fragment": {
+        "anchor": "p1_0",
+        "beats": [
+          {
+            "id": "p1_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "p1_1"
+              },
+              {
+                "to": "p1_2",
+                "detour": "flood"
+              }
+            ]
+          },
+          {
+            "id": "p1_1",
+            "atom": "elicit",
+            "depth": 1,
+            "topic": "cargo",
+            "exits": [
+              {
+                "to": "p1_3"
+              }
+            ],
+            "angle": "warmly\nand slowly"
+          },
+          {
+            "id": "p1_2",
+            "atom": "reveal",
+            "depth": 1,
+            "topic": "flood",
+            "exits": [
+              {
+                "to": "p1_4"
+              }
+            ]
+          },
+          {
+            "id": "p1_3",
+            "atom": "close",
+            "depth": 2,
+            "ending": "crossed"
+          },
+          {
+            "id": "p1_4",
+            "atom": "practise",
+            "depth": 2,
+            "topic": "fare",
+            "goal": "fare_agreed",
+            "exits": [
+              {
+                "to": "p1_5"
+              }
+            ]
+          },
+          {
+            "id": "p1_5",
+            "atom": "close",
+            "depth": 3,
+            "sketch": true,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "plan_text"
+    },
+    {
+      "name": "w13_beat_named_after_an_ending",
+      "mode": "plan",
+      "npc": "ma_ren",
+      "open_topics": [],
+      "prefix": "turned",
+      "fragment": {
+        "anchor": "turned_0",
+        "beats": [
+          {
+            "id": "turned_0",
+            "atom": "open",
+            "depth": 0,
+            "exits": [
+              {
+                "to": "turned_back"
+              }
+            ]
+          },
+          {
+            "id": "turned_back",
+            "atom": "close",
+            "depth": 1,
+            "ending": "crossed"
+          }
+        ]
+      },
+      "expect": "outcome_name"
+    }
+  ]
+}

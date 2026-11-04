@@ -2,7 +2,7 @@
 
 use serde_json::Number;
 
-use crate::IrError;
+use crate::{IrError, Rule};
 use crate::ir::{FactType, FactValue};
 
 /// The largest integer magnitude a builder writes (D2 rule 3): 2^53 − 1.
@@ -79,7 +79,7 @@ impl FactDefault {
             FactDefault::Boolean(b) => Ok(FactValue::Boolean(b)),
             FactDefault::String(s) => Ok(FactValue::String(s)),
             FactDefault::Number(x) => builder_number(x).map(FactValue::Number).ok_or_else(|| {
-                IrError::new(path, format!("{x} is outside the builder's range; set it at runtime with DialogueSetFact"))
+                IrError::new(Rule::NumberRange, path, format!("{x} is outside the builder's range; set it at runtime with DialogueSetFact"))
             }),
         }
     }

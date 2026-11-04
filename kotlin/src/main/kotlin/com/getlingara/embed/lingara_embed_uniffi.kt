@@ -2689,7 +2689,7 @@ data class GraphSnapshot (
     , 
     var `facts`: Map<kotlin.String, FactValue>
     , 
-    var `outcome`: DialogueOutcome?
+    var `outcome`: kotlin.String?
     
 ){
     
@@ -2710,7 +2710,7 @@ public object FfiConverterTypeGraphSnapshot: FfiConverterRustBuffer<GraphSnapsho
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterMapStringTypeFactValue.read(buf),
-            FfiConverterOptionalTypeDialogueOutcome.read(buf),
+            FfiConverterOptionalString.read(buf),
         )
     }
 
@@ -2719,7 +2719,7 @@ public object FfiConverterTypeGraphSnapshot: FfiConverterRustBuffer<GraphSnapsho
             FfiConverterString.allocationSize(value.`npc`) +
             FfiConverterString.allocationSize(value.`checkpoint`) +
             FfiConverterMapStringTypeFactValue.allocationSize(value.`facts`) +
-            FfiConverterOptionalTypeDialogueOutcome.allocationSize(value.`outcome`)
+            FfiConverterOptionalString.allocationSize(value.`outcome`)
     )
 
     override fun write(value: GraphSnapshot, buf: ByteBuffer) {
@@ -2727,7 +2727,7 @@ public object FfiConverterTypeGraphSnapshot: FfiConverterRustBuffer<GraphSnapsho
             FfiConverterString.write(value.`npc`, buf)
             FfiConverterString.write(value.`checkpoint`, buf)
             FfiConverterMapStringTypeFactValue.write(value.`facts`, buf)
-            FfiConverterOptionalTypeDialogueOutcome.write(value.`outcome`, buf)
+            FfiConverterOptionalString.write(value.`outcome`, buf)
     }
 }
 
@@ -4227,44 +4227,6 @@ public object FfiConverterTypeCrossedVia: FfiConverterRustBuffer<CrossedVia> {
 
 
 
-/**
- * The reserved names a story ends on.
- */
-
-enum class DialogueOutcome {
-    
-    SUCCESS,
-    FAILURE,
-    ABANDONED;
-
-    
-
-
-    companion object
-}
-
-
-/**
- * @suppress
- */
-public object FfiConverterTypeDialogueOutcome: FfiConverterRustBuffer<DialogueOutcome> {
-    override fun read(buf: ByteBuffer) = try {
-        DialogueOutcome.values()[buf.getInt() - 1]
-    } catch (e: IndexOutOfBoundsException) {
-        throw RuntimeException("invalid enum value, something is very wrong!!", e)
-    }
-
-    override fun allocationSize(value: DialogueOutcome) = 4UL
-
-    override fun write(value: DialogueOutcome, buf: ByteBuffer) {
-        buf.putInt(value.ordinal + 1)
-    }
-}
-
-
-
-
-
 
 enum class DialoguePhase {
     
@@ -4470,7 +4432,7 @@ sealed class EmbedEvent {
     
     data class DialogueEnded(
         val `dialogue`: kotlin.Long, 
-        val `outcome`: com.getlingara.embed.DialogueOutcome, 
+        val `outcome`: kotlin.String, 
         val `checkpoint`: kotlin.String, 
         val `edge`: kotlin.String?) : EmbedEvent()
         
@@ -4609,7 +4571,7 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
                 )
             8 -> EmbedEvent.DialogueEnded(
                 FfiConverterLong.read(buf),
-                FfiConverterTypeDialogueOutcome.read(buf),
+                FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 FfiConverterOptionalString.read(buf),
                 )
@@ -4711,7 +4673,7 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
             (
                 4UL
                 + FfiConverterLong.allocationSize(value.`dialogue`)
-                + FfiConverterTypeDialogueOutcome.allocationSize(value.`outcome`)
+                + FfiConverterString.allocationSize(value.`outcome`)
                 + FfiConverterString.allocationSize(value.`checkpoint`)
                 + FfiConverterOptionalString.allocationSize(value.`edge`)
             )
@@ -4825,7 +4787,7 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
             is EmbedEvent.DialogueEnded -> {
                 buf.putInt(8)
                 FfiConverterLong.write(value.`dialogue`, buf)
-                FfiConverterTypeDialogueOutcome.write(value.`outcome`, buf)
+                FfiConverterString.write(value.`outcome`, buf)
                 FfiConverterString.write(value.`checkpoint`, buf)
                 FfiConverterOptionalString.write(value.`edge`, buf)
                 Unit
@@ -6374,38 +6336,6 @@ public object FfiConverterOptionalTypeUpdateAvailable: FfiConverterRustBuffer<Up
         } else {
             buf.put(1)
             FfiConverterTypeUpdateAvailable.write(value, buf)
-        }
-    }
-}
-
-
-
-
-/**
- * @suppress
- */
-public object FfiConverterOptionalTypeDialogueOutcome: FfiConverterRustBuffer<DialogueOutcome?> {
-    override fun read(buf: ByteBuffer): DialogueOutcome? {
-        if (buf.get().toInt() == 0) {
-            return null
-        }
-        return FfiConverterTypeDialogueOutcome.read(buf)
-    }
-
-    override fun allocationSize(value: DialogueOutcome?): ULong {
-        if (value == null) {
-            return 1UL
-        } else {
-            return 1UL + FfiConverterTypeDialogueOutcome.allocationSize(value)
-        }
-    }
-
-    override fun write(value: DialogueOutcome?, buf: ByteBuffer) {
-        if (value == null) {
-            buf.put(0)
-        } else {
-            buf.put(1)
-            FfiConverterTypeDialogueOutcome.write(value, buf)
         }
     }
 }

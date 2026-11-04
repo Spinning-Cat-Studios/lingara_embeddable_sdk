@@ -70,6 +70,7 @@ namespace
 	bool DialogueEnded(const FObjectPtr& O, FLingaraDecodedEvent& Out)
 	{
 		Out.Graph.Edge = OptString(O, TEXT("edge"));
+		// Any ending id, never a closed word set (ADR 3.11.26g §11.3).
 		Out.Graph.Outcome = OptString(O, TEXT("outcome"));
 		return ReadId(O, TEXT("dialogue"), Out.Graph.Dialogue) && O->TryGetStringField(TEXT("checkpoint"), Out.Graph.Checkpoint);
 	}

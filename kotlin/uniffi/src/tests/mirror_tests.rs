@@ -68,7 +68,9 @@ fn graph_types_have_mirrors() {
     let v = vector();
     mirrored::<core::DialogueSource, DialogueSource>(&v, "tagged", "DialogueSource");
     mirrored::<core::CrossedVia, CrossedVia>(&v, "words", "CrossedVia");
-    mirrored::<core::DialogueOutcome, DialogueOutcome>(&v, "words", "DialogueOutcome");
+    // The outcome is a string since ADR 3.11.26g: a named ending crosses unchanged.
+    let ended = &mirrored::<core::EmbedEvent, EmbedEvent>(&v, "structs", "DialogueEnded")[0];
+    assert!(matches!(ended, EmbedEvent::DialogueEnded { outcome, .. } if outcome == "fled"), "{ended:?}");
     mirrored::<core::Pedagogy, Pedagogy>(&v, "words", "Pedagogy");
     for config in mirrored::<core::DialogueConfig, DialogueConfig>(&v, "structs", "DialogueConfig") {
         let back: core::DialogueConfig = to_core("config", &config).expect("into K1");

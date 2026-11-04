@@ -89,14 +89,15 @@ namespace Lingara.Embed.Events
             public CrossedVia Via { get; init; }
         }
 
-        /// <summary>A graph dialogue's story ended: an edge to an outcome, or a close (<c>Abandoned</c>).</summary>
+        /// <summary>A graph dialogue's story ended: an edge to an ending, or a close (<see cref="DialogueOutcome.Abandoned"/>).</summary>
         public sealed class DialogueEnded : EmbedEvent
         {
             public DialogueEnded() : base("dialogue_ended") { }
 
             public DialogueId Dialogue { get; init; }
 
-            public DialogueOutcome Outcome { get; init; }
+            /// <summary>The ending's id, as the dialogue declares it, or <see cref="DialogueOutcome.Abandoned"/>.</summary>
+            public string Outcome { get; init; } = string.Empty;
 
             /// <summary>The checkpoint the story left.</summary>
             public string Checkpoint { get; init; } = string.Empty;

@@ -9,8 +9,8 @@ use serde_json::{Value, json};
 use crate::dialogue::graph::{GraphState, Step};
 use crate::error::ErrorKind;
 use crate::tests::fake_lingara::{After, FakeLingara, Reply, frame};
-use crate::tests::{SECS, config, started, wait_for};
-use crate::types::{CrossedVia, DialogueOutcome, DialoguePhase, DialogueSource, EmbedEvent, FactValue, GraphSession, LogLevel};
+use crate::tests::{SECS, config, dialogue_vector, started, wait_for};
+use crate::types::{CrossedVia, DialoguePhase, DialogueSource, EmbedEvent, FactValue, GraphSession, LogLevel};
 
 /// The intro offers three judged edges and one game-only edge to `failure`.
 fn story() -> Value {
@@ -99,7 +99,7 @@ fn unsent_edges_are_ignored_and_outcomes_end() {
     assert_eq!(steps[1], reached("ask", Some("any"), CrossedVia::Judge), "and the IR's `to` is used");
 
     let steps = s.apply_judged(&["gate".into()], "gate", "success");
-    assert_eq!(steps, [Step::Ended { outcome: DialogueOutcome::Success, checkpoint: "ask".into(), edge: Some("gate".into()) }]);
+    assert_eq!(steps, [Step::Ended { outcome: "success".into(), checkpoint: "ask".into(), edge: Some("gate".into()) }]);
     assert!(s.ended() && s.abandon().is_none());
 
     // A live dialogue whose story ends on load refuses a line.
@@ -108,7 +108,7 @@ fn unsent_edges_are_ignored_and_outcomes_end() {
     let facts = [("alarm".to_owned(), FactValue::Boolean(true))].into();
     let session = GraphSession { npc: None, source_lang: "en".into(), target_lang: "es".into(), level: 2, scene: None, facts, checkpoint: None, window: vec![] };
     let d = embed.dialogue_load(DialogueSource::Ir { ir_json: story().to_string() }, session).unwrap();
-    let ended = |e: &EmbedEvent| matches!(e, EmbedEvent::DialogueEnded { outcome: DialogueOutcome::Failure, checkpoint, edge: Some(edge), .. } if checkpoint == "intro" && edge == "alarm");
+    let ended = |e: &EmbedEvent| matches!(e, EmbedEvent::DialogueEnded { outcome, checkpoint, edge: Some(edge), .. } if outcome == "failure" && checkpoint == "intro" && edge == "alarm");
     wait_for(&embed, 5 * SECS, ended);
     assert_eq!(embed.dialogue_snapshot(d).unwrap().phase, DialoguePhase::Ended);
     assert_eq!(embed.dialogue_say(d, "hola").unwrap_err().kind, ErrorKind::InvalidState);
@@ -132,4 +132,34 @@ fn an_auto_run_ends_and_its_cap_is_a_bug() {
     let crossings = steps.iter().filter(|s| matches!(s, Step::Reached { via: CrossedVia::Auto, .. })).count();
     assert_eq!(crossings, lingara_dialogue_ir::limits::MAX_CHECKPOINTS);
     assert!(is_log(steps.last().unwrap(), LogLevel::Error), "the cap stops the run and logs at error");
+}
+
+/// The steps that are not log lines.
+fn moves(steps: Vec<Step>) -> Vec<Step> {
+    steps.into_iter().filter(|s| !matches!(s, Step::Log { .. })).collect()
+}
+
+// 3.11.26g AC8
+#[test]
+fn the_runner_walks_an_expansion_unchanged() {
+    use lingara_dialogue_ir::{Document, load_document, procedural};
+    let (Some(ferryman), Some(walk)) = (dialogue_vector("ferryman.procedural.json"), dialogue_vector("walk.fragment.json")) else { return };
+    let Document::Procedural(doc) = load_document(&ferryman).unwrap().0 else { panic!("not procedural") };
+    let fragment: procedural::PlanFragment = serde_json::from_str(&walk).unwrap();
+    procedural::within_spec_restored(&doc, "old_li", &fragment, &procedural::GAME_WORDING).expect("the walk fragment is within spec");
+    let ir = procedural::expand(&doc, "old_li", &fragment).unwrap();
+    let npc = ir.npcs.iter().position(|n| n.id == "old_li").unwrap();
+    let mut s = GraphState::new(Arc::new(ir), npc, 0);
+    assert_eq!(moves(s.start()), [reached("w0_1", None, CrossedVia::Start)]);
+    assert_eq!(offered(&s), ["w0_1_x0", "w0_1_x1"], "the done exit, then the player's detour");
+
+    // A fake judge picks the detour; the game's fact opens Practise's predicate edge.
+    let sent = offered(&s);
+    assert_eq!(s.apply_judged(&sent, "w0_1_x1", "w1_2"), [reached("w1_2", Some("w0_1_x1"), CrossedVia::Judge)]);
+    s.set_fact("fare_paid", FactValue::Boolean(true)).unwrap();
+    assert_eq!(s.auto_run(), [reached("w1_3", Some("w1_2_ok"), CrossedVia::Auto)]);
+    let sent = offered(&s);
+    let ended = s.apply_judged(&sent, "w1_3_end", "crossed");
+    assert_eq!(ended, [Step::Ended { outcome: "crossed".into(), checkpoint: "w1_3".into(), edge: Some("w1_3_end".into()) }]);
+    assert_eq!(s.snapshot().outcome.as_deref(), Some("crossed"));
 }

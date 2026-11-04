@@ -212,7 +212,7 @@ fn graph_methods_and_events() {
     let start = EmbedEvent::CheckpointReached { dialogue: 4, checkpoint: "intro".into(), edge: None, via: lingara_embed::CrossedVia::Start };
     let calls = signals_for(&start, &mut Finished::default());
     assert_eq!(calls[1], SignalCall::new("checkpoint_reached", vec![4.into(), "intro".into(), "".into(), "start".into()]));
-    let ended = EmbedEvent::DialogueEnded { dialogue: 4, outcome: lingara_embed::DialogueOutcome::Abandoned, checkpoint: "intro".into(), edge: None };
+    let ended = EmbedEvent::DialogueEnded { dialogue: 4, outcome: lingara_embed::ABANDONED.into(), checkpoint: "intro".into(), edge: None };
     let calls = signals_for(&ended, &mut Finished::default());
     assert_eq!(calls[1], SignalCall::new("dialogue_ended", vec![4.into(), "abandoned".into(), "intro".into(), "".into()]));
 }

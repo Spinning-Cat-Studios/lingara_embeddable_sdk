@@ -2,7 +2,10 @@ using System.Collections.Generic;
 
 namespace Lingara.Embed.Dialogues
 {
-    /// <summary>Where an edge ends the story instead of naming a checkpoint.</summary>
+    /// <summary>
+    /// Shorthands for the three v1 ends. In <c>dialogue.v2</c> <c>success</c> and <c>failure</c> are ordinary
+    /// ending ids (ADR 3.11.26g §11): a dialogue that declares <see cref="DialogueBuilder.Ending"/>s names its own.
+    /// </summary>
     public enum Outcome
     {
         Success,
@@ -21,7 +24,7 @@ namespace Lingara.Embed.Dialogues
     }
 
     /// <summary>
-    /// A built <c>dialogue.v1</c> graph (ADR 28.10.26g D1): immutable, its parts in the order
+    /// A built <c>dialogue.v1</c> or <c>dialogue.v2</c> graph (ADR 28.10.26g D1, ADR 3.11.26g §11.5): immutable, its parts in the order
     /// the author added them. <see cref="ToCanonicalJson"/> is what <c>DialogueLoad</c> sends.
     /// </summary>
     public sealed class Dialogue
@@ -33,6 +36,7 @@ namespace Lingara.Embed.Dialogues
             Pedagogy = b.PedagogyValue;
             Npcs = b.Npcs.ToArray();
             Facts = b.Facts.ToArray();
+            Endings = b.DeclaredEndings();
             Start = b.Start;
             Checkpoints = b.Checkpoints.ToArray();
         }
@@ -47,12 +51,29 @@ namespace Lingara.Embed.Dialogues
 
         public IReadOnlyList<DialogueFact> Facts { get; }
 
+        /// <summary>The declared endings: <c>success</c> and <c>failure</c> when the builder declared none.</summary>
+        public IReadOnlyList<DialogueEnding> Endings { get; }
+
         public string Start { get; }
 
         public IReadOnlyList<DialogueCheckpoint> Checkpoints { get; }
 
         /// <summary>JCS over the normal form: no whitespace, no trailing newline (D2).</summary>
         public string ToCanonicalJson() => CanonicalJson.Write(CanonicalJson.Tree(this));
+    }
+
+    /// <summary>A way the story can end (ADR 3.11.26g §11.1); <see cref="Label"/> is what a person reads.</summary>
+    public sealed class DialogueEnding
+    {
+        internal DialogueEnding(string id, string? label)
+        {
+            Id = id;
+            Label = label;
+        }
+
+        public string Id { get; }
+
+        public string? Label { get; }
     }
 
     /// <summary>A member of the cast; <see cref="Languages"/> null is N1's native speaker.</summary>
@@ -112,7 +133,7 @@ namespace Lingara.Embed.Dialogues
         public IReadOnlyList<DialogueEdge> Edges { get; }
     }
 
-    /// <summary>A way out of a checkpoint: <see cref="To"/> is a checkpoint id or an outcome's name.</summary>
+    /// <summary>A way out of a checkpoint: <see cref="To"/> is a checkpoint id, an ending id or <c>abandoned</c>.</summary>
     public sealed class DialogueEdge
     {
         internal DialogueEdge(string id, string to, string? predicate, string? when)

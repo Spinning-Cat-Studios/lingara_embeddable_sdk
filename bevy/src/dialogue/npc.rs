@@ -3,13 +3,16 @@
 //! game's code rather than at the server.
 //!
 //! A graph NPC (ADR 28.10.26g D6) is the same component opened with K1's
-//! `DialogueLoad` instead of `DialogueOpen`, so the lifecycle is shared.
+//! `DialogueLoad` instead of `DialogueOpen`, so the lifecycle is shared. A
+//! stored one (ADR 3.11.26f §5) loads by store id rather than by text.
 
 use std::collections::BTreeMap;
 
 use bevy::ecs::component::Component;
-use lingara_embed::dialogue_ir::DialogueIr;
+use lingara_embed::dialogue_ir::{self, DialogueIr};
 use lingara_embed::{Command, DialogueConfig, DialogueSource, EmbedError, ErrorKind, GraphSession, Npc, WindowEntry, limits};
+
+use super::bounds::{check_level, text};
 
 /// An NPC the player can talk to. Only `level` and `scene` change on a live
 /// NPC; a different persona or language is a different NPC, so insert a new
@@ -25,29 +28,12 @@ pub struct NpcDialogue {
     graph: Option<Graph>,
 }
 
-/// A graph NPC's dialogue, as the canonical text `DialogueLoad` sends, and
-/// the cast member this entity is.
+/// A graph NPC's dialogue and the cast member this entity is: the canonical
+/// text `DialogueLoad` sends, or a store id the core fetches (ADR 3.11.26f §5).
 #[derive(Debug, Clone, PartialEq)]
-struct Graph {
-    ir_json: String,
-    npc_id: String,
-}
-
-/// 1 to `max` Unicode scalar values, not blank: K1's own rule.
-fn text(field: &str, max: usize, value: &str) -> Result<(), EmbedError> {
-    let n = value.chars().count();
-    if value.trim().is_empty() || n > max {
-        return Err(EmbedError::new(ErrorKind::InvalidInput, format!("{field} must be 1–{max} characters, not blank (got {n})")));
-    }
-    Ok(())
-}
-
-fn check_level(level: u8) -> Result<u8, EmbedError> {
-    if !(limits::LEVEL_MIN..=limits::LEVEL_MAX).contains(&level) {
-        let message = format!("level must be {}–{} (got {level})", limits::LEVEL_MIN, limits::LEVEL_MAX);
-        return Err(EmbedError::new(ErrorKind::InvalidInput, message));
-    }
-    Ok(level)
+enum Graph {
+    Inline { ir_json: String, npc_id: String },
+    Stored { dialogue_id: String, npc_id: String },
 }
 
 impl NpcDialogue {
@@ -70,8 +56,38 @@ impl NpcDialogue {
             return Err(EmbedError::new(ErrorKind::InvalidInput, format!("the dialogue's cast has no NPC \"{npc_id}\"")));
         };
         let npc = Npc { name: profile.name.clone(), persona: profile.persona.clone() };
-        let graph = Some(Graph { ir_json: ir.to_canonical_json(), npc_id });
+        let graph = Some(Graph::Inline { ir_json: ir.to_canonical_json(), npc_id });
         Ok(Self { npc, scene: None, target_lang: target_lang.into(), source_lang: None, level: check_level(level)?, window: Vec::new(), graph })
+    }
+
+    /// The active revision of the dialogue saved on Lingara as `dialogue_id`
+    /// (a store id, never the IR's own `id`), as cast member `npc_id`. The
+    /// plugin opens it with `DialogueLoad { source: Stored }`; the core fetches
+    /// it with the player's token and answers `DialogueLoaded` or `DialogueLoadFailed`.
+    pub fn stored(dialogue_id: impl Into<String>, npc_id: impl Into<String>, target_lang: impl Into<String>, level: u8) -> Result<Self, EmbedError> {
+        // The core checks the store id is a UUID; the cast id is the IR's rule.
+        let (dialogue_id, npc_id) = (dialogue_id.into(), npc_id.into());
+        if dialogue_id.trim().is_empty() {
+            return Err(EmbedError::new(ErrorKind::InvalidInput, "dialogue_id must not be blank"));
+        }
+        if !dialogue_ir::is_ir_id(&npc_id) {
+            let max = dialogue_ir::limits::MAX_ID_CHARS;
+            return Err(EmbedError::new(ErrorKind::InvalidInput, format!("npc_id must be an IR id, 1–{max} characters (got \"{npc_id}\")")));
+        }
+        // Nothing names the NPC before the load, and `DialogueLoaded` carries
+        // no name: the cast id is the default, `with_display_name` the override.
+        let npc = Npc { name: npc_id.chars().take(limits::NPC_NAME_MAX_CHARS).collect(), persona: None };
+        let graph = Some(Graph::Stored { dialogue_id, npc_id });
+        Ok(Self { npc, scene: None, target_lang: target_lang.into(), source_lang: None, level: check_level(level)?, window: Vec::new(), graph })
+    }
+
+    /// The name `npc()` answers, 1–32 characters, for a game that shows one
+    /// before a stored dialogue loads. The turn itself uses the IR's.
+    pub fn with_display_name(mut self, name: impl Into<String>) -> Result<Self, EmbedError> {
+        let name = name.into();
+        text("npc.name", limits::NPC_NAME_MAX_CHARS, &name)?;
+        self.npc.name = name;
+        Ok(self)
     }
 
     /// Who the NPC is, in 1–120 characters.
@@ -137,8 +153,11 @@ impl NpcDialogue {
         let source_lang = self.source_lang.as_deref().or(default_source).unwrap_or_default().to_owned();
         let (scene, window, target_lang, level) = (self.scene.clone(), self.window.clone(), self.target_lang.clone(), self.level);
         if let Some(graph) = &self.graph {
-            let source = DialogueSource::Ir { ir_json: graph.ir_json.clone() };
-            let npc = Some(graph.npc_id.clone());
+            let (source, npc_id) = match graph {
+                Graph::Inline { ir_json, npc_id } => (DialogueSource::Ir { ir_json: ir_json.clone() }, npc_id),
+                Graph::Stored { dialogue_id, npc_id } => (DialogueSource::Stored { dialogue_id: dialogue_id.clone() }, npc_id),
+            };
+            let npc = Some(npc_id.clone());
             let session = GraphSession { npc, source_lang, target_lang, level, scene, facts: BTreeMap::new(), checkpoint: None, window };
             return Command::DialogueLoad { source, session };
         }

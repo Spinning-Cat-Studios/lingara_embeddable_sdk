@@ -7,7 +7,7 @@
 //! 2. What a level does on the turn is N1's: under `subtle` the speech level
 //! is `min(NPC speaking, learner level)`, under `none` the NPC's own.
 
-use crate::IrError;
+use crate::{IrError, Rule};
 
 /// A level on the IR's `1..=9` scale. `build()` refuses one outside it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -42,6 +42,6 @@ impl From<u8> for Level {
 fn position(labels: &[&str], label: &str, scale: &str) -> Result<Level, IrError> {
     match labels.iter().position(|l| *l == label) {
         Some(i) => Ok(Level(i as u8 + 1)),
-        None => Err(IrError::new("", format!("\"{label}\" is not a {scale} level ({})", labels.join(", ")))),
+        None => Err(IrError::new(Rule::NumberRange, "", format!("\"{label}\" is not a {scale} level ({})", labels.join(", ")))),
     }
 }

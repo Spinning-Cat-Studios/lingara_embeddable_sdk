@@ -132,7 +132,7 @@ namespace Lingara.Embed.Json
             Npc = v.Str("npc"),
             Checkpoint = v.Str("checkpoint"),
             Facts = Facts(v.Obj("facts")),
-            Outcome = v.OptStr("outcome") is string outcome ? GraphWords.Outcomes.Parse(outcome) : (DialogueOutcome?)null,
+            Outcome = v.OptStr("outcome"),
         };
 
         private static Dictionary<string, FactValue> Facts(JsonValue v)

@@ -6,11 +6,11 @@
 
 use std::sync::Arc;
 
-use lingara_dialogue_ir::{DialogueIr, limits};
+use lingara_dialogue_ir::DialogueIr;
 
 use crate::commands::Dispatch;
 use crate::dialogue::graph::stored::{self, Pending};
-use crate::dialogue::graph::{GraphState, TARGET, emit};
+use crate::dialogue::graph::{GraphState, TARGET, emit, load_ir};
 use crate::dialogue::{Dialogue, check};
 use crate::embed::Embed;
 use crate::error::{EmbedError, ErrorKind};
@@ -34,8 +34,8 @@ fn cast_member(ir: &DialogueIr, npc: Option<&str>) -> Result<usize, EmbedError> 
 /// Where a run begins: a saved checkpoint, else the IR's `start`.
 fn start_at(ir: &DialogueIr, checkpoint: Option<&str>) -> Result<usize, EmbedError> {
     let id = checkpoint.unwrap_or(&ir.start);
-    if limits::OUTCOMES.contains(&id) {
-        return Err(invalid(format!("`{id}` is an outcome, not a checkpoint to resume at")));
+    if ir.is_ending(id) {
+        return Err(invalid(format!("`{id}` is an ending, not a checkpoint to resume at")));
     }
     ir.checkpoints.iter().position(|c| c.id == id).ok_or_else(|| invalid(format!("the dialogue has no checkpoint `{id}`")))
 }
@@ -85,7 +85,8 @@ fn loading_config(session: &GraphSession) -> DialogueConfig {
 }
 
 impl Embed {
-    /// Loads a `dialogue.v1` graph and opens a run of it. `CheckpointReached
+    /// Loads a `dialogue.v1` or `dialogue.v2` graph and opens a run of it; a
+    /// procedural document is refused until this kit can run one. `CheckpointReached
     /// { via: start }` follows the returned id, then any auto crossings. A
     /// stored source answers its id in `loading`, and `DialogueLoaded` or
     /// `DialogueLoadFailed` follows once it is fetched.
@@ -95,7 +96,7 @@ impl Embed {
             DialogueSource::Ir { ir_json } => ir_json,
             DialogueSource::Stored { dialogue_id } => return self.load_stored(&dialogue_id, session),
         };
-        let (ir, warnings) = lingara_dialogue_ir::load(&ir_json).map_err(invalid)?;
+        let (ir, warnings) = load_ir(&ir_json).map_err(invalid)?;
         let (mut state, config) = open_run(Arc::new(ir), session, &[])?;
         warnings.iter().for_each(|warning| self.shared.diag.warn(TARGET, warning.to_string()));
         let steps = state.start();
@@ -138,11 +139,11 @@ impl Embed {
         Ok(())
     }
 
-    /// Checks a `dialogue.v1` document as `dialogue_load` would, creating
+    /// Checks a dialogue document as `dialogue_load` would, creating
     /// nothing: for a builder with no Rust of its own.
     pub fn dialogue_validate(&self, ir_json: &str) -> Result<(), EmbedError> {
         self.shared.live()?;
-        lingara_dialogue_ir::load(ir_json).map(|_| ()).map_err(invalid)
+        load_ir(ir_json).map(|_| ()).map_err(invalid)
     }
 
     /// The graph's commands, after the free-form ones.

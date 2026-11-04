@@ -10,20 +10,32 @@ namespace Lingara.Embed.Dialogues
     /// </summary>
     internal static class StructuralChecks
     {
-        private static readonly string[] Outcomes = { "success", "failure", "abandoned" };
+        private const string Abandoned = "abandoned";
 
         public static void Run(DialogueBuilder d)
         {
-            Ids(d);
+            var ends = Ends(d);
+            Ids(d, ends);
             Unique(d.Npcs.Select((n, i) => ($"npcs[{i}].id", n.Id)));
             Unique(d.Facts.Select((f, i) => ($"facts[{i}].key", f.Key)));
+            Unique(d.Endings.Select((e, i) => ($"endings[{i}].id", e.Id)));
             Unique(d.Checkpoints.Select((c, i) => ($"checkpoints[{i}].id", c.Id)));
             Unique(Edges(d).Select(e => ($"{e.Path}.id", e.Edge.Id)));
-            Targets(d);
+            Targets(d, ends);
             Disclosed(d);
             Defaults(d);
             Levels(d);
-            WhenLessCycle(d);
+            WhenLessCycle(d, ends);
+        }
+
+        /// <summary>
+        /// What an edge may end on (ADR 3.11.26g §11.1): the declared endings, or v1's two when none is
+        /// declared, plus the built-in <c>abandoned</c>. The crate's rule, held to it by AC20.
+        /// </summary>
+        private static HashSet<string> Ends(DialogueBuilder d)
+        {
+            var ends = new HashSet<string>(d.DeclaredEndings().Select(e => e.Id), StringComparer.Ordinal) { Abandoned };
+            return ends;
         }
 
         private static ArgumentException Fault(string path, string message) => new ArgumentException($"{path}: {message}");
@@ -44,10 +56,19 @@ namespace Lingara.Embed.Dialogues
             }
         }
 
-        private static void Ids(DialogueBuilder d)
+        private static void Ids(DialogueBuilder d, HashSet<string> ends)
         {
             Id(d.Id, "id");
             Id(d.Start, "start");
+            for (var i = 0; i < d.Endings.Count; i++)
+            {
+                Id(d.Endings[i].Id, $"endings[{i}].id");
+                if (d.Endings[i].Id == Abandoned)
+                {
+                    throw Fault($"endings[{i}].id", "\"abandoned\" is built in, so it is never declared");
+                }
+            }
+
             for (var i = 0; i < d.Npcs.Count; i++)
             {
                 Id(d.Npcs[i].Id, $"npcs[{i}].id");
@@ -61,9 +82,9 @@ namespace Lingara.Embed.Dialogues
             for (var i = 0; i < d.Checkpoints.Count; i++)
             {
                 Id(d.Checkpoints[i].Id, $"checkpoints[{i}].id");
-                if (Outcomes.Contains(d.Checkpoints[i].Id))
+                if (ends.Contains(d.Checkpoints[i].Id))
                 {
-                    throw Fault($"checkpoints[{i}].id", $"\"{d.Checkpoints[i].Id}\" is an outcome's name");
+                    throw Fault($"checkpoints[{i}].id", $"\"{d.Checkpoints[i].Id}\" is an ending's id");
                 }
             }
 
@@ -86,8 +107,8 @@ namespace Lingara.Embed.Dialogues
             }
         }
 
-        /// <summary>Rule 2: <c>start</c> and every non-outcome <c>to</c> name a checkpoint.</summary>
-        private static void Targets(DialogueBuilder d)
+        /// <summary>Rule 2: <c>start</c> names a checkpoint, and every <c>to</c> a checkpoint or an ending.</summary>
+        private static void Targets(DialogueBuilder d, HashSet<string> ends)
         {
             var ids = new HashSet<string>(d.Checkpoints.Select(c => c.Id), StringComparer.Ordinal);
             if (!ids.Contains(d.Start))
@@ -97,9 +118,9 @@ namespace Lingara.Embed.Dialogues
 
             foreach (var (path, edge) in Edges(d))
             {
-                if (!Outcomes.Contains(edge.To) && !ids.Contains(edge.To))
+                if (!ends.Contains(edge.To) && !ids.Contains(edge.To))
                 {
-                    throw Fault($"{path}.to", $"names no checkpoint or outcome: \"{edge.To}\"");
+                    throw Fault($"{path}.to", $"names no checkpoint or ending: \"{edge.To}\"");
                 }
             }
         }
@@ -155,11 +176,11 @@ namespace Lingara.Embed.Dialogues
         }
 
         /// <summary>Rule 6: no cycle made only of edges with no <c>when</c>, which would loop with no turn.</summary>
-        private static void WhenLessCycle(DialogueBuilder d)
+        private static void WhenLessCycle(DialogueBuilder d, HashSet<string> ends)
         {
             var next = d.Checkpoints.ToDictionary(
                 c => c.Id,
-                c => c.Edges.Where(e => e.When == null && !Outcomes.Contains(e.To)).Select(e => e.To).ToList(),
+                c => c.Edges.Where(e => e.When == null && !ends.Contains(e.To)).Select(e => e.To).ToList(),
                 StringComparer.Ordinal);
             var state = new Dictionary<string, int>(StringComparer.Ordinal); // 1 on the path, 2 done
             foreach (var id in next.Keys)

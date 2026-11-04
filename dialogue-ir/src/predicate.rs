@@ -14,6 +14,7 @@ mod typing;
 use std::fmt;
 
 use crate::ir::FactDecl;
+use crate::{IrError, Rule};
 
 pub use eval::{eval, value};
 
@@ -99,4 +100,27 @@ pub fn check(text: &str, facts: &[FactDecl]) -> Result<Predicate, PredicateError
     let predicate = parse::parse(text)?;
     typing::check(&predicate, facts)?;
     Ok(predicate)
+}
+
+/// [`check`] as `validate` reports it, at `path`, in Backend's order
+/// (28.10.26h D2; ADR 3.11.26g §9): it parses (`predicate_unparsed`), every
+/// fact it names is declared (`undeclared_fact`), and it type-checks
+/// (`predicate_type`).
+pub(crate) fn check_with_rules(text: &str, facts: &[FactDecl], path: &str) -> Result<(), IrError> {
+    let parsed = parse::parse(text).map_err(|err| IrError::new(Rule::PredicateUnparsed, path, err.to_string()))?;
+    let mut named = Vec::new();
+    fact_names(&parsed, &mut named);
+    if let Some(key) = named.iter().find(|key| !facts.iter().any(|f| f.key == **key)) {
+        return Err(IrError::new(Rule::UndeclaredFact, path, format!("unknown fact \"{key}\"")));
+    }
+    typing::check(&parsed, facts).map_err(|err| IrError::new(Rule::PredicateType, path, err.to_string()))
+}
+
+fn fact_names<'a>(predicate: &'a Predicate, out: &mut Vec<&'a str>) {
+    match predicate {
+        Predicate::Const(_) => {}
+        Predicate::Fact(fact) | Predicate::Compare { fact, .. } => out.push(fact),
+        Predicate::Not(inner) => fact_names(inner, out),
+        Predicate::And(terms) | Predicate::Or(terms) => terms.iter().for_each(|term| fact_names(term, out)),
+    }
 }

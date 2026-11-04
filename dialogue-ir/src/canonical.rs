@@ -9,11 +9,14 @@
 
 use serde_json::{Map, Number, Value};
 
-use crate::ir::DialogueIr;
+use crate::ir::{DialogueIr, SCHEMA_V1, SCHEMA_V2};
+use crate::procedural::ProceduralDialogue;
+use crate::version::static_schema;
 
 impl DialogueIr {
     /// The dialogue's canonical text: JCS over its normal form, no
-    /// whitespace, no trailing newline, `x-` members kept.
+    /// whitespace, no trailing newline, `x-` members kept. The schema is the
+    /// one [`crate::version::write_schema`] chooses (ADR 3.11.26g §2).
     pub fn to_canonical_json(&self) -> String {
         to_string(&normal_form(self))
     }
@@ -25,11 +28,37 @@ impl DialogueIr {
     }
 }
 
-/// The IR as a JSON value in normal form (`ir.rs` serialises it so).
+/// The IR as a JSON value in normal form (`ir.rs` serialises it so), under
+/// the written schema: a v1 write carries no `endings`, a v2 write names its
+/// `kind`, as it names its `pedagogy`.
 fn normal_form(ir: &DialogueIr) -> Value {
+    let schema = static_schema(ir);
+    let mut value = to_value(ir);
+    if let Value::Object(map) = &mut value {
+        map.insert("schema".into(), Value::String(schema.into()));
+        if schema == SCHEMA_V1 {
+            map.remove("endings");
+        } else {
+            map.insert("kind".into(), Value::String("static".into()));
+        }
+    }
+    value
+}
+
+/// A procedural document in normal form: always `dialogue.v2`.
+pub(crate) fn procedural_normal_form(doc: &ProceduralDialogue) -> Value {
+    let mut value = to_value(doc);
+    if let Value::Object(map) = &mut value {
+        map.insert("schema".into(), Value::String(SCHEMA_V2.into()));
+        map.insert("kind".into(), Value::String("procedural".into()));
+    }
+    value
+}
+
+fn to_value(value: &impl serde::Serialize) -> Value {
     // Serialising the IR's own types cannot fail: every map key is a string
     // and every number is a `Number`.
-    serde_json::to_value(ir).unwrap_or(Value::Null)
+    serde_json::to_value(value).unwrap_or(Value::Null)
 }
 
 /// Any JSON value in canonical form.

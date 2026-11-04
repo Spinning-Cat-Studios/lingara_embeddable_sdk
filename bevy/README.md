@@ -124,6 +124,24 @@ every crossing, and `DialogueEnded { entity, outcome }` the end of the story;
 `with_source_lang`, `set_level` and removal (which closes the dialogue) work
 as for a free-form NPC.
 
+### Loading a stored dialogue
+
+A dialogue saved in the portal's dialogue canvas loads by its store id (a
+UUID, never the IR's own `id`), fetched by the core with the player's token:
+
+```rust,ignore
+let npc = NpcDialogue::stored("0b9f6c1e-…", "mei", "en", 3)?.with_display_name("Mei")?;
+commands.spawn(npc);
+// later: DialogueLoaded { entity, dialogue_id, rev } or DialogueLoadFailed { entity, error }
+```
+
+Until it loads nothing names the NPC, so `npc().name` is the cast id unless
+`with_display_name` sets one; the turn itself uses the IR's name. A failed
+load leaves the component in place with no live dialogue: an `NpcSay` on it
+is a `LingaraError` with kind `unknown_id`, and the next `LingaraConnect`
+tries the load again. Remove the component to stop retrying. Both events
+still reach `LingaraRawEvent`.
+
 ## Practice
 
 ```rust,ignore
