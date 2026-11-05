@@ -28,7 +28,7 @@ pub use fragment::{Beat, Exit, PlanFragment};
 pub(crate) use spec_rules::check as check_spec;
 pub(crate) use spec_shape::walk_spec;
 pub use within_spec::{within_spec, within_spec_restored};
-pub use wording::{AtomText, AtomWording, GAME_WORDING};
+pub use wording::{AtomText, AtomWording, GAME_WORDING, TUTOR_WORDING};
 
 /// A procedural graph: the cast, the facts and the endings, and the box the
 /// planner fills. It has no `start` and no `checkpoints`.

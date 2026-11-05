@@ -83,6 +83,12 @@ impl DialogueCache {
     pub(crate) fn peek(&self, id: &str) -> Option<Arc<DialogueIr>> {
         lock(&self.inner).entries.get(id).map(|e| Arc::clone(&e.ir))
     }
+
+    /// The dialogues waiting on the fetch in flight for a store id, in the
+    /// order they were planned: a test's proof that a load has been planned.
+    pub(crate) fn waiting(&self, id: &str) -> Vec<DialogueId> {
+        lock(&self.inner).in_flight.get(id).cloned().unwrap_or_default()
+    }
 }
 
 impl Inner {

@@ -83,14 +83,22 @@ fn exports(api: &FakeApi) -> usize {
     api.at("export_dialogue").len()
 }
 
-/// Answers the held fetch once it is the `nth` export: every load spawned
-/// before it has then been planned, so none can miss the fetch in flight.
-fn release(api: &FakeApi, nth: usize, answer: Result<Exported, EmbedError>) {
+/// Answers the held fetch for `id`, the `nth` export, once every one of
+/// `waiters` is planned onto it, so none can miss the fetch in flight.
+///
+/// The export count alone does not prove that: the fake logs the call
+/// before the fetch awaits `release_exports`, so an answer sent in that gap
+/// leaves a `Notify` permit, the "held" fetch settles on its first poll, and
+/// a load whose task has not yet run plans a second fetch nobody releases.
+fn release(embed: &Embed, api: &FakeApi, nth: usize, (id, waiters): (&str, &[DialogueId]), answer: Result<Exported, EmbedError>) {
     let deadline = std::time::Instant::now() + 5 * SECS;
-    while exports(api) < nth && std::time::Instant::now() < deadline {
+    let planned = || waiters.iter().all(|w| embed.shared.dialogue_cache.waiting(id).contains(w));
+    while !(exports(api) >= nth && planned()) && std::time::Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(1));
     }
     assert_eq!(exports(api), nth, "the held fetch was sent");
+    let waiting = embed.shared.dialogue_cache.waiting(id);
+    assert!(planned() && waiting.len() == waiters.len(), "every load is planned onto the held fetch: {waiting:?}");
     api.exports.lock().unwrap().push_back(answer);
     api.release_exports.notify_one();
 }
@@ -143,7 +151,7 @@ fn a_stored_load_starts_like_an_inline_one() {
     let closed = embed.dialogue_load(stored(ID), session("elena")).unwrap();
     embed.dialogue_close(closed).unwrap();
 
-    release(&api, 1, body("v4", 4, ETAG));
+    release(&embed, &api, 1, (ID, &[d, undeclared, closed]), body("v4", 4, ETAG));
     let (event, mut events) = wait_for(&embed, 5 * SECS, |e| failed(e, undeclared).is_some());
     assert_eq!(failed(&event, undeclared).unwrap().kind, ErrorKind::InvalidInput, "a held fact K1 refuses fails the load");
     events.extend(collect(&embed, SECS / 2));
@@ -183,15 +191,15 @@ fn one_fetch_per_id_per_five_minutes() {
 
     api.hold_exports.store(true, Ordering::SeqCst);
     let (a, b) = (load(&id(1)), load(&id(1)));
-    release(&api, 4, body("v1", 1, ETAG));
+    release(&embed, &api, 4, (&id(1), &[a, b]), body("v1", 1, ETAG));
     wait_for(&embed, 5 * SECS, loaded(a));
     wait_for(&embed, 5 * SECS, loaded(b));
     let (c, d) = (load(&id(2)), load(&id(2)));
-    release(&api, 5, Err(EmbedError::new(ErrorKind::NotFound, "no such dialogue")));
+    release(&embed, &api, 5, (&id(2), &[c, d]), Err(EmbedError::new(ErrorKind::NotFound, "no such dialogue")));
     assert_eq!((wait_failed(&embed, c).kind, wait_failed(&embed, d).kind), (ErrorKind::NotFound, ErrorKind::NotFound), "each waiter fails on its own");
     let gone = load(&id(3));
     embed.dialogue_close(gone).unwrap();
-    release(&api, 6, body("v3", 3, ETAG));
+    release(&embed, &api, 6, (&id(3), &[gone]), body("v3", 3, ETAG));
     let deadline = std::time::Instant::now() + 5 * SECS;
     while embed.shared.dialogue_cache.peek(&id(3)).is_none() && std::time::Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(5));

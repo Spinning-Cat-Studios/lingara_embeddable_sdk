@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use crate::embed::Embed;
 use crate::error::ErrorKind;
 use crate::tests::fake_lingara::{After, FakeLingara, Reply, frame, graphs_dark, transition};
-use crate::tests::{SECS, config, dialogue_vector, started, wait_for};
+use crate::tests::{SECS, collect, config, dialogue_vector, started, wait_for};
 use crate::types::{
     Command, CrossedVia, DialogueId, DialoguePhase, DialogueSource, EmbedEvent, FactValue, GraphSession, LogLevel, NpcTurnUpdate,
 };
@@ -278,10 +278,15 @@ fn procedural_documents_wait_for_the_runtime() {
     assert_eq!((err.kind, err.message.as_str()), (ErrorKind::InvalidInput, "this kit cannot run procedural dialogues yet: upgrade lingara-embed"));
     let v2 = DialogueSource::Ir { ir_json: brother };
     let d = embed.dialogue_load(v2, session(None)).unwrap();
-    let (_, before) = wait_for(&embed, 5 * SECS, |e| matches!(e, EmbedEvent::CheckpointReached { dialogue, .. } if *dialogue == d));
-    let later: Vec<EmbedEvent> = std::iter::from_fn(|| embed.poll_event()).collect();
     let stance = |e: &EmbedEvent| matches!(e, EmbedEvent::Log { level: LogLevel::Info, message, .. } if message.contains("steering stance"));
-    assert_eq!(before.iter().chain(&later).filter(|e| stance(e)).count(), 1, "one info line: the stance loads and is not sent yet");
+    // A `Log` event is queued by a spawned send (`push_later`), so it may land
+    // after `CheckpointReached`: wait for the line itself, then listen a while
+    // for a second one, rather than draining the queue once.
+    let (_, before) = wait_for(&embed, 5 * SECS, stance);
+    let later = collect(&embed, SECS / 2);
+    let reached = |e: &EmbedEvent| matches!(e, EmbedEvent::CheckpointReached { dialogue, .. } if *dialogue == d);
+    assert!(before.iter().chain(&later).any(reached), "the v2 story loads and runs");
+    assert_eq!(before.iter().chain(&later).filter(|e| stance(e)).count(), 0, "one info line: the stance loads and is not sent yet");
 }
 
 // 3.11.26g AC17

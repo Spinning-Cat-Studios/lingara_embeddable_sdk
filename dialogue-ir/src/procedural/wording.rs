@@ -2,7 +2,7 @@
 //! A kind fixes parameters, checkpoints, edges, ids and the rules §8 checks; a
 //! wording fills only the `goal` and `when` templates and the display label.
 //! Another consumer re-words an atom by passing its own [`AtomWording`] to
-//! `expand_with` (3.11.26r adds `TUTOR_WORDING` beside [`GAME_WORDING`]).
+//! `expand_with`: [`GAME_WORDING`] and Backend 3.11.26r's [`TUTOR_WORDING`].
 
 use super::AtomKind;
 use crate::limits::{MAX_ABOUT_CHARS, MAX_ANGLE_CHARS, MAX_CONDITION_CHARS, MAX_DESCRIBE_CHARS, MAX_GOAL_CHARS};
@@ -73,6 +73,41 @@ pub const GAME_WORDING: AtomWording = AtomWording {
         "The player says goodbye or the conversation has come to a natural end.",
     ),
     detour_when: "The player brings up ‹topic›.",
+};
+
+/// The Pro tutor's words (Backend ADR 3.11.26r §5). Only the text differs from
+/// [`GAME_WORDING`]: the server's `within_spec` / `expand_with` and the
+/// client's expansion read this one constant, so the two cannot drift.
+pub const TUTOR_WORDING: AtomWording = AtomWording {
+    open: plain(
+        "Warm-up",
+        "Greet the learner and connect to the lesson in one easy exchange‹angle›",
+        "The learner has greeted the tutor or answered the opening question.",
+    ),
+    elicit: plain(
+        "Check",
+        "Find out what the learner already knows about ‹topic›‹angle›",
+        "The learner has shown what they know about ‹topic›, or said they do not know it.",
+    ),
+    reveal: plain(
+        "Teach",
+        "Explain ‹topic› with one short example at the learner's level‹angle›",
+        "The tutor has explained ‹topic› and the learner has responded.",
+    ),
+    practise: AtomText {
+        label: "Practise",
+        goal: "Have the learner use ‹topic› in a reply of their own‹angle›",
+        done_when: "",
+        again_goal: Some("Respond to the learner's attempt: correct it gently and invite another"),
+        try_when: Some("The learner tries to use ‹topic› in a reply."),
+        retry_when: Some("The learner tries again."),
+    },
+    close: plain(
+        "Recap",
+        "Sum up what was practised and suggest what comes next‹angle›",
+        "The learner says goodbye or the recap has been given.",
+    ),
+    detour_when: "The learner brings up ‹topic›.",
 };
 
 impl AtomWording {

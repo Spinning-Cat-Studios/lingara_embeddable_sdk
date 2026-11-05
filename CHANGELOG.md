@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.3.0-alpha.2 — 2026-11-06
+
+
+Generated from Lingara API 2026-11-current-crayfish (development) at spec backend@eace1b3bb63d501ecc2f338770860fbf4db8b747.
+
+### Added
+
+- `lingara-dialogue-ir`: `procedural::TUTOR_WORDING`, the Pro tutor's `AtomWording` beside `GAME_WORDING` (Backend ADR 3.11.26r §5). Only the words differ: Warm-up, Check, Teach, Practise and Recap expand to the same ids, edges and disclosures as the game's atoms, so the server's `within_spec` / `expand_with` and the client's expansion read one constant.
+
+### Changed
+
+### Fixed
+
+### Removed
+
 ## v0.3.0-alpha.1 — 2026-11-04
 
 

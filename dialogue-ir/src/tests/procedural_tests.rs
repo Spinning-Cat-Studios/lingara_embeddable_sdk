@@ -1,9 +1,10 @@
-//! The procedural kind (ADR 3.11.26g §4, §5, §7): AC5, AC7 and AC24.
+//! The procedural kind (ADR 3.11.26g §4, §5, §7): AC5, AC7 and AC24; and
+//! Backend 3.11.26r §5's `TUTOR_WORDING`: its AC6 and AC17.
 
 use serde_json::{Value, json};
 
 use super::builder_tests::vector;
-use crate::procedural::{AtomText, AtomWording, GAME_WORDING, PlanFragment, ProceduralDialogue, expand, expand_with, within_spec};
+use crate::procedural::{AtomText, AtomWording, GAME_WORDING, PlanFragment, ProceduralDialogue, TUTOR_WORDING, expand, expand_with, within_spec};
 use crate::{Document, DialogueIr, Rule, Strictness, document_from_value, from_json, load_document, validate, validate_with};
 
 pub(super) fn ferryman_value() -> Value {
@@ -100,6 +101,14 @@ fn expansion_matches_the_templates() {
     assert!(medium.checkpoints.iter().all(|c| c.steer_to.is_none()));
 }
 
+type Structure = Vec<(String, Vec<(String, String, Option<String>)>, Vec<String>, Option<String>)>;
+
+/// Everything an expansion fixes except its words: ids, edges, disclosures, steering.
+fn structure(ir: &DialogueIr) -> Structure {
+    let edges = |c: &crate::Checkpoint| c.edges.iter().map(|e| (e.id.clone(), e.to.clone(), e.predicate.clone())).collect::<Vec<_>>();
+    ir.checkpoints.iter().map(|c| (c.id.clone(), edges(c), c.may_disclose.clone(), c.steer_to.clone())).collect()
+}
+
 /// A test-only wording: every template re-worded, Practise's goal without ‹goal›.
 const PLAIN: AtomWording = AtomWording {
     open: AtomText { label: "Hello", goal: "Say hello‹angle›", done_when: "Hello said.", again_goal: None, try_when: None, retry_when: None },
@@ -125,10 +134,6 @@ fn wording_is_separate_from_kind() {
     let replan = case("accepted_replan");
     let fragment = fragment(&replan["fragment"]);
     let (game, plain) = (expand(&doc, "ma_ren", &fragment).unwrap(), expand_with(&doc, "ma_ren", &fragment, &PLAIN).unwrap());
-    let structure = |ir: &DialogueIr| {
-        let edges = |c: &crate::Checkpoint| c.edges.iter().map(|e| (e.id.clone(), e.to.clone(), e.predicate.clone())).collect::<Vec<_>>();
-        ir.checkpoints.iter().map(|c| (c.id.clone(), edges(c), c.may_disclose.clone(), c.steer_to.clone())).collect::<Vec<_>>()
-    };
     assert_eq!(structure(&game), structure(&plain));
     assert_ne!(game.checkpoint("p2_1").unwrap().goal, plain.checkpoint("p2_1").unwrap().goal);
     let frontier = super::procedural_tests::fragment(&replan["frontier"]);
@@ -141,4 +146,46 @@ fn wording_is_separate_from_kind() {
     let mut anchorless = fragment.clone();
     anchorless.anchor = "nowhere".into();
     assert_eq!(within_spec(&doc, "ma_ren", Some(&frontier), &[], "p3", &anchorless, &bad).unwrap_err().rule, Rule::AtomWording);
+}
+
+// Backend 3.11.26r AC6
+#[test]
+fn tutor_wording_matches_the_table() {
+    let w = TUTOR_WORDING;
+    let row = |t: &AtomText| (t.label, t.goal, t.done_when);
+    assert_eq!(row(&w.open), ("Warm-up", "Greet the learner and connect to the lesson in one easy exchange‹angle›", "The learner has greeted the tutor or answered the opening question."));
+    assert_eq!(row(&w.elicit), ("Check", "Find out what the learner already knows about ‹topic›‹angle›", "The learner has shown what they know about ‹topic›, or said they do not know it."));
+    assert_eq!(row(&w.reveal), ("Teach", "Explain ‹topic› with one short example at the learner's level‹angle›", "The tutor has explained ‹topic› and the learner has responded."));
+    assert_eq!(row(&w.practise), ("Practise", "Have the learner use ‹topic› in a reply of their own‹angle›", ""));
+    assert_eq!(row(&w.close), ("Recap", "Sum up what was practised and suggest what comes next‹angle›", "The learner says goodbye or the recap has been given."));
+    assert_eq!(w.practise.again_goal, Some("Respond to the learner's attempt: correct it gently and invite another"));
+    assert_eq!(w.practise.try_when, Some("The learner tries to use ‹topic› in a reply."));
+    assert_eq!(w.practise.retry_when, Some("The learner tries again."));
+    assert_eq!(w.detour_when, "The learner brings up ‹topic›.");
+}
+
+// Backend 3.11.26r AC17
+#[test]
+fn tutor_wording_is_only_words() {
+    TUTOR_WORDING.check().unwrap();
+    let doc = ferryman();
+    let replan = case("accepted_replan");
+    let fragment = fragment(&replan["fragment"]);
+    let (game, tutor) = (expand(&doc, "ma_ren", &fragment).unwrap(), expand_with(&doc, "ma_ren", &fragment, &TUTOR_WORDING).unwrap());
+    assert_eq!(structure(&game), structure(&tutor));
+    assert!(validate(&tutor).is_ok());
+
+    // Its expansions are pinned beside GAME_WORDING's (3.11.26g AC7's shape).
+    let goal = |id: &str| tutor.checkpoint(id).unwrap().goal.clone();
+    assert_eq!(goal("p2_1"), "Find out what the learner already knows about what the player is carrying across");
+    assert_eq!(goal("p3_1"), "Have the learner use the price of the crossing in a reply of their own");
+    assert_eq!(goal("p3_1_again"), "Respond to the learner's attempt: correct it gently and invite another");
+    assert_eq!(goal("p3_2"), "Explain the flood on the upper river with one short example at the learner's level, as a warning");
+    assert_eq!(goal("p3_3"), "Sum up what was practised and suggest what comes next");
+    let when = |checkpoint: &str, edge: &str| tutor.checkpoint(checkpoint).unwrap().edges.iter().find(|e| e.id == edge).unwrap().when.clone();
+    assert_eq!(when("p2_1", "p2_1_x1").as_deref(), Some("The learner brings up the flood on the upper river."));
+
+    let frontier = super::procedural_tests::fragment(&replan["frontier"]);
+    let answer = |w: &AtomWording| within_spec(&doc, "ma_ren", Some(&frontier), &[], "p3", &fragment, w).map_err(|e| e.rule);
+    assert_eq!(answer(&GAME_WORDING), answer(&TUTOR_WORDING));
 }
