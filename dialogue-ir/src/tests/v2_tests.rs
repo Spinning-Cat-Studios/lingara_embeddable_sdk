@@ -152,6 +152,51 @@ fn endings_shape_and_namespace() {
     assert!(check(&missing_brother(), Strictness::Load).is_ok());
 }
 
+/// The labelled-checkpoint vector: gate-keeper's v1 graph whose only v2
+/// feature is one checkpoint label (ADR 6.11.26b).
+fn labelled() -> Value {
+    serde_json::from_str(&vector("labelled-checkpoint.v2.canonical.json")).unwrap()
+}
+
+// 6.11.26b AC1
+#[test]
+fn checkpoint_label_round_trips() {
+    let text = vector("labelled-checkpoint.v2.canonical.json");
+    let ir = from_json(&text).unwrap();
+    assert_eq!(ir.checkpoints[0].label.as_deref(), Some("Greet at the gate"));
+    assert!(check(&labelled(), Strictness::Save).unwrap().is_empty());
+    assert_eq!(ir.to_canonical_json(), text.trim_end());
+}
+
+// 6.11.26b AC2
+#[test]
+fn checkpoint_label_is_bounded() {
+    let with = |label: &str| {
+        let mut value = labelled();
+        value["checkpoints"][0]["label"] = json!(label);
+        value
+    };
+    for label in [String::new(), "l".repeat(81)] {
+        assert_eq!(refusal(&with(&label)), (Rule::Bound, "checkpoints[0].label".into()), "{} chars", label.len());
+    }
+    assert!(check(&with(&"l".repeat(80)), Strictness::Save).is_ok());
+    let err = check(&with("Greet\nat the gate"), Strictness::Save).unwrap_err();
+    assert_eq!((err.rule, err.path.as_str()), (Rule::TextMultiline, "checkpoints[0].label"));
+    let mut v1: Value = serde_json::from_str(&vector("gate-keeper.v1.canonical.json")).unwrap();
+    v1["checkpoints"][0]["label"] = json!("Greet at the gate");
+    assert_eq!(refusal(&v1).0, Rule::UnknownMember);
+}
+
+// 6.11.26b AC3
+#[test]
+fn checkpoint_label_writes_v2() {
+    let mut ir = from_json(&vector("labelled-checkpoint.v2.canonical.json")).unwrap();
+    assert_eq!(write_schema(&Document::Static(ir.clone())), SCHEMA_V2);
+    ir.checkpoints[0].label = None;
+    assert_eq!(write_schema(&Document::Static(ir.clone())), SCHEMA_V1);
+    assert_eq!(ir.to_canonical_json(), vector("gate-keeper.v1.canonical.json").trim_end());
+}
+
 // 3.11.26g AC16
 #[test]
 fn reachability_counts_abandoned_only_in_v1() {

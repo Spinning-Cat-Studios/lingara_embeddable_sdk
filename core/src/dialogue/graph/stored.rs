@@ -13,11 +13,12 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use lingara_dialogue_ir::DialogueIr;
+use lingara_dialogue_ir::Document;
 use tokio::time::Instant;
 
 use crate::api::Exported;
 use crate::dialogue::Dialogue;
+use crate::dialogue::graph::procedural::{self, load};
 use crate::dialogue::graph::{TARGET, emit, session::open_run};
 use crate::error::{EmbedError, ErrorKind};
 use crate::limits::{DIALOGUE_ACTIVE_TTL_MS, DIALOGUE_CACHE_MAX_ENTRIES};
@@ -45,7 +46,7 @@ pub(crate) fn store_id(raw: &str) -> Result<String, EmbedError> {
 struct Entry {
     rev: u64,
     etag: String,
-    ir: Arc<DialogueIr>,
+    ir: Arc<Document>,
     fetched_at: Instant,
     /// The cache's tick when last used: the smallest is evicted first.
     used: u64,
@@ -55,7 +56,7 @@ struct Entry {
 #[derive(Clone)]
 struct Loaded {
     rev: u64,
-    ir: Arc<DialogueIr>,
+    ir: Arc<Document>,
 }
 
 enum Plan {
@@ -80,7 +81,7 @@ pub(crate) struct DialogueCache {
 #[cfg(test)]
 impl DialogueCache {
     /// The cached IR for a store id, without touching its recency.
-    pub(crate) fn peek(&self, id: &str) -> Option<Arc<DialogueIr>> {
+    pub(crate) fn peek(&self, id: &str) -> Option<Arc<Document>> {
         lock(&self.inner).entries.get(id).map(|e| Arc::clone(&e.ir))
     }
 
@@ -179,21 +180,33 @@ pub(crate) async fn load(shared: Arc<Shared>, dialogue: DialogueId, id: String) 
     }
 }
 
+/// The run a fetched revision opens: a static graph starts at once; a
+/// procedural one waits in `loading` again, for its first plan, exactly as an
+/// inline one does (ADR 3.11.26j D1).
+fn opened(doc: &Document, session: GraphSession, held: &[(String, FactValue)]) -> Result<load::Opened, EmbedError> {
+    match doc {
+        Document::Static(ir) => {
+            let (mut state, config) = open_run(Arc::new(ir.clone()), session, held)?;
+            let steps = state.start();
+            Ok(load::Opened { dialogue: Dialogue::new(config, Some(state)), steps, plan: None })
+        }
+        Document::Procedural(doc) => load::open(Arc::new(doc.clone()), session, held),
+    }
+}
+
 /// Starts `dialogue` on its revision, or removes it, unless it was closed
 /// while loading. Level and scene set while loading are kept.
-async fn finish(shared: &Shared, dialogue: DialogueId, id: &str, loaded: Result<Loaded, EmbedError>) {
+async fn finish(shared: &Arc<Shared>, dialogue: DialogueId, id: &str, loaded: Result<Loaded, EmbedError>) {
     let started = {
         let mut map = lock(&shared.dialogues.map);
         let Some(d) = map.get_mut(&dialogue) else { return };
         let Some(pending) = d.pending.take() else { return };
         let mut session = pending.session;
         (session.level, session.scene) = (d.config.level, d.config.scene.clone());
-        let started = loaded.and_then(|l| open_run(l.ir, session, &pending.held).map(|(state, config)| (l.rev, state, config)));
-        match started {
-            Ok((rev, mut state, config)) => {
-                let steps = state.start();
-                *d = Dialogue::new(config, Some(state));
-                Ok((rev, steps))
+        match loaded.and_then(|l| opened(&l.ir, session, &pending.held).map(|opened| (l.rev, opened))) {
+            Ok((rev, load::Opened { dialogue: run, steps, plan })) => {
+                *d = run;
+                Ok((rev, steps, plan))
             }
             Err(error) => {
                 map.remove(&dialogue);
@@ -202,9 +215,10 @@ async fn finish(shared: &Shared, dialogue: DialogueId, id: &str, loaded: Result<
         }
     };
     match started {
-        Ok((rev, steps)) => {
+        Ok((rev, steps, plan)) => {
             shared.outbox.send(EmbedEvent::DialogueLoaded { dialogue, dialogue_id: id.to_owned(), rev }).await;
             emit(shared, dialogue, steps);
+            plan.into_iter().for_each(|body| procedural::plan::spawn(shared, dialogue, body));
         }
         Err(error) => shared.outbox.send(EmbedEvent::DialogueLoadFailed { dialogue, error }).await,
     }

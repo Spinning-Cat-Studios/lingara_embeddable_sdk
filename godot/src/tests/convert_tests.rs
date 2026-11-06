@@ -36,7 +36,10 @@ fn expected(event: &Value) -> (&'static str, Vec<&'static str>) {
         "log" => ("log_received", vec!["str", "str", "str"]),
         "closed" => ("closed", vec!["str"]),
         "checkpoint_reached" => ("checkpoint_reached", vec!["int", "str", "str", "str"]),
+        // 3.11.26j D13: a traced end's typed signal is `dialogue_traced`, at calls[1].
+        "dialogue_ended" if event.get("trace").is_some() => ("dialogue_traced", vec!["int", "array"]),
         "dialogue_ended" => ("dialogue_ended", vec!["int", "str", "str", "str"]),
+        "dialogue_planned" => ("dialogue_planned", vec!["int", "str", "array", "str"]),
         // 28.10.26i AC8
         "dialogue_loaded" => ("dialogue_loaded", vec!["int", "str", "int"]),
         "dialogue_load_failed" => ("dialogue_load_failed", vec!["int", "obj"]),
@@ -58,6 +61,7 @@ fn kind_of(value: &Value) -> &'static str {
         Value::String(_) => "str",
         Value::Bool(_) => "bool",
         Value::Object(_) => "obj",
+        Value::Array(_) => "array",
         _ => "other",
     }
 }
@@ -212,9 +216,25 @@ fn graph_methods_and_events() {
     let start = EmbedEvent::CheckpointReached { dialogue: 4, checkpoint: "intro".into(), edge: None, via: lingara_embed::CrossedVia::Start };
     let calls = signals_for(&start, &mut Finished::default());
     assert_eq!(calls[1], SignalCall::new("checkpoint_reached", vec![4.into(), "intro".into(), "".into(), "start".into()]));
-    let ended = EmbedEvent::DialogueEnded { dialogue: 4, outcome: lingara_embed::ABANDONED.into(), checkpoint: "intro".into(), edge: None };
+    let ended = EmbedEvent::DialogueEnded { dialogue: 4, outcome: lingara_embed::ABANDONED.into(), checkpoint: "intro".into(), edge: None, trace: None };
     let calls = signals_for(&ended, &mut Finished::default());
     assert_eq!(calls[1], SignalCall::new("dialogue_ended", vec![4.into(), "abandoned".into(), "intro".into(), "".into()]));
+}
+
+// 3.11.26j AC29
+#[test]
+fn a_traced_end_signals_its_path_first() {
+    let traced: EmbedEvent = serde_json::from_value(vector()["structs"]["DialogueEnded"][1].clone()).expect("a traced end");
+    let calls = signals_for(&traced, &mut Finished::default());
+    assert_eq!(names(&calls), ["core_event", "dialogue_traced", "dialogue_ended"], "the path first, then the unchanged end");
+    let trace = calls[1].args[1].as_array().expect("an Array");
+    assert_eq!(trace.len(), 2);
+    assert!(trace.iter().all(Value::is_object), "one Dictionary per entry");
+    assert_eq!((trace[0]["id"].as_str(), trace[0]["via"].as_str(), trace[1]["left_by_edge"].as_str()), (Some("p1_0"), Some("start"), Some("p1_1_end")));
+    assert_eq!(calls[2], SignalCall::new("dialogue_ended", vec![4.into(), "sold".into(), "p1_1".into(), "p1_1_end".into()]));
+
+    let plain: EmbedEvent = serde_json::from_value(vector()["structs"]["DialogueEnded"][0].clone()).expect("a static end");
+    assert_eq!(names(&signals_for(&plain, &mut Finished::default())), ["core_event", "dialogue_ended"], "a static end has no trace");
 }
 
 fn leaks(value: &Value, secret: &str) -> bool {

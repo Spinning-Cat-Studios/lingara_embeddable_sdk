@@ -2,20 +2,27 @@
 // region is one key; the docs join a key's regions in file order. No region
 // holds a client secret: a game holds only the embed token its server mints.
 
+import com.getlingara.embed.AtomKind
 import com.getlingara.embed.DialogueConfig
+import com.getlingara.embed.DialogueSource
 import com.getlingara.embed.EmbedConfig
 import com.getlingara.embed.EmbedEvent
+import com.getlingara.embed.GraphSession
 import com.getlingara.embed.Header
 import com.getlingara.embed.LingaraEmbed
 import com.getlingara.embed.Npc
 import com.getlingara.embed.NpcTurnUpdate
+import com.getlingara.embed.Pedagogy
 import com.getlingara.embed.PracticeSource
+import com.getlingara.embed.ProceduralDialogue
 import com.getlingara.embed.Secret
 import com.getlingara.embed.TokenSourceConfig
+import com.getlingara.embed.dialogueLoad
 import com.getlingara.embed.dialogueOpen
 import com.getlingara.embed.dialogueSay
 import com.getlingara.embed.practiceAnswer
 import com.getlingara.embed.practiceStart
+import com.getlingara.embed.proceduralDialogue
 
 class Snippets(
     session: String,
@@ -88,6 +95,56 @@ class Snippets(
             is NpcTurnUpdate.Finished -> bubble = update.text
             else -> Unit
         }
+    }
+    // lingara:end
+
+    // lingara:begin proceduralDialogue
+    // A procedural dialogue: nobody writes the checkpoints. You draw the box (the
+    // premise, what may come up, what the NPC may disclose, and when the run
+    // stops) and Lingara's planner proposes the next few beats inside it. The core
+    // checks every plan against this box, and ends the run on termination whatever
+    // the planner does.
+    fun marketGossip(): ProceduralDialogue =
+        proceduralDialogue("market_gossip", "The player is buying tea and hears the market's news") {
+            title = "Market gossip"
+            pedagogy = Pedagogy.SUBTLE
+            npc("mei", "Mei") {
+                persona("a tea seller who hears every rumour")
+                disposition(0.6, 0.5)
+            }
+            fact("tea_bought", false)
+            fact("rumour", "the night market moves to the river next week")
+            ending("bought", "Bought the tea")
+            ending("left")
+            disclosable("rumour")
+            topic("tea", "the teas on the stall")
+            topic("price", "what a cup costs")
+            topic("news", "what people are saying in the market") { discloses("rumour") }
+            forbid("the seller's family")
+            goal("tea_paid", "a cup of tea, paid for", predicate = "tea_bought", judgedWhen = "The player agrees a price and pays.")
+            atoms(AtomKind.OPEN, AtomKind.ELICIT, AtomKind.REVEAL, AtomKind.PRACTISE, AtomKind.CLOSE)
+            termination(30, 10) {
+                success("tea_paid", "bought")
+                stall(6, "left")
+                onLimit("left")
+            }
+        }
+
+    // The core plans Mei's first beats before her first CheckpointReached; each
+    // plan arrives as DialoguePlanned, and DialogueEnded carries the path taken.
+    fun loadMei(): Long {
+        val session =
+            GraphSession(
+                npc = "mei",
+                sourceLang = "en",
+                targetLang = "zh",
+                level = 2,
+                scene = null,
+                facts = emptyMap(),
+                checkpoint = null,
+                window = emptyList(),
+            )
+        return lingara.dialogueLoad(DialogueSource.Ir(marketGossip().canonicalJson()), session)
     }
     // lingara:end
 

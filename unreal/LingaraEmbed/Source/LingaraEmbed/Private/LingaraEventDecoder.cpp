@@ -67,12 +67,46 @@ namespace
 		return ReadId(O, TEXT("dialogue"), Out.Graph.Dialogue) && O->TryGetStringField(TEXT("checkpoint"), Out.Graph.Checkpoint);
 	}
 
+	// A procedural run's path (ADR 3.11.26j D13); a static end has no `trace`.
+	void ReadTrace(const FObjectPtr& O, TArray<FLingaraTracedBeat>& Out)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Entries = nullptr;
+		if (!O->TryGetArrayField(TEXT("trace"), Entries))
+		{
+			return;
+		}
+		for (const TSharedPtr<FJsonValue>& Value : *Entries)
+		{
+			const FObjectPtr E = Value->AsObject();
+			FLingaraTracedBeat& Beat = Out.AddDefaulted_GetRef();
+			E->TryGetStringField(TEXT("id"), Beat.Id);
+			Beat.Atom = OptString(E, TEXT("atom"));
+			Beat.Topic = OptString(E, TEXT("topic"));
+			Beat.Goal = OptString(E, TEXT("goal"));
+			Beat.Ending = OptString(E, TEXT("ending"));
+			Beat.LeftByEdge = OptString(E, TEXT("left_by_edge"));
+			Beat.Via = OptString(E, TEXT("via"));
+			E->TryGetNumberField(TEXT("entered_turn"), Beat.EnteredTurn);
+			E->TryGetNumberField(TEXT("left_turn"), Beat.LeftTurn);
+			E->TryGetNumberField(TEXT("plan_seq"), Beat.PlanSeq);
+		}
+	}
+
 	bool DialogueEnded(const FObjectPtr& O, FLingaraDecodedEvent& Out)
 	{
 		Out.Graph.Edge = OptString(O, TEXT("edge"));
 		// Any ending id, never a closed word set (ADR 3.11.26g §11.3).
 		Out.Graph.Outcome = OptString(O, TEXT("outcome"));
+		ReadTrace(O, Out.Graph.Trace);
 		return ReadId(O, TEXT("dialogue"), Out.Graph.Dialogue) && O->TryGetStringField(TEXT("checkpoint"), Out.Graph.Checkpoint);
+	}
+
+	// A procedural run's plan landed (ADR 3.11.26j D9): an absent reason is empty.
+	bool DialoguePlanned(const FObjectPtr& O, FLingaraDecodedEvent& Out)
+	{
+		Out.Graph.Reason = OptString(O, TEXT("reason"));
+		O->TryGetStringArrayField(TEXT("checkpoints"), Out.Graph.Checkpoints);
+		return ReadId(O, TEXT("dialogue"), Out.Graph.Dialogue) && O->TryGetStringField(TEXT("outcome"), Out.Graph.Outcome);
 	}
 
 	bool DialogueLoaded(const FObjectPtr& O, FLingaraDecodedEvent& Out)
@@ -128,6 +162,7 @@ namespace
 		{TEXT("npc_turn"), ELingaraDecodedType::NpcTurn, &NpcTurn},
 		{TEXT("checkpoint_reached"), ELingaraDecodedType::CheckpointReached, &CheckpointReached},
 		{TEXT("dialogue_ended"), ELingaraDecodedType::DialogueEnded, &DialogueEnded},
+		{TEXT("dialogue_planned"), ELingaraDecodedType::DialoguePlanned, &DialoguePlanned},
 		{TEXT("dialogue_loaded"), ELingaraDecodedType::DialogueLoaded, &DialogueLoaded},
 		{TEXT("dialogue_load_failed"), ELingaraDecodedType::DialogueLoadFailed, &DialogueLoadFailed},
 		{TEXT("error"), ELingaraDecodedType::Error, &Error},

@@ -9,5 +9,5 @@ namespace Lingara\Embed;
 final class Version
 {
     /** This kit's release: the default elementSrc reads it, and so does the snippet vectors' {{version}}. */
-    public const VERSION = '0.3.0-alpha.2';
+    public const VERSION = '0.3.0-alpha.3';
 }

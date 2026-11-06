@@ -640,6 +640,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_func_event_to_json(
     ): Short
+    external fun uniffi_lingara_embed_uniffi_checksum_func_canonical_dialogue(
+    ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_cancel(
     ): Short
     external fun uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_close(
@@ -798,6 +800,8 @@ external fun uniffi_lingara_embed_uniffi_fn_func_command_from_json(`json`: RustB
 ): RustBuffer.ByValue
 external fun uniffi_lingara_embed_uniffi_fn_func_event_to_json(`event`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
+external fun uniffi_lingara_embed_uniffi_fn_func_canonical_dialogue(`irJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
 external fun ffi_lingara_embed_uniffi_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 external fun ffi_lingara_embed_uniffi_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -921,6 +925,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_lingara_embed_uniffi_checksum_func_event_to_json() != 30173.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_lingara_embed_uniffi_checksum_func_canonical_dialogue() != 46166.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_lingara_embed_uniffi_checksum_method_embedhandle_dialogue_cancel() != 29291.toShort()) {
@@ -2326,6 +2333,11 @@ data class DialogueSnapshot (
      * A graph dialogue's story; null for a free-form one.
      */
     var `graph`: GraphSnapshot? = null 
+    , 
+    /**
+     * A procedural run's frontier and counters (ADR 3.11.26j D9).
+     */
+    var `procedural`: ProceduralSnapshot? = null 
     
 ){
     
@@ -2348,6 +2360,7 @@ public object FfiConverterTypeDialogueSnapshot: FfiConverterRustBuffer<DialogueS
             FfiConverterInt.read(buf),
             FfiConverterSequenceTypeWindowEntry.read(buf),
             FfiConverterOptionalTypeGraphSnapshot.read(buf),
+            FfiConverterOptionalTypeProceduralSnapshot.read(buf),
         )
     }
 
@@ -2357,7 +2370,8 @@ public object FfiConverterTypeDialogueSnapshot: FfiConverterRustBuffer<DialogueS
             FfiConverterOptionalString.allocationSize(value.`scene`) +
             FfiConverterInt.allocationSize(value.`level`) +
             FfiConverterSequenceTypeWindowEntry.allocationSize(value.`window`) +
-            FfiConverterOptionalTypeGraphSnapshot.allocationSize(value.`graph`)
+            FfiConverterOptionalTypeGraphSnapshot.allocationSize(value.`graph`) +
+            FfiConverterOptionalTypeProceduralSnapshot.allocationSize(value.`procedural`)
     )
 
     override fun write(value: DialogueSnapshot, buf: ByteBuffer) {
@@ -2367,6 +2381,7 @@ public object FfiConverterTypeDialogueSnapshot: FfiConverterRustBuffer<DialogueS
             FfiConverterInt.write(value.`level`, buf)
             FfiConverterSequenceTypeWindowEntry.write(value.`window`, buf)
             FfiConverterOptionalTypeGraphSnapshot.write(value.`graph`, buf)
+            FfiConverterOptionalTypeProceduralSnapshot.write(value.`procedural`, buf)
     }
 }
 
@@ -2625,6 +2640,17 @@ data class GraphSession (
     var `checkpoint`: kotlin.String?
     , 
     var `window`: List<WindowEntry>
+    , 
+    /**
+     * A procedural run's saved frontier, a `PlanFragment` as JSON text
+     * (ADR 3.11.26j D9); `checkpoint` is required with it.
+     */
+    var `frontier`: kotlin.String? = null 
+    , 
+    /**
+     * The saved run's counters and trace; only with `frontier`.
+     */
+    var `progress`: ProceduralProgress? = null 
     
 ){
     
@@ -2649,6 +2675,8 @@ public object FfiConverterTypeGraphSession: FfiConverterRustBuffer<GraphSession>
             FfiConverterMapStringTypeFactValue.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterSequenceTypeWindowEntry.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeProceduralProgress.read(buf),
         )
     }
 
@@ -2660,7 +2688,9 @@ public object FfiConverterTypeGraphSession: FfiConverterRustBuffer<GraphSession>
             FfiConverterOptionalString.allocationSize(value.`scene`) +
             FfiConverterMapStringTypeFactValue.allocationSize(value.`facts`) +
             FfiConverterOptionalString.allocationSize(value.`checkpoint`) +
-            FfiConverterSequenceTypeWindowEntry.allocationSize(value.`window`)
+            FfiConverterSequenceTypeWindowEntry.allocationSize(value.`window`) +
+            FfiConverterOptionalString.allocationSize(value.`frontier`) +
+            FfiConverterOptionalTypeProceduralProgress.allocationSize(value.`progress`)
     )
 
     override fun write(value: GraphSession, buf: ByteBuffer) {
@@ -2672,6 +2702,8 @@ public object FfiConverterTypeGraphSession: FfiConverterRustBuffer<GraphSession>
             FfiConverterMapStringTypeFactValue.write(value.`facts`, buf)
             FfiConverterOptionalString.write(value.`checkpoint`, buf)
             FfiConverterSequenceTypeWindowEntry.write(value.`window`, buf)
+            FfiConverterOptionalString.write(value.`frontier`, buf)
+            FfiConverterOptionalTypeProceduralProgress.write(value.`progress`, buf)
     }
 }
 
@@ -3152,6 +3184,119 @@ public object FfiConverterTypePracticeSnapshot: FfiConverterRustBuffer<PracticeS
 
 
 /**
+ * A procedural run's counters and trace, saved beside its frontier.
+ */
+data class ProceduralProgress (
+    var `visited`: List<VisitedBeat>
+    , 
+    var `trace`: List<TracedBeat>
+    , 
+    var `plans`: kotlin.Int
+    , 
+    var `nextPrefix`: kotlin.Int
+    , 
+    var `frontierSeq`: kotlin.Int
+    , 
+    var `beats`: kotlin.Int
+    , 
+    var `turns`: kotlin.Int
+    , 
+    var `sinceCrossing`: kotlin.Int
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeProceduralProgress: FfiConverterRustBuffer<ProceduralProgress> {
+    override fun read(buf: ByteBuffer): ProceduralProgress {
+        return ProceduralProgress(
+            FfiConverterSequenceTypeVisitedBeat.read(buf),
+            FfiConverterSequenceTypeTracedBeat.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ProceduralProgress) = (
+            FfiConverterSequenceTypeVisitedBeat.allocationSize(value.`visited`) +
+            FfiConverterSequenceTypeTracedBeat.allocationSize(value.`trace`) +
+            FfiConverterInt.allocationSize(value.`plans`) +
+            FfiConverterInt.allocationSize(value.`nextPrefix`) +
+            FfiConverterInt.allocationSize(value.`frontierSeq`) +
+            FfiConverterInt.allocationSize(value.`beats`) +
+            FfiConverterInt.allocationSize(value.`turns`) +
+            FfiConverterInt.allocationSize(value.`sinceCrossing`)
+    )
+
+    override fun write(value: ProceduralProgress, buf: ByteBuffer) {
+            FfiConverterSequenceTypeVisitedBeat.write(value.`visited`, buf)
+            FfiConverterSequenceTypeTracedBeat.write(value.`trace`, buf)
+            FfiConverterInt.write(value.`plans`, buf)
+            FfiConverterInt.write(value.`nextPrefix`, buf)
+            FfiConverterInt.write(value.`frontierSeq`, buf)
+            FfiConverterInt.write(value.`beats`, buf)
+            FfiConverterInt.write(value.`turns`, buf)
+            FfiConverterInt.write(value.`sinceCrossing`, buf)
+    }
+}
+
+
+
+/**
+ * A procedural run's half of a snapshot: `GraphSession`'s `frontier` and
+ * `progress`, to restore it.
+ */
+data class ProceduralSnapshot (
+    var `frontier`: kotlin.String
+    , 
+    var `progress`: ProceduralProgress
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeProceduralSnapshot: FfiConverterRustBuffer<ProceduralSnapshot> {
+    override fun read(buf: ByteBuffer): ProceduralSnapshot {
+        return ProceduralSnapshot(
+            FfiConverterString.read(buf),
+            FfiConverterTypeProceduralProgress.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ProceduralSnapshot) = (
+            FfiConverterString.allocationSize(value.`frontier`) +
+            FfiConverterTypeProceduralProgress.allocationSize(value.`progress`)
+    )
+
+    override fun write(value: ProceduralSnapshot, buf: ByteBuffer) {
+            FfiConverterString.write(value.`frontier`, buf)
+            FfiConverterTypeProceduralProgress.write(value.`progress`, buf)
+    }
+}
+
+
+
+/**
  * The `202`'s `reaction` to a sent world event.
  */
 data class Reaction (
@@ -3208,6 +3353,88 @@ public object FfiConverterTypeReaction: FfiConverterRustBuffer<Reaction> {
 
 
 /**
+ * One beat of a procedural run's whole path (ADR 3.11.26j D13): ids and
+ * counters, never text.
+ */
+data class TracedBeat (
+    var `id`: kotlin.String
+    , 
+    var `atom`: AtomKind?
+    , 
+    var `topic`: kotlin.String?
+    , 
+    var `goal`: kotlin.String?
+    , 
+    var `ending`: kotlin.String?
+    , 
+    var `leftByEdge`: kotlin.String?
+    , 
+    var `via`: CrossedVia
+    , 
+    var `enteredTurn`: kotlin.Int
+    , 
+    var `leftTurn`: kotlin.Int?
+    , 
+    var `planSeq`: kotlin.Int
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeTracedBeat: FfiConverterRustBuffer<TracedBeat> {
+    override fun read(buf: ByteBuffer): TracedBeat {
+        return TracedBeat(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalTypeAtomKind.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterTypeCrossedVia.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterOptionalInt.read(buf),
+            FfiConverterInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TracedBeat) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterOptionalTypeAtomKind.allocationSize(value.`atom`) +
+            FfiConverterOptionalString.allocationSize(value.`topic`) +
+            FfiConverterOptionalString.allocationSize(value.`goal`) +
+            FfiConverterOptionalString.allocationSize(value.`ending`) +
+            FfiConverterOptionalString.allocationSize(value.`leftByEdge`) +
+            FfiConverterTypeCrossedVia.allocationSize(value.`via`) +
+            FfiConverterInt.allocationSize(value.`enteredTurn`) +
+            FfiConverterOptionalInt.allocationSize(value.`leftTurn`) +
+            FfiConverterInt.allocationSize(value.`planSeq`)
+    )
+
+    override fun write(value: TracedBeat, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterOptionalTypeAtomKind.write(value.`atom`, buf)
+            FfiConverterOptionalString.write(value.`topic`, buf)
+            FfiConverterOptionalString.write(value.`goal`, buf)
+            FfiConverterOptionalString.write(value.`ending`, buf)
+            FfiConverterOptionalString.write(value.`leftByEdge`, buf)
+            FfiConverterTypeCrossedVia.write(value.`via`, buf)
+            FfiConverterInt.write(value.`enteredTurn`, buf)
+            FfiConverterOptionalInt.write(value.`leftTurn`, buf)
+            FfiConverterInt.write(value.`planSeq`, buf)
+    }
+}
+
+
+
+/**
  * The handoff's optional `update_available` (ADR 30.10.26p).
  */
 data class UpdateAvailable (
@@ -3248,6 +3475,47 @@ public object FfiConverterTypeUpdateAvailable: FfiConverterRustBuffer<UpdateAvai
             FfiConverterOptionalString.write(value.`latest`, buf)
             FfiConverterBoolean.write(value.`deprecated`, buf)
             FfiConverterOptionalString.write(value.`message`, buf)
+    }
+}
+
+
+
+/**
+ * A beat a procedural run crossed, as the planner reads it.
+ */
+data class VisitedBeat (
+    var `atom`: AtomKind
+    , 
+    var `topic`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeVisitedBeat: FfiConverterRustBuffer<VisitedBeat> {
+    override fun read(buf: ByteBuffer): VisitedBeat {
+        return VisitedBeat(
+            FfiConverterTypeAtomKind.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: VisitedBeat) = (
+            FfiConverterTypeAtomKind.allocationSize(value.`atom`) +
+            FfiConverterOptionalString.allocationSize(value.`topic`)
+    )
+
+    override fun write(value: VisitedBeat, buf: ByteBuffer) {
+            FfiConverterTypeAtomKind.write(value.`atom`, buf)
+            FfiConverterOptionalString.write(value.`topic`, buf)
     }
 }
 
@@ -3354,6 +3622,46 @@ public object FfiConverterTypeWorldContext: FfiConverterRustBuffer<WorldContext>
             FfiConverterBoolean.write(value.`generate`, buf)
     }
 }
+
+
+
+/**
+ * The five beat templates a procedural dialogue composes.
+ */
+
+enum class AtomKind {
+    
+    OPEN,
+    ELICIT,
+    REVEAL,
+    PRACTISE,
+    CLOSE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeAtomKind: FfiConverterRustBuffer<AtomKind> {
+    override fun read(buf: ByteBuffer) = try {
+        AtomKind.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: AtomKind) = 4UL
+
+    override fun write(value: AtomKind, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
 
 
 
@@ -4430,11 +4738,30 @@ sealed class EmbedEvent {
         companion object
     }
     
+    /**
+     * A procedural run's carries its `trace`, the whole path it took (ADR 3.11.26j D13).
+     */
     data class DialogueEnded(
         val `dialogue`: kotlin.Long, 
         val `outcome`: kotlin.String, 
         val `checkpoint`: kotlin.String, 
-        val `edge`: kotlin.String?) : EmbedEvent()
+        val `edge`: kotlin.String?, 
+        val `trace`: List<com.getlingara.embed.TracedBeat>? = null ) : EmbedEvent()
+        
+    {
+        
+
+        companion object
+    }
+    
+    /**
+     * A procedural run's plan landed (ADR 3.11.26j D9).
+     */
+    data class DialoguePlanned(
+        val `dialogue`: kotlin.Long, 
+        val `outcome`: com.getlingara.embed.PlanOutcome, 
+        val `checkpoints`: List<kotlin.String>, 
+        val `reason`: com.getlingara.embed.PlanKeptReason?) : EmbedEvent()
         
     {
         
@@ -4574,33 +4901,40 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 FfiConverterOptionalString.read(buf),
+                FfiConverterOptionalSequenceTypeTracedBeat.read(buf),
                 )
-            9 -> EmbedEvent.DialogueLoaded(
+            9 -> EmbedEvent.DialoguePlanned(
+                FfiConverterLong.read(buf),
+                FfiConverterTypePlanOutcome.read(buf),
+                FfiConverterSequenceString.read(buf),
+                FfiConverterOptionalTypePlanKeptReason.read(buf),
+                )
+            10 -> EmbedEvent.DialogueLoaded(
                 FfiConverterLong.read(buf),
                 FfiConverterString.read(buf),
                 FfiConverterLong.read(buf),
                 )
-            10 -> EmbedEvent.DialogueLoadFailed(
+            11 -> EmbedEvent.DialogueLoadFailed(
                 FfiConverterLong.read(buf),
                 FfiConverterTypeEmbedError.read(buf),
                 )
-            11 -> EmbedEvent.Error(
+            12 -> EmbedEvent.Error(
                 FfiConverterTypeEmbedError.read(buf),
                 )
-            12 -> EmbedEvent.Log(
+            13 -> EmbedEvent.Log(
                 FfiConverterTypeLogLevel.read(buf),
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 )
-            13 -> EmbedEvent.UpdateAvailable(
+            14 -> EmbedEvent.UpdateAvailable(
                 FfiConverterOptionalString.read(buf),
                 FfiConverterBoolean.read(buf),
                 FfiConverterOptionalString.read(buf),
                 )
-            14 -> EmbedEvent.Closed(
+            15 -> EmbedEvent.Closed(
                 FfiConverterTypeCloseReason.read(buf),
                 )
-            15 -> EmbedEvent.Unknown(
+            16 -> EmbedEvent.Unknown(
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 )
@@ -4676,6 +5010,17 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
                 + FfiConverterString.allocationSize(value.`outcome`)
                 + FfiConverterString.allocationSize(value.`checkpoint`)
                 + FfiConverterOptionalString.allocationSize(value.`edge`)
+                + FfiConverterOptionalSequenceTypeTracedBeat.allocationSize(value.`trace`)
+            )
+        }
+        is EmbedEvent.DialoguePlanned -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterLong.allocationSize(value.`dialogue`)
+                + FfiConverterTypePlanOutcome.allocationSize(value.`outcome`)
+                + FfiConverterSequenceString.allocationSize(value.`checkpoints`)
+                + FfiConverterOptionalTypePlanKeptReason.allocationSize(value.`reason`)
             )
         }
         is EmbedEvent.DialogueLoaded -> {
@@ -4790,47 +5135,56 @@ public object FfiConverterTypeEmbedEvent : FfiConverterRustBuffer<EmbedEvent>{
                 FfiConverterString.write(value.`outcome`, buf)
                 FfiConverterString.write(value.`checkpoint`, buf)
                 FfiConverterOptionalString.write(value.`edge`, buf)
+                FfiConverterOptionalSequenceTypeTracedBeat.write(value.`trace`, buf)
+                Unit
+            }
+            is EmbedEvent.DialoguePlanned -> {
+                buf.putInt(9)
+                FfiConverterLong.write(value.`dialogue`, buf)
+                FfiConverterTypePlanOutcome.write(value.`outcome`, buf)
+                FfiConverterSequenceString.write(value.`checkpoints`, buf)
+                FfiConverterOptionalTypePlanKeptReason.write(value.`reason`, buf)
                 Unit
             }
             is EmbedEvent.DialogueLoaded -> {
-                buf.putInt(9)
+                buf.putInt(10)
                 FfiConverterLong.write(value.`dialogue`, buf)
                 FfiConverterString.write(value.`dialogueId`, buf)
                 FfiConverterLong.write(value.`rev`, buf)
                 Unit
             }
             is EmbedEvent.DialogueLoadFailed -> {
-                buf.putInt(10)
+                buf.putInt(11)
                 FfiConverterLong.write(value.`dialogue`, buf)
                 FfiConverterTypeEmbedError.write(value.`error`, buf)
                 Unit
             }
             is EmbedEvent.Error -> {
-                buf.putInt(11)
+                buf.putInt(12)
                 FfiConverterTypeEmbedError.write(value.`error`, buf)
                 Unit
             }
             is EmbedEvent.Log -> {
-                buf.putInt(12)
+                buf.putInt(13)
                 FfiConverterTypeLogLevel.write(value.`level`, buf)
                 FfiConverterString.write(value.`target`, buf)
                 FfiConverterString.write(value.`message`, buf)
                 Unit
             }
             is EmbedEvent.UpdateAvailable -> {
-                buf.putInt(13)
+                buf.putInt(14)
                 FfiConverterOptionalString.write(value.`latest`, buf)
                 FfiConverterBoolean.write(value.`deprecated`, buf)
                 FfiConverterOptionalString.write(value.`message`, buf)
                 Unit
             }
             is EmbedEvent.Closed -> {
-                buf.putInt(14)
+                buf.putInt(15)
                 FfiConverterTypeCloseReason.write(value.`reason`, buf)
                 Unit
             }
             is EmbedEvent.Unknown -> {
-                buf.putInt(15)
+                buf.putInt(16)
                 FfiConverterString.write(value.`typeTag`, buf)
                 FfiConverterString.write(value.`json`, buf)
                 Unit
@@ -5400,6 +5754,83 @@ public object FfiConverterTypePedagogy: FfiConverterRustBuffer<Pedagogy> {
     override fun allocationSize(value: Pedagogy) = 4UL
 
     override fun write(value: Pedagogy, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * Why a run kept its frontier.
+ */
+
+enum class PlanKeptReason {
+    
+    STALE,
+    REJECTED,
+    UNAVAILABLE,
+    TIMEOUT,
+    UNPARSEABLE;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePlanKeptReason: FfiConverterRustBuffer<PlanKeptReason> {
+    override fun read(buf: ByteBuffer) = try {
+        PlanKeptReason.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: PlanKeptReason) = 4UL
+
+    override fun write(value: PlanKeptReason, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+/**
+ * What became of a procedural run's plan (ADR 3.11.26j D9).
+ */
+
+enum class PlanOutcome {
+    
+    ACCEPTED,
+    KEPT;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePlanOutcome: FfiConverterRustBuffer<PlanOutcome> {
+    override fun read(buf: ByteBuffer) = try {
+        PlanOutcome.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: PlanOutcome) = 4UL
+
+    override fun write(value: PlanOutcome, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -6282,6 +6713,70 @@ public object FfiConverterOptionalTypePracticeSnapshot: FfiConverterRustBuffer<P
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeProceduralProgress: FfiConverterRustBuffer<ProceduralProgress?> {
+    override fun read(buf: ByteBuffer): ProceduralProgress? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeProceduralProgress.read(buf)
+    }
+
+    override fun allocationSize(value: ProceduralProgress?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeProceduralProgress.allocationSize(value)
+        }
+    }
+
+    override fun write(value: ProceduralProgress?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeProceduralProgress.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeProceduralSnapshot: FfiConverterRustBuffer<ProceduralSnapshot?> {
+    override fun read(buf: ByteBuffer): ProceduralSnapshot? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeProceduralSnapshot.read(buf)
+    }
+
+    override fun allocationSize(value: ProceduralSnapshot?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeProceduralSnapshot.allocationSize(value)
+        }
+    }
+
+    override fun write(value: ProceduralSnapshot?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeProceduralSnapshot.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeReaction: FfiConverterRustBuffer<Reaction?> {
     override fun read(buf: ByteBuffer): Reaction? {
         if (buf.get().toInt() == 0) {
@@ -6336,6 +6831,38 @@ public object FfiConverterOptionalTypeUpdateAvailable: FfiConverterRustBuffer<Up
         } else {
             buf.put(1)
             FfiConverterTypeUpdateAvailable.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeAtomKind: FfiConverterRustBuffer<AtomKind?> {
+    override fun read(buf: ByteBuffer): AtomKind? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeAtomKind.read(buf)
+    }
+
+    override fun allocationSize(value: AtomKind?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeAtomKind.allocationSize(value)
+        }
+    }
+
+    override fun write(value: AtomKind?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeAtomKind.write(value, buf)
         }
     }
 }
@@ -6442,6 +6969,38 @@ public object FfiConverterOptionalTypePedagogy: FfiConverterRustBuffer<Pedagogy?
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypePlanKeptReason: FfiConverterRustBuffer<PlanKeptReason?> {
+    override fun read(buf: ByteBuffer): PlanKeptReason? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypePlanKeptReason.read(buf)
+    }
+
+    override fun allocationSize(value: PlanKeptReason?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypePlanKeptReason.allocationSize(value)
+        }
+    }
+
+    override fun write(value: PlanKeptReason?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypePlanKeptReason.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypePracticeOutcome: FfiConverterRustBuffer<PracticeOutcome?> {
     override fun read(buf: ByteBuffer): PracticeOutcome? {
         if (buf.get().toInt() == 0) {
@@ -6528,6 +7087,38 @@ public object FfiConverterOptionalSequenceString: FfiConverterRustBuffer<List<ko
         } else {
             buf.put(1)
             FfiConverterSequenceString.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalSequenceTypeTracedBeat: FfiConverterRustBuffer<List<TracedBeat>?> {
+    override fun read(buf: ByteBuffer): List<TracedBeat>? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterSequenceTypeTracedBeat.read(buf)
+    }
+
+    override fun allocationSize(value: List<TracedBeat>?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterSequenceTypeTracedBeat.allocationSize(value)
+        }
+    }
+
+    override fun write(value: List<TracedBeat>?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterSequenceTypeTracedBeat.write(value, buf)
         }
     }
 }
@@ -6640,6 +7231,62 @@ public object FfiConverterSequenceTypePlanWord: FfiConverterRustBuffer<List<Plan
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypePlanWord.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeTracedBeat: FfiConverterRustBuffer<List<TracedBeat>> {
+    override fun read(buf: ByteBuffer): List<TracedBeat> {
+        val len = buf.getInt()
+        return List<TracedBeat>(len) {
+            FfiConverterTypeTracedBeat.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<TracedBeat>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeTracedBeat.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<TracedBeat>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeTracedBeat.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeVisitedBeat: FfiConverterRustBuffer<List<VisitedBeat>> {
+    override fun read(buf: ByteBuffer): List<VisitedBeat> {
+        val len = buf.getInt()
+        return List<VisitedBeat>(len) {
+            FfiConverterTypeVisitedBeat.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<VisitedBeat>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeVisitedBeat.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<VisitedBeat>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeVisitedBeat.write(it, buf)
         }
     }
 }
@@ -6802,6 +7449,22 @@ public object FfiConverterTypeSecretString: FfiConverter<SecretString, RustBuffe
     UniffiLib.uniffi_lingara_embed_uniffi_fn_func_event_to_json(
     
         FfiConverterTypeEmbedEvent.lower(`event`),_status)
+}
+    )
+    }
+    
+
+        /**
+         * A dialogue document of either kind in the crate's canonical form (ADR
+         * 3.11.26j D8): the bytes `DialogueLoad` sends. The Kotlin DSL writes plain
+         * JSON and canonicalises it here, so the JVM has no canonical writer of its own.
+         */
+    @Throws(EmbedException::class) fun `canonicalDialogue`(`irJson`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(EmbedException) { _status ->
+    UniffiLib.uniffi_lingara_embed_uniffi_fn_func_canonical_dialogue(
+    
+        FfiConverterString.lower(`irJson`),_status)
 }
     )
     }

@@ -2,9 +2,10 @@
 
 use bevy::app::App;
 use bevy::ecs::entity::Entity;
-use lingara_embed::dialogue_ir::DialogueIr;
-use lingara_embed::dialogue_ir::build::{Checkpoint, Dialogue, Edge, Fact, Npc, Outcome};
-use lingara_embed::{CloseReason, Command, CrossedVia, DialogueSource, EmbedEvent, ErrorKind, FactValue};
+use lingara_embed::dialogue_ir::build::{AtomKind, Checkpoint, Dialogue, Edge, Fact, Npc, Outcome, Procedural, Termination, Topic};
+use lingara_embed::dialogue_ir::procedural::ProceduralDialogue;
+use lingara_embed::dialogue_ir::{DialogueIr, Document};
+use lingara_embed::{CloseReason, Command, CrossedVia, DialogueSource, EmbedEvent, ErrorKind, FactValue, PlanKeptReason, PlanOutcome, TracedBeat};
 
 use super::fake_core::{Fake, app, error, read, write};
 use crate::config::LingaraConfig;
@@ -55,13 +56,13 @@ fn a_graph_npc_loads_sets_facts_and_hears_its_story() {
 
     // The story's two events, as typed Messages on the right entity only.
     fake.push(EmbedEvent::CheckpointReached { dialogue: id, checkpoint: "haggle".into(), edge: None, via: CrossedVia::Start });
-    let ended = EmbedEvent::DialogueEnded { dialogue: id, outcome: "success".into(), checkpoint: "haggle".into(), edge: Some("deal".into()) };
+    let ended = EmbedEvent::DialogueEnded { dialogue: id, outcome: "success".into(), checkpoint: "haggle".into(), edge: Some("deal".into()), trace: None };
     fake.push(ended);
     fake.push(EmbedEvent::CheckpointReached { dialogue: 999, checkpoint: "elsewhere".into(), edge: None, via: CrossedVia::Auto });
     app.update();
     let reached = read::<CheckpointReached>(&mut app);
     assert_eq!(reached, [CheckpointReached { entity: npc, checkpoint: "haggle".into(), edge: None, via: CrossedVia::Start }]);
-    assert_eq!(read::<DialogueEnded>(&mut app), [DialogueEnded { entity: npc, outcome: "success".into() }]);
+    assert_eq!(read::<DialogueEnded>(&mut app), [DialogueEnded { entity: npc, outcome: "success".into(), trace: None }]);
     assert_eq!(transcript(&app, npc).checkpoint.as_deref(), Some("haggle"));
     assert_eq!(transcript(&app, free).checkpoint, None);
 
@@ -167,6 +168,54 @@ fn a_fact_without_a_dialogue_fails_and_removal_closes(app: &mut App, fake: &Fake
     assert_eq!(fake.sent("dialogue_close"), [Command::DialogueClose { dialogue: id }]);
 }
 
+/// A small procedural tea stall, built with the Rust procedural builder.
+fn tea_stall() -> ProceduralDialogue {
+    Procedural::new("tea_stall", "The player wants a cup of tea")
+        .npc(Npc::new("mei", "Mei").persona("a tea seller").disposition(0.5, 0.7))
+        .ending("sold", "")
+        .topic(Topic::new("tea", "the tea on offer"))
+        .atoms([AtomKind::Open, AtomKind::Elicit, AtomKind::Close])
+        .termination(Termination::new(20, 6))
+        .build()
+        .unwrap()
+}
+
+// 3.11.26j AC15
+#[test]
+fn a_procedural_npc_on_an_entity() {
+    let fake = Fake::default();
+    let mut app = app(LingaraConfig::new().source_lang("en"), &fake);
+    let doc = tea_stall();
+    let npc = app.world_mut().spawn(NpcDialogue::procedural(&doc, "mei", "zh", 2).unwrap()).id();
+    app.update();
+    let loads = fake.sent("dialogue_load");
+    let [Command::DialogueLoad { source: DialogueSource::Ir { ir_json }, session }] = loads.as_slice() else { panic!("{loads:?}") };
+    assert_eq!(ir_json, &Document::Procedural(doc.clone()).to_canonical_json(), "the document's canonical text");
+    assert_eq!(session.npc.as_deref(), Some("mei"));
+    assert!(NpcDialogue::procedural(&doc, "wei", "zh", 2).is_err(), "a cast member the document lacks");
+
+    let id = transcript(&app, npc).id().unwrap();
+    let planned = EmbedEvent::DialoguePlanned { dialogue: id, outcome: PlanOutcome::Kept, checkpoints: vec![], reason: Some(PlanKeptReason::Timeout) };
+    fake.push(planned);
+    let entry = TracedBeat {
+        id: "p1_0".into(),
+        atom: Some(AtomKind::Open),
+        topic: None,
+        goal: None,
+        ending: None,
+        left_by_edge: None,
+        via: CrossedVia::Start,
+        entered_turn: 0,
+        left_turn: Some(6),
+        plan_seq: 1,
+    };
+    fake.push(EmbedEvent::DialogueEnded { dialogue: id, outcome: "abandoned".into(), checkpoint: "p1_0".into(), edge: None, trace: Some(vec![entry.clone()]) });
+    app.update();
+    let want = DialoguePlanned { entity: npc, outcome: PlanOutcome::Kept, checkpoints: vec![], reason: Some(PlanKeptReason::Timeout) };
+    assert_eq!(read::<DialoguePlanned>(&mut app), [want]);
+    assert_eq!(read::<DialogueEnded>(&mut app), [DialogueEnded { entity: npc, outcome: "abandoned".into(), trace: Some(vec![entry]) }]);
+}
+
 // 3.11.26g AC19
 #[test]
 fn named_ending_reaches_the_entity() {
@@ -175,7 +224,7 @@ fn named_ending_reaches_the_entity() {
     let npc = app.world_mut().spawn(NpcDialogue::graph(&market(), "mei", "zh", 2).unwrap()).id();
     app.update();
     let id = transcript(&app, npc).id().unwrap();
-    fake.push(EmbedEvent::DialogueEnded { dialogue: id, outcome: "fled".into(), checkpoint: "haggle".into(), edge: Some("bolt".into()) });
+    fake.push(EmbedEvent::DialogueEnded { dialogue: id, outcome: "fled".into(), checkpoint: "haggle".into(), edge: Some("bolt".into()), trace: None });
     app.update();
-    assert_eq!(read::<DialogueEnded>(&mut app), [DialogueEnded { entity: npc, outcome: "fled".into() }]);
+    assert_eq!(read::<DialogueEnded>(&mut app), [DialogueEnded { entity: npc, outcome: "fled".into(), trace: None }]);
 }

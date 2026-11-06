@@ -127,10 +127,13 @@ async fn scripted(State(shared): State<Shared>, method: Method, uri: Uri, header
         headers: headers.iter().map(|(n, v)| (n.as_str().to_string(), v.to_str().unwrap_or_default().to_string())).collect(),
         body: body.to_vec(),
     };
-    match next_step(&shared, &seen) {
-        Some(step) => respond(step.respond, &shared),
-        None => (StatusCode::NOT_FOUND, "no scripted answer").into_response(),
+    let Some(step) = next_step(&shared, &seen) else { return (StatusCode::NOT_FOUND, "no scripted answer").into_response() };
+    // A slow answer, judged and counted on arrival (ADR 3.11.26j: a plan
+    // that lands while a turn streams, EK14).
+    if let Some(ms) = step.respond.fault.as_ref().and_then(|f| f.delay_ms) {
+        tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
     }
+    respond(step.respond, &shared)
 }
 
 /// Judges `seen` against the armed case's next step and advances to it.

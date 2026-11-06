@@ -9,12 +9,15 @@ mod fake_lingara;
 mod dialogue_tests;
 mod error_tests;
 mod events_tests;
+mod frontier_tests;
 mod grading_tests;
 mod graph_dialogue_tests;
 mod lifecycle_tests;
 mod machine_tests;
 mod package_shape_tests;
 mod practice_io_tests;
+mod procedural_dialogue_tests;
+mod procedural_fixture;
 mod queue_tests;
 mod runner_tests;
 mod stored_dialogue_tests;
@@ -52,6 +55,13 @@ pub fn started(config: EmbedConfig) -> Embed {
 pub fn paused(config: EmbedConfig, api: &Arc<FakeApi>) -> Embed {
     let api = Arc::clone(api);
     Embed::launch(config, None, Box::new(move |_, _| Ok(Arc::new(Handle(api)) as Arc<dyn crate::api::Api>)), true).expect("start")
+}
+
+/// Started over a fake `Api` in real time: for a test that holds a turn
+/// open, which paused time would skip straight past (ADR 3.11.26j AC8).
+pub fn unpaused(config: EmbedConfig, api: &Arc<FakeApi>) -> Embed {
+    let api = Arc::clone(api);
+    Embed::launch(config, None, Box::new(move |_, _| Ok(Arc::new(Handle(api)) as Arc<dyn crate::api::Api>)), false).expect("start")
 }
 
 /// Polls until an event matches, returning it and everything polled before

@@ -6,7 +6,9 @@
 //! A graph dialogue (ADR 28.10.26f, `graph/`) is the same session holding
 //! one more thing: where its story is. Its turn sends the checkpoint and the
 //! offered edges, holds N2's `transition` until `done`, and crosses it then.
-//! `request` builds what a turn sends; `turn` runs one.
+//! `request` builds what a turn sends; `turn` runs one. A procedural graph
+//! (ADR 3.11.26j, `graph/procedural/`) holds its frontier beside the runner
+//! and plans at the settle point.
 
 pub(crate) mod graph;
 mod request;
@@ -19,7 +21,9 @@ use std::sync::{Arc, Mutex};
 use tokio::task::AbortHandle;
 
 use crate::commands::Dispatch;
-use crate::dialogue::graph::{GraphState, Pending, Step};
+use serde_json::Value;
+
+use crate::dialogue::graph::{GraphState, Pending, ProceduralRun, Step};
 // `check` is also `graph::session`'s: a loaded run's config is held to it.
 use crate::dialogue::request::{body, check, check_line};
 use crate::dialogue::window::Window;
@@ -45,31 +49,52 @@ struct Dialogue {
     phase: DialoguePhase,
     turn: Option<Turn>,
     graph: Option<GraphState>,
-    /// A stored graph still being fetched (ADR 28.10.26i): `Some` exactly while `Loading`.
+    /// A stored graph still being fetched (ADR 28.10.26i), or a procedural
+    /// run waiting for its first plan (ADR 3.11.26j D1): `Some` exactly while `Loading`.
     pending: Option<Pending>,
+    /// The rest of a procedural run: its frontier, counters and plan slot.
+    procedural: Option<ProceduralRun>,
 }
 
 impl Dialogue {
     fn new(config: DialogueConfig, graph: Option<GraphState>) -> Self {
         let window = Window::from_supplied(config.window.clone());
         let phase = if graph.as_ref().is_some_and(GraphState::ended) { DialoguePhase::Ended } else { DialoguePhase::Idle };
-        Self { config, window, phase, turn: None, graph, pending: None }
+        Self { config, window, phase, turn: None, graph, pending: None, procedural: None }
     }
 
     fn loading(config: DialogueConfig, pending: Pending) -> Self {
         let window = Window::from_supplied(config.window.clone());
-        Self { config, window, phase: DialoguePhase::Loading, turn: None, graph: None, pending: Some(pending) }
+        Self { config, window, phase: DialoguePhase::Loading, turn: None, graph: None, pending: Some(pending), procedural: None }
     }
 
-    /// At rest, with no turn in flight: crosses whatever edges with no
-    /// `when` the facts now open, and ends the dialogue if its story did.
-    fn settle(&mut self) -> Vec<Step> {
-        let Some(graph) = self.graph.as_mut() else { return Vec::new() };
-        let steps = graph.auto_run();
+    /// Where the story is now: what [`Dialogue::settle`] counts crossings from.
+    fn here(&self) -> String {
+        self.graph.as_ref().map(|g| g.current().id.clone()).unwrap_or_default()
+    }
+
+    /// At rest, with no turn in flight: after `crossing` (a judged edge, or
+    /// none), crosses whatever edges with no `when` the facts now open, and
+    /// ends the dialogue if its story did. A procedural run then runs the rest
+    /// of ADR 3.11.26j D3's settle point; `finished` says a turn ended. Answers
+    /// the steps, and the plan body to send, if any.
+    fn settle(&mut self, before: &str, mut steps: Vec<Step>, finished: bool) -> (Vec<Step>, Option<Value>) {
+        let Some(graph) = self.graph.as_mut() else { return (steps, None) };
+        steps.extend(graph.auto_run());
+        let plan = self.procedural.as_mut().and_then(|run| run.settle(graph, before, &mut steps, finished, &self.window));
         if graph.ended() {
             self.phase = DialoguePhase::Ended;
         }
-        steps
+        (steps, plan)
+    }
+
+    /// A close of an unfinished story: `abandoned`, with a procedural run's trace.
+    fn abandon(mut self) -> Option<Step> {
+        let graph = self.graph.as_mut()?;
+        match self.procedural.as_mut() {
+            Some(run) => run.abandon(graph),
+            None => graph.abandon(),
+        }
     }
 }
 
@@ -152,19 +177,21 @@ impl Embed {
     /// transition it held.
     pub fn dialogue_cancel(&self, dialogue: DialogueId) -> Result<(), EmbedError> {
         self.shared.live()?;
-        let (cancelled, steps) = self.shared.dialogues.with(dialogue, |d| {
+        let (cancelled, (steps, plan)) = self.shared.dialogues.with(dialogue, |d| {
             if d.phase == DialoguePhase::Loading {
                 return Err(loading());
             }
-            let Some(turn) = d.turn.take() else { return Ok((None, Vec::new())) };
+            let Some(turn) = d.turn.take() else { return Ok((None, (Vec::new(), None))) };
             d.phase = DialoguePhase::Idle;
-            Ok((Some(turn), d.settle()))
+            let here = d.here();
+            Ok((Some(turn), d.settle(&here, Vec::new(), false)))
         })?;
         if let Some(turn) = cancelled {
             turn.abort.iter().for_each(AbortHandle::abort);
             self.shared.outbox.push_later(EmbedEvent::NpcTurn { dialogue, request: turn.request, update: NpcTurnUpdate::Cancelled });
         }
         graph::emit(&self.shared, dialogue, steps);
+        plan.into_iter().for_each(|body| graph::procedural::plan::spawn(&self.shared, dialogue, body));
         Ok(())
     }
 
@@ -181,7 +208,7 @@ impl Embed {
         }
         self.dialogue_cancel(dialogue)?;
         let removed = lock(&self.shared.dialogues.map).remove(&dialogue);
-        if let Some(step) = removed.and_then(|d| d.graph).and_then(|mut graph| graph.abandon()) {
+        if let Some(step) = removed.and_then(Dialogue::abandon) {
             graph::emit(&self.shared, dialogue, vec![step]);
         }
         Ok(())
@@ -193,7 +220,9 @@ impl Embed {
         let snapshot = |d: &mut Dialogue| {
             let c = &d.config;
             let graph = d.graph.as_ref().map(GraphState::snapshot);
-            Ok(DialogueSnapshot { phase: d.phase, npc: c.npc.clone(), scene: c.scene.clone(), level: c.level, window: d.window.entries().to_vec(), graph })
+            // A run still loading has no frontier of its own yet (ADR 3.11.26j D9).
+            let procedural = d.procedural.as_ref().filter(|_| d.graph.is_some()).map(ProceduralRun::snapshot);
+            Ok(DialogueSnapshot { phase: d.phase, npc: c.npc.clone(), scene: c.scene.clone(), level: c.level, window: d.window.entries().to_vec(), graph, procedural })
         };
         self.shared.dialogues.with(dialogue, snapshot).ok()
     }

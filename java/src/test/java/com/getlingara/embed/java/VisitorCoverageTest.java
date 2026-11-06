@@ -12,6 +12,8 @@ import com.getlingara.embed.LingaraEvent;
 import com.getlingara.embed.LingaraEventDetail;
 import com.getlingara.embed.LogLevel;
 import com.getlingara.embed.NpcTurnUpdate;
+import com.getlingara.embed.PlanKeptReason;
+import com.getlingara.embed.PlanOutcome;
 import com.getlingara.embed.PracticePhase;
 import com.getlingara.embed.PracticeSnapshot;
 import com.getlingara.embed.StreamState;
@@ -45,7 +47,9 @@ class VisitorCoverageTest {
         new EmbedEvent.Practice(3, snapshot),
         new EmbedEvent.NpcTurn(4, 5, NpcTurnUpdate.Opened.INSTANCE),
         new EmbedEvent.CheckpointReached(4, "ask", "hello", CrossedVia.JUDGE),
-        new EmbedEvent.DialogueEnded(4, "success", "ask", "gate"),
+        new EmbedEvent.DialogueEnded(4, "success", "ask", "gate", null),
+        // 3.11.26j D9
+        new EmbedEvent.DialoguePlanned(4, PlanOutcome.KEPT, List.of(), PlanKeptReason.STALE),
         // 28.10.26i AC13
         new EmbedEvent.DialogueLoaded(4, "3f2a9c1e-7b4d-4e8a-9c0f-1a2b3c4d5e6f", 4),
         new EmbedEvent.DialogueLoadFailed(4, error),

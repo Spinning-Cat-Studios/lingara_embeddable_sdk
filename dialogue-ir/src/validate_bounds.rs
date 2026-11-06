@@ -114,6 +114,9 @@ fn checkpoint(ir: &DialogueIr, checkpoint: &Checkpoint, path: &str) -> Result<()
         return Err(IrError::new(Rule::OutcomeName, id_path, message));
     }
     chars(&checkpoint.goal, &member(path, "goal"), 1, MAX_GOAL_CHARS)?;
+    if let Some(label) = &checkpoint.label {
+        chars(label, &member(path, "label"), 1, MAX_TITLE_CHARS)?;
+    }
     if let Some(steer) = &checkpoint.steer_to {
         id(steer, &member(path, "steer_to"))?;
     }

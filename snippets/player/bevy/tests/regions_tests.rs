@@ -15,6 +15,8 @@ const SOURCE: &str = include_str!("../src/main.rs");
 const INSTALL: &str = include_str!("../install.sh");
 /// The worked dialogue's IR the docs show whole (D8).
 const SNIPPET_IR: &str = include_str!("../../../dialogue/missing-brother.json");
+/// The worked procedural document the docs show whole (ADR 3.11.26j D8).
+const SNIPPET_DOCUMENT: &str = include_str!("../../../dialogue/market-gossip.json");
 
 /// Every region's text, joined per key in file order.
 fn regions() -> BTreeMap<String, String> {
@@ -51,7 +53,7 @@ fn holds_a_token(text: &str) -> bool {
 fn regions_are_present_and_hold_no_credential() {
     let regions = regions();
     let keys: Vec<&str> = regions.keys().map(String::as_str).collect();
-    assert_eq!(keys, ["dialogue", "dialogueGraph", "poll", "practice", "tokenSource"]);
+    assert_eq!(keys, ["dialogue", "dialogueGraph", "poll", "practice", "proceduralDialogue", "tokenSource"]);
     assert_eq!(INSTALL.trim(), "cargo add bevy_lingara@{{version}}", "the install key is the whole file");
     for (key, text) in regions.iter().map(|(k, t)| (k.as_str(), t.as_str())).chain([("install", INSTALL)]) {
         assert!(!holds_a_token(text), "region {key} holds a token");
@@ -67,4 +69,12 @@ fn regions_are_present_and_hold_no_credential() {
 fn the_graph_region_writes_the_snippet_ir() {
     let ir = snippet::missing_brother().expect("the region's dialogue builds");
     assert_eq!(ir.to_canonical_json(), SNIPPET_IR);
+}
+
+/// 3.11.26j AC21: the procedural region's document is the one the docs show, to the byte.
+#[test]
+fn the_procedural_region_writes_the_snippet_document() {
+    let doc = snippet::market_gossip().expect("the region's document builds");
+    let text = bevy_lingara::lingara_embed::dialogue_ir::Document::Procedural(doc).to_canonical_json();
+    assert_eq!(text, SNIPPET_DOCUMENT);
 }

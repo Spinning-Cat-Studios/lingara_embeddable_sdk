@@ -156,6 +156,7 @@ fn warnings(ir: &DialogueIr) -> Vec<Warning> {
     header_text(ir, &mut out);
     for (i, checkpoint) in ir.checkpoints.iter().enumerate() {
         text(&mut out, member(&index("checkpoints", i), "goal"), &checkpoint.goal);
+        checkpoint.label.iter().for_each(|label| text(&mut out, member(&index("checkpoints", i), "label"), label));
     }
     for (path, e) in edges(ir) {
         e.when.iter().for_each(|when| text(&mut out, member(&path, "when"), when));

@@ -156,6 +156,10 @@ pub struct Fault {
     /// Write each frame in two writes this far apart.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub delay_fragment_ms: Option<u64>,
+    /// Hold the whole answer this long before its status line: a slow plan
+    /// that lands while a turn streams (ADR 3.11.26j, EK14).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delay_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

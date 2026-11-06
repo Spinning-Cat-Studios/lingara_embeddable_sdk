@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use serde_json::Value;
 use tokio::time::Instant;
 
-use crate::api::{Accepted, Api, Exported, Frames, Plan, PlanFrame, PlanStream, Tail, TurnFrame, TurnStream};
+use crate::api::{Accepted, Api, Exported, Frames, Plan, PlanAnswer, PlanFrame, PlanStream, Tail, TurnFrame, TurnStream};
 use crate::error::EmbedError;
 use crate::handoff::BoxFuture;
 use crate::types::LingaraEvent;
@@ -76,6 +76,42 @@ pub struct FakeApi {
     /// how a test keeps a fetch in flight.
     pub hold_exports: std::sync::atomic::AtomicBool,
     pub release_exports: tokio::sync::Notify,
+    /// `plan_dialogue`'s answers, in order (ADR 3.11.26j); `None` never
+    /// answers, which is how a test holds a plan past `PLAN_WAIT`.
+    pub plan_answers: Mutex<VecDeque<Option<Result<PlanAnswer, EmbedError>>>>,
+    /// Each plan body, as sent.
+    pub plan_bodies: Mutex<Vec<Value>>,
+    /// While set, a plan waits for `release_plans` before it answers.
+    pub hold_plans: std::sync::atomic::AtomicBool,
+    pub release_plans: tokio::sync::Notify,
+    /// How long every plan takes to answer, on tokio's clock.
+    pub plan_delay: Mutex<Option<std::time::Duration>>,
+    /// Each turn's frames, in order; an unscripted turn finishes empty.
+    pub turn_scripts: Mutex<VecDeque<Vec<TurnFrame>>>,
+    /// Each turn body, as sent.
+    pub turn_bodies: Mutex<Vec<Value>>,
+    /// While set, a turn waits for `release_turns` before its first frame:
+    /// how a test keeps one streaming while a plan lands.
+    pub hold_turns: std::sync::atomic::AtomicBool,
+    pub release_turns: tokio::sync::Notify,
+}
+
+/// A scripted turn that may wait for its release before its first frame.
+struct HeldTurn {
+    api: Arc<FakeApi>,
+    held: bool,
+    frames: VecDeque<TurnFrame>,
+}
+
+impl Frames<TurnFrame> for HeldTurn {
+    fn next(&mut self) -> BoxFuture<'_, Option<Result<TurnFrame, EmbedError>>> {
+        Box::pin(async move {
+            if std::mem::take(&mut self.held) {
+                self.api.release_turns.notified().await;
+            }
+            self.frames.pop_front().map(Ok)
+        })
+    }
 }
 
 fn frames(script: &Mutex<VecDeque<PlanFrames>>) -> PlanStream {
@@ -131,9 +167,13 @@ impl Api for Handle {
         Box::pin(async { Ok(stream) })
     }
 
-    fn dialogue_turn(&self, _body: Value) -> BoxFuture<'_, Result<TurnStream, EmbedError>> {
+    fn dialogue_turn(&self, body: Value) -> BoxFuture<'_, Result<TurnStream, EmbedError>> {
         self.0.log("dialogue_turn");
-        Box::pin(async { Ok(Box::new(Scripted::<TurnFrame>(VecDeque::new())) as TurnStream) })
+        self.0.turn_bodies.lock().unwrap().push(body);
+        let frames = self.0.turn_scripts.lock().unwrap().pop_front().unwrap_or_default().into();
+        let held = self.0.hold_turns.load(std::sync::atomic::Ordering::SeqCst);
+        let api = Arc::clone(&self.0);
+        Box::pin(async move { Ok(Box::new(HeldTurn { api, held, frames }) as TurnStream) })
     }
 
     fn export_dialogue(&self, dialogue_id: String, if_none_match: Option<String>) -> BoxFuture<'_, Result<Exported, EmbedError>> {
@@ -146,6 +186,27 @@ impl Api for Handle {
             }
             let answer = self.0.exports.lock().unwrap().pop_front();
             answer.unwrap_or_else(|| Err(EmbedError::invalid("no scripted export")))
+        })
+    }
+
+    fn plan_dialogue(&self, body: Value) -> BoxFuture<'_, Result<PlanAnswer, EmbedError>> {
+        self.0.log("plan_dialogue");
+        self.0.plan_bodies.lock().unwrap().push(body);
+        let answer = self.0.plan_answers.lock().unwrap().pop_front();
+        let held = self.0.hold_plans.load(std::sync::atomic::Ordering::SeqCst);
+        let delay = *self.0.plan_delay.lock().unwrap();
+        Box::pin(async move {
+            if held {
+                self.0.release_plans.notified().await;
+            }
+            if let Some(delay) = delay {
+                tokio::time::sleep(delay).await;
+            }
+            match answer {
+                Some(Some(answer)) => answer,
+                Some(None) => std::future::pending().await,
+                None => Ok(PlanAnswer::Kept { reason: "unavailable".into() }),
+            }
         })
     }
 }

@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.3.0-alpha.3 — 2026-11-06
+
+
+Generated from Lingara API 2026-11-current-crayfish (development) at spec backend@eace1b3bb63d501ecc2f338770860fbf4db8b747.
+
+### Added
+
+- `lingara-dialogue-ir`: an optional `label` on a `dialogue.v2` checkpoint (ADR 6.11.26b), display text only — 1 to 80 characters, one line, never referenced by an edge, `start` or `steer_to`. `Checkpoint.label: Option<String>`; any labelled checkpoint makes the document write as `dialogue.v2`. A `dialogue.v1` checkpoint with `label` is still `unknown_member`. Pinned by the new vector `conformance/vectors/dialogue/labelled-checkpoint.v2.canonical.json`.
+
+### Changed
+
+### Fixed
+
+### Removed
+
 ## v0.3.0-alpha.2 — 2026-11-06
 
 

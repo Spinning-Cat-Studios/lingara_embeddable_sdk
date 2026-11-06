@@ -4,7 +4,8 @@
 //!
 //! A graph NPC (ADR 28.10.26g D6) is the same component opened with K1's
 //! `DialogueLoad` instead of `DialogueOpen`, so the lifecycle is shared. A
-//! stored one (ADR 3.11.26f §5) loads by store id rather than by text.
+//! stored one (ADR 3.11.26f §5) loads by store id rather than by text, and a
+//! procedural one (ADR 3.11.26j D10) by its document's canonical text.
 
 use std::collections::BTreeMap;
 
@@ -13,6 +14,10 @@ use lingara_embed::dialogue_ir::{self, DialogueIr};
 use lingara_embed::{Command, DialogueConfig, DialogueSource, EmbedError, ErrorKind, GraphSession, Npc, WindowEntry, limits};
 
 use super::bounds::{check_level, text};
+
+// `NpcDialogue::procedural` (ADR 3.11.26j D10), a child so it builds the same private fields.
+#[path = "npc_procedural.rs"]
+mod procedural;
 
 /// An NPC the player can talk to. Only `level` and `scene` change on a live
 /// NPC; a different persona or language is a different NPC, so insert a new
@@ -158,7 +163,7 @@ impl NpcDialogue {
                 Graph::Stored { dialogue_id, npc_id } => (DialogueSource::Stored { dialogue_id: dialogue_id.clone() }, npc_id),
             };
             let npc = Some(npc_id.clone());
-            let session = GraphSession { npc, source_lang, target_lang, level, scene, facts: BTreeMap::new(), checkpoint: None, window };
+            let session = GraphSession { npc, source_lang, target_lang, level, scene, facts: BTreeMap::new(), checkpoint: None, window, frontier: None, progress: None };
             return Command::DialogueLoad { source, session };
         }
         // N1's profile on a free-form NPC is not this component's: a graph

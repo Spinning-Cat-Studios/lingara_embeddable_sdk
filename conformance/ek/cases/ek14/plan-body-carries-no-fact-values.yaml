@@ -1,0 +1,34 @@
+id: ek14.plan-body-carries-no-fact-values
+behaviours: [EK14]
+tier: ek
+# No fact value leaves the device in a plan (ADR 3.11.26j D4): the game set
+# `lanterns` to 4242 and `warm` to false, and the body says only which topics
+# are open (`night` is closed, `errands` is the boy's) and which goals hold.
+# `body_equals` holds the whole body, so a `facts` member, or 4242 anywhere,
+# fails the case.
+serve:
+  - route: { operation: planDialogue }
+    expect_request:
+      body_equals:
+        document: {"schema":"dialogue.v2","kind":"procedural","id":"ek14_tea","pedagogy":"none","endings":[{"id":"sold"},{"id":"walked_off"}],"npcs":[{"id":"keeper","name":"Mei","persona":"a tea seller","disposition":{"suggestibility":0.5,"initiative":0.95}},{"id":"boy","name":"Bo"}],"facts":[{"key":"paid","type":"boolean","default":false},{"key":"warm","type":"boolean","default":false},{"key":"lanterns","type":"number","default":3}],"procedural":{"premise":"The player wants a cup of tea","disclosable":[],"topics":[{"id":"tea","about":"the tea on offer"},{"id":"night","about":"the night market","when":"warm"},{"id":"errands","about":"the errands of the boy","npcs":["boy"]}],"goals":[{"id":"paid_up","describe":"the tea is paid for","predicate":"paid","when":"The player pays."}],"atoms":[{"atom":"open"},{"atom":"elicit"},{"atom":"practise"},{"atom":"close"}],"horizon":{"plan_depth":2,"sketch_depth":1,"max_nodes":8},"termination":{"max_turns":20,"max_beats":6,"success":{"goal":"paid_up","ending":"sold"},"stall":{"turns":2,"ending":"walked_off"},"on_limit":"walked_off"}}}
+        npc: keeper
+        reason: start
+        id_prefix: p1
+        open_topics: [tea]
+        turns: 0
+        beats: 0
+    respond:
+      json: { status: kept, reason: unavailable }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command:
+      type: dialogue_load
+      source:
+        type: ir
+        ir_json: '{"schema":"dialogue.v2","kind":"procedural","id":"ek14_tea","pedagogy":"none","endings":[{"id":"sold"},{"id":"walked_off"}],"npcs":[{"id":"keeper","name":"Mei","persona":"a tea seller","disposition":{"suggestibility":0.5,"initiative":0.95}},{"id":"boy","name":"Bo"}],"facts":[{"key":"paid","type":"boolean","default":false},{"key":"warm","type":"boolean","default":false},{"key":"lanterns","type":"number","default":3}],"procedural":{"premise":"The player wants a cup of tea","topics":[{"id":"tea","about":"the tea on offer"},{"id":"night","about":"the night market","when":"warm"},{"id":"errands","about":"the errands of the boy","npcs":["boy"]}],"goals":[{"id":"paid_up","describe":"the tea is paid for","predicate":"paid","when":"The player pays."}],"atoms":[{"atom":"open"},{"atom":"elicit"},{"atom":"practise"},{"atom":"close"}],"horizon":{"plan_depth":2,"sketch_depth":1,"max_nodes":8},"termination":{"max_turns":20,"max_beats":6,"success":{"goal":"paid_up","ending":"sold"},"stall":{"turns":2,"ending":"walked_off"},"on_limit":"walked_off"}}}'
+      session: { npc: keeper, source_lang: en, target_lang: zh, level: 2, facts: { lanterns: 4242, warm: false } }
+  - poll_until: { event: dialogue_planned, match: { outcome: kept }, within_ms: 3000 }
+  - poll_until: { event: checkpoint_reached, match: { checkpoint: p1_0, via: start }, within_ms: 2000 }
+  - close: {}
+expect:
+  requests: { count: 1 }

@@ -12,6 +12,9 @@
 
 mod fact;
 mod parts;
+mod procedural;
+mod procedural_ends;
+mod procedural_parts;
 
 use std::collections::BTreeMap;
 
@@ -23,6 +26,11 @@ use crate::{IrError, validate, version};
 pub use crate::levels::Level;
 pub use fact::{Fact, FactDefault, MAX_SAFE_INTEGER, builder_number};
 pub use parts::{Checkpoint, Edge, Npc};
+// The procedural builder (ADR 3.11.26j D8), and the atom words it takes.
+pub use crate::procedural::AtomKind;
+pub use procedural::*;
+pub use procedural_ends::Termination;
+pub use procedural_parts::{Forbid, Goal, Topic};
 
 /// Shorthands for the three v1 ends. `Success` and `Failure` are ordinary
 /// ending ids in v2; `Abandoned` is built in.

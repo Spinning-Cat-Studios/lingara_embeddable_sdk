@@ -5,8 +5,8 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::message::Message;
 use bevy::ecs::resource::Resource;
 use lingara_embed::{
-    CloseReason, CrossedVia, EmbedError, EmbedEvent, EmbedStatus, FactValue, Header, LingaraEvent, PracticeSnapshot,
-    PracticeSource, Reaction, RequestId, Secret, TokenReason, UpdateAvailable, WorldContext,
+    CloseReason, CrossedVia, EmbedError, EmbedEvent, EmbedStatus, FactValue, Header, LingaraEvent, PlanKeptReason, PlanOutcome,
+    PracticeSnapshot, PracticeSource, Reaction, RequestId, Secret, TokenReason, TracedBeat, UpdateAvailable, WorldContext,
 };
 
 use crate::practice::PracticeAction;
@@ -69,11 +69,24 @@ pub struct CheckpointReached {
 
 /// A graph NPC's story ended on `outcome`: a declared ending's id, or
 /// `abandoned` (ADR 3.11.26g §11.3). The component stays, and its removal
-/// closes the dialogue as it always does.
-#[derive(Message, Debug, Clone, PartialEq, Eq)]
+/// closes the dialogue as it always does. A procedural NPC's carries the
+/// whole path it took, as ids (ADR 3.11.26j D13); a static one's is `None`.
+#[derive(Message, Debug, Clone, PartialEq)]
 pub struct DialogueEnded {
     pub entity: Entity,
     pub outcome: String,
+    pub trace: Option<Vec<TracedBeat>>,
+}
+
+/// A procedural NPC's plan landed (ADR 3.11.26j D10): `accepted`, with the
+/// new expansion's checkpoint ids, or `kept`, with why. The NPC talks on
+/// either way; a game may show that it is "thinking ahead".
+#[derive(Message, Debug, Clone, PartialEq, Eq)]
+pub struct DialoguePlanned {
+    pub entity: Entity,
+    pub outcome: PlanOutcome,
+    pub checkpoints: Vec<String>,
+    pub reason: Option<PlanKeptReason>,
 }
 
 /// A stored dialogue on `entity` loaded at revision `rev` (ADR 3.11.26f §5).

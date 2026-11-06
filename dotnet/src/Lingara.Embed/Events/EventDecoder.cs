@@ -50,6 +50,14 @@ namespace Lingara.Embed.Events
                 Outcome = v.Str("outcome"),
                 Checkpoint = v.Str("checkpoint"),
                 Edge = v.OptStr("edge"),
+                Trace = v["trace"].IsNull ? null : TypeDecoders.List(v["trace"], ProceduralDecoders.Traced),
+            },
+            ["dialogue_planned"] = v => new EmbedEvent.DialoguePlanned
+            {
+                Dialogue = new DialogueId(v.Long("dialogue")),
+                Outcome = GraphWords.PlanOutcomes.Parse(v.Str("outcome")),
+                Checkpoints = TypeDecoders.List(v["checkpoints"], c => c.AsString() ?? string.Empty),
+                Reason = v["reason"].IsNull ? (PlanKeptReason?)null : GraphWords.PlanKeptReasons.Parse(v.Str("reason")),
             },
             ["dialogue_loaded"] = v => new EmbedEvent.DialogueLoaded
             {

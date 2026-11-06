@@ -6,9 +6,10 @@
 
 use std::sync::Arc;
 
-use lingara_dialogue_ir::DialogueIr;
+use lingara_dialogue_ir::{DialogueIr, Document};
 
 use crate::commands::Dispatch;
+use crate::dialogue::graph::procedural::{self, load, load::Opened};
 use crate::dialogue::graph::stored::{self, Pending};
 use crate::dialogue::graph::{GraphState, TARGET, emit, load_ir};
 use crate::dialogue::{Dialogue, check};
@@ -59,6 +60,9 @@ fn config(state: &GraphState, session: GraphSession) -> DialogueConfig {
 /// `held` ones applied in order, before the first auto-crossing: shared by
 /// an inline load and a stored one (ADR 28.10.26i D2).
 pub(super) fn open_run(ir: Arc<DialogueIr>, session: GraphSession, held: &[(String, FactValue)]) -> Result<(GraphState, DialogueConfig), EmbedError> {
+    if session.frontier.is_some() || session.progress.is_some() {
+        return Err(invalid("`frontier` and `progress` restore a procedural dialogue, not a static one"));
+    }
     let npc = cast_member(&ir, session.npc.as_deref())?;
     let mut state = GraphState::new(Arc::clone(&ir), npc, start_at(&ir, session.checkpoint.as_deref())?);
     for (key, value) in session.facts.iter().chain(held.iter().map(|(k, v)| (k, v))) {
@@ -85,24 +89,35 @@ fn loading_config(session: &GraphSession) -> DialogueConfig {
 }
 
 impl Embed {
-    /// Loads a `dialogue.v1` or `dialogue.v2` graph and opens a run of it; a
-    /// procedural document is refused until this kit can run one. `CheckpointReached
-    /// { via: start }` follows the returned id, then any auto crossings. A
-    /// stored source answers its id in `loading`, and `DialogueLoaded` or
-    /// `DialogueLoadFailed` follows once it is fetched.
+    /// Loads a `dialogue.v1` or `dialogue.v2` graph of either kind and opens
+    /// a run of it. A static graph's `CheckpointReached { via: start }`
+    /// follows the returned id, then any auto crossings. A procedural one
+    /// answers its id in `loading` until its first plan lands (ADR 3.11.26j
+    /// D1), then `DialoguePlanned` and `CheckpointReached { via: start }`; a
+    /// saved `frontier` starts it at once. A stored source answers its id in
+    /// `loading`, and `DialogueLoaded` or `DialogueLoadFailed` follows once it
+    /// is fetched.
     pub fn dialogue_load(&self, source: DialogueSource, session: GraphSession) -> Result<DialogueId, EmbedError> {
         self.shared.live()?;
         let ir_json = match source {
             DialogueSource::Ir { ir_json } => ir_json,
             DialogueSource::Stored { dialogue_id } => return self.load_stored(&dialogue_id, session),
         };
-        let (ir, warnings) = load_ir(&ir_json).map_err(invalid)?;
-        let (mut state, config) = open_run(Arc::new(ir), session, &[])?;
+        let (doc, warnings) = load_ir(&ir_json).map_err(invalid)?;
+        let opened = match doc {
+            Document::Static(ir) => {
+                let (mut state, config) = open_run(Arc::new(ir), session, &[])?;
+                let steps = state.start();
+                Opened { dialogue: Dialogue::new(config, Some(state)), steps, plan: None }
+            }
+            Document::Procedural(doc) => load::open(Arc::new(doc), session, &[])?,
+        };
         warnings.iter().for_each(|warning| self.shared.diag.warn(TARGET, warning.to_string()));
-        let steps = state.start();
         let id = self.shared.ids.next();
-        lock(&self.shared.dialogues.map).insert(id, Dialogue::new(config, Some(state)));
+        let Opened { dialogue, steps, plan } = opened;
+        lock(&self.shared.dialogues.map).insert(id, dialogue);
         emit(&self.shared, id, steps);
+        plan.into_iter().for_each(|body| procedural::plan::spawn(&self.shared, id, body));
         Ok(id)
     }
 
@@ -122,20 +137,23 @@ impl Embed {
     /// turn ends.
     pub fn dialogue_set_fact(&self, dialogue: DialogueId, key: &str, value: FactValue) -> Result<(), EmbedError> {
         self.shared.live()?;
-        let steps = self.shared.dialogues.with(dialogue, |d| {
+        let (steps, plan) = self.shared.dialogues.with(dialogue, |d| {
             if let Some(pending) = d.pending.as_mut() {
-                // Held, and checked against the fetched IR (ADR 28.10.26i D2).
+                // Held, and checked against the fetched IR (ADR 28.10.26i D2)
+                // or the first frontier's expansion (ADR 3.11.26j D1).
                 pending.held.push((key.to_owned(), value));
-                return Ok(Vec::new());
+                return Ok((Vec::new(), None));
             }
             let ended = d.phase == DialoguePhase::Ended;
             let Some(graph) = d.graph.as_mut().filter(|_| !ended) else {
                 return Err(EmbedError::new(ErrorKind::InvalidState, "only a graph dialogue whose story has not ended holds facts"));
             };
             graph.set_fact(key, value).map_err(invalid)?;
-            Ok(if d.turn.is_none() { d.settle() } else { Vec::new() })
+            let here = d.here();
+            Ok(if d.turn.is_none() { d.settle(&here, Vec::new(), false) } else { (Vec::new(), None) })
         })?;
         emit(&self.shared, dialogue, steps);
+        plan.into_iter().for_each(|body| procedural::plan::spawn(&self.shared, dialogue, body));
         Ok(())
     }
 

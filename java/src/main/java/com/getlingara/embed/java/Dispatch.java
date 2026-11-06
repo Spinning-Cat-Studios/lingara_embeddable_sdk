@@ -30,6 +30,8 @@ final class Dispatch {
       return visitor.checkpointReached(e);
     } else if (event instanceof EmbedEvent.DialogueEnded e) {
       return visitor.dialogueEnded(e);
+    } else if (event instanceof EmbedEvent.DialoguePlanned e) {
+      return visitor.dialoguePlanned(e);
     } else if (event instanceof EmbedEvent.DialogueLoaded e) {
       return visitor.dialogueLoaded(e);
     } else if (event instanceof EmbedEvent.DialogueLoadFailed e) {

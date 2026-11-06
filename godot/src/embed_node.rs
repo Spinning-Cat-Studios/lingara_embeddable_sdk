@@ -123,6 +123,13 @@ impl LingaraEmbed {
     fn checkpoint_reached(dialogue: i64, checkpoint: GString, edge: GString, via: GString);
     #[signal]
     fn dialogue_ended(dialogue: i64, outcome: GString, checkpoint: GString, edge: GString);
+    /// A procedural run's whole path, one `Dictionary` per beat, just before
+    /// its `dialogue_ended` (ADR 3.11.26j D13).
+    #[signal]
+    fn dialogue_traced(dialogue: i64, trace: VarArray);
+    /// A procedural run's plan landed: `accepted` or `kept`; `reason` is "" when accepted (D9).
+    #[signal]
+    fn dialogue_planned(dialogue: i64, outcome: GString, checkpoints: VarArray, reason: GString);
     #[signal]
     fn dialogue_loaded(dialogue: i64, dialogue_id: GString, rev: i64);
     #[signal]

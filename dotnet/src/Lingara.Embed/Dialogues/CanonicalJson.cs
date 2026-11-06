@@ -179,12 +179,13 @@ namespace Lingara.Embed.Dialogues
 
         /// <summary>
         /// The write rule, a copy of the crate's <c>version::write_schema</c> (ADR 3.11.26g §2) for what this
-        /// builder can hold: <c>dialogue.v1</c> unless an ending is not <c>success</c> / <c>failure</c> or has a
-        /// label. The builder writes no <c>disposition</c> or <c>steer_to</c>, so that is the whole rule here;
-        /// AC20 pins its bytes to the Rust builder's.
+        /// builder can hold: <c>dialogue.v1</c> unless an NPC has a <c>disposition</c> (ADR 3.11.26j D8), or an
+        /// ending is not <c>success</c> / <c>failure</c> or has a label. The builder writes no <c>steer_to</c>, so
+        /// that is the whole rule here; 3.11.26g AC20 and 3.11.26j AC31 pin its bytes to the Rust builder's.
         /// </summary>
         public static string WriteSchema(Dialogue d) =>
-            d.Endings.All(e => (e.Id == "success" || e.Id == "failure") && e.Label == null) ? "dialogue.v1" : "dialogue.v2";
+            d.Npcs.All(n => n.Disposition == null) && d.Endings.All(e => (e.Id == "success" || e.Id == "failure") && e.Label == null)
+                ? "dialogue.v1" : "dialogue.v2";
 
         /// <summary>The dialogue in normal form (D2 rule 1): the always-written members, empty or not.</summary>
         public static JsonValue Tree(Dialogue d)
@@ -203,14 +204,14 @@ namespace Lingara.Embed.Dialogues
             return root;
         }
 
-        private static JsonValue EndingTree(DialogueEnding ending)
+        internal static JsonValue EndingTree(DialogueEnding ending)
         {
             var o = Obj(("id", Str(ending.Id)));
             Opt(o, "label", ending.Label);
             return o;
         }
 
-        private static JsonValue NpcTree(DialogueNpc npc)
+        internal static JsonValue NpcTree(DialogueNpc npc)
         {
             var o = Obj(("id", Str(npc.Id)), ("name", Str(npc.Name)));
             Opt(o, "persona", npc.Persona);
@@ -220,10 +221,16 @@ namespace Lingara.Embed.Dialogues
                 o.Members.Add(new KeyValuePair<string, JsonValue>("languages", Arr(languages)));
             }
 
+            if (npc.Disposition != null)
+            {
+                var d = npc.Disposition;
+                o.Members.Add(new KeyValuePair<string, JsonValue>("disposition", Obj(("suggestibility", Num(d.Suggestibility)), ("initiative", Num(d.Initiative)))));
+            }
+
             return o;
         }
 
-        private static JsonValue FactTree(DialogueFact fact)
+        internal static JsonValue FactTree(DialogueFact fact)
         {
             var type = fact.Type == FactType.Number ? "number" : fact.Type == FactType.Boolean ? "boolean" : "string";
             var o = Obj(("key", Str(fact.Key)), ("type", Str(type)));

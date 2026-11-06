@@ -25,6 +25,8 @@ namespace Lingara.Embed.Dialogues
             Disclosed(d);
             Defaults(d);
             Levels(d);
+            // ADR 3.11.26j D8: a disposition's two numbers, as the crate's `number_range` checks them.
+            ProceduralChecks.Dispositions(d.Npcs);
             WhenLessCycle(d, ends);
         }
 

@@ -1,6 +1,7 @@
 //! One turn in flight (D8): `Opened` when the headers are in, B3's frames
 //! in order, and, for a graph, N2's `transition` held until `done` (ADR
-//! 28.10.26f D5).
+//! 28.10.26f D5). A procedural run's plan answer that lands mid-turn is
+//! applied in `end_turn`, after the held crossing (ADR 3.11.26j D3).
 
 use std::sync::Arc;
 
@@ -63,11 +64,14 @@ pub(super) async fn turn(shared: Arc<Shared>, dialogue: DialogueId, request: Req
 
 /// Back to `Idle`. Only a finished turn moves the window, and only it
 /// crosses its held transition, after `Finished`; a failed one leaves both as
-/// they were, so saying the line again sends the same state.
-async fn end_turn(shared: &Shared, dialogue: DialogueId, request: RequestId, result: Result<Received, EmbedError>) {
+/// they were, so saying the line again sends the same state. Then the settle
+/// point: for a procedural run, a plan answer held during the turn is applied
+/// after the held crossing (ADR 3.11.26j D3).
+async fn end_turn(shared: &Arc<Shared>, dialogue: DialogueId, request: RequestId, result: Result<Received, EmbedError>) {
     let ended = shared.dialogues.with(dialogue, |d| {
         let Some(turn) = d.turn.take_if(|t| t.request == request) else { return Ok(None) };
         d.phase = DialoguePhase::Idle;
+        let before = d.here();
         let mut steps = Vec::new();
         if let Ok(got) = &result {
             d.window.push_turn(&turn.line, &got.reply);
@@ -75,14 +79,14 @@ async fn end_turn(shared: &Shared, dialogue: DialogueId, request: RequestId, res
                 steps = graph.apply_judged(&turn.sent, edge, to);
             }
         }
-        steps.extend(d.settle());
-        Ok(Some(steps))
+        Ok(Some(d.settle(&before, steps, result.is_ok())))
     });
-    let Ok(Some(steps)) = ended else { return };
+    let Ok(Some((steps, plan))) = ended else { return };
     let event = match result {
         Ok(got) => EmbedEvent::NpcTurn { dialogue, request, update: NpcTurnUpdate::Finished { text: got.reply } },
         Err(error) => EmbedEvent::Error { error: error.with_request(request) },
     };
     shared.outbox.send(event).await;
     graph::emit(shared, dialogue, steps);
+    plan.into_iter().for_each(|body| graph::procedural::plan::spawn(shared, dialogue, body));
 }

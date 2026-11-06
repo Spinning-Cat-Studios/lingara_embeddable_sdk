@@ -87,16 +87,6 @@ fn typed(event: &EmbedEvent, finished: &mut Finished) -> Vec<SignalCall> {
         EmbedEvent::WorldSent { request, event_id, reaction } => one("world_sent", vec![Value::from(*request), event_id.clone().into(), dict_or_empty(reaction.as_ref())]),
         EmbedEvent::Practice { session, snapshot } => finished.practice(*session, snapshot),
         EmbedEvent::NpcTurn { dialogue, request, update } => one_turn(*dialogue, *request, update),
-        // A graph dialogue's story (ADR 28.10.26f D8): an absent edge is "".
-        EmbedEvent::CheckpointReached { dialogue, checkpoint, edge, via } => {
-            one("checkpoint_reached", vec![Value::from(*dialogue), checkpoint.clone().into(), edge.clone().unwrap_or_default().into(), json(via)])
-        }
-        EmbedEvent::DialogueEnded { dialogue, outcome, checkpoint, edge } => {
-            one("dialogue_ended", vec![Value::from(*dialogue), json(outcome), checkpoint.clone().into(), edge.clone().unwrap_or_default().into()])
-        }
-        // A stored dialogue's load (ADR 28.10.26i D5).
-        EmbedEvent::DialogueLoaded { dialogue, dialogue_id, rev } => one("dialogue_loaded", vec![Value::from(*dialogue), dialogue_id.clone().into(), Value::from(*rev)]),
-        EmbedEvent::DialogueLoadFailed { dialogue, error } => one("dialogue_load_failed", vec![Value::from(*dialogue), json(error)]),
         EmbedEvent::Error { error } => one("error_raised", vec![json(error)]),
         EmbedEvent::Log { level, target, message } => one("log_received", vec![level.to_string().into(), target.clone().into(), message.clone().into()]),
         // ADR 30.10.26p D4: once per handle, for the developer; null is "".
@@ -104,6 +94,31 @@ fn typed(event: &EmbedEvent, finished: &mut Finished) -> Vec<SignalCall> {
             one("update_available", vec![latest.clone().unwrap_or_default().into(), Value::from(*deprecated), message.clone().unwrap_or_default().into()])
         }
         EmbedEvent::Closed { reason } => one("closed", vec![json(reason)]),
+        graph => graph_signals(graph),
+    }
+}
+
+/// A graph dialogue's story (ADR 28.10.26f D8, 3.11.26j D9): an absent edge
+/// or reason is "". A traced end emits `dialogue_traced` first, so a handler
+/// on the unchanged four-argument `dialogue_ended` already has the path.
+fn graph_signals(event: &EmbedEvent) -> Vec<SignalCall> {
+    let one = |name, args| vec![SignalCall::new(name, args)];
+    match event {
+        EmbedEvent::CheckpointReached { dialogue, checkpoint, edge, via } => {
+            one("checkpoint_reached", vec![Value::from(*dialogue), checkpoint.clone().into(), edge.clone().unwrap_or_default().into(), json(via)])
+        }
+        EmbedEvent::DialogueEnded { dialogue, outcome, checkpoint, edge, trace } => {
+            let ended = SignalCall::new("dialogue_ended", vec![Value::from(*dialogue), json(outcome), checkpoint.clone().into(), edge.clone().unwrap_or_default().into()]);
+            let traced = trace.as_ref().map(|t| SignalCall::new("dialogue_traced", vec![Value::from(*dialogue), json(t)]));
+            traced.into_iter().chain([ended]).collect()
+        }
+        EmbedEvent::DialoguePlanned { dialogue, outcome, checkpoints, reason } => {
+            let reason = reason.as_ref().map(json).unwrap_or_else(|| Value::from(""));
+            one("dialogue_planned", vec![Value::from(*dialogue), json(outcome), json(checkpoints), reason])
+        }
+        // A stored dialogue's load (ADR 28.10.26i D5).
+        EmbedEvent::DialogueLoaded { dialogue, dialogue_id, rev } => one("dialogue_loaded", vec![Value::from(*dialogue), dialogue_id.clone().into(), Value::from(*rev)]),
+        EmbedEvent::DialogueLoadFailed { dialogue, error } => one("dialogue_load_failed", vec![Value::from(*dialogue), json(error)]),
         _ => Vec::new(),
     }
 }

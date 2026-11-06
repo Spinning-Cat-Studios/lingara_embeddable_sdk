@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Lingara.Embed.Events
 {
     /// <summary>
@@ -103,6 +106,26 @@ namespace Lingara.Embed.Events
             public string Checkpoint { get; init; } = string.Empty;
 
             public string? Edge { get; init; }
+
+            /// <summary>A procedural run's whole path, as ids (ADR 3.11.26j D13); null for a static graph.</summary>
+            public IReadOnlyList<TracedBeat>? Trace { get; init; }
+        }
+
+        /// <summary>
+        /// A procedural run's plan landed (ADR 3.11.26j D9): <see cref="PlanOutcome.Accepted"/> with the new
+        /// expansion's checkpoint ids, or <see cref="PlanOutcome.Kept"/> with <see cref="Reason"/>. The run never depends on it.
+        /// </summary>
+        public sealed class DialoguePlanned : EmbedEvent
+        {
+            public DialoguePlanned() : base("dialogue_planned") { }
+
+            public DialogueId Dialogue { get; init; }
+
+            public PlanOutcome Outcome { get; init; }
+
+            public IReadOnlyList<string> Checkpoints { get; init; } = Array.Empty<string>();
+
+            public PlanKeptReason? Reason { get; init; }
         }
 
         /// <summary>A stored dialogue's revision is loaded (ADR 28.10.26i); <c>CheckpointReached</c> follows.</summary>

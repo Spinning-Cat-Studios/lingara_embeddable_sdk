@@ -157,6 +157,65 @@ namespace Lingara.Embed.Tests
             Assert.Equal(2, auto.Build().Checkpoints.Count);
         }
 
+        /// <summary>3.11.26g's ferryman, written with the C# procedural builder; <paramref name="edit"/> changes one part.</summary>
+        private static ProceduralBuilder Ferryman(Func<ProceduralBuilder, ProceduralBuilder>? edit = null)
+        {
+            var built = new ProceduralBuilder("the_ferryman", "The player needs to cross the river before dark")
+                .Title("The ferryman").Pedagogy(Pedagogy.Subtle)
+                .Ending("crossed", "Got across").Ending("turned_back")
+                .Npc("old_li", "Old Li", n => n.Persona("a talkative ferryman who knows every family on the river").Disposition(0.7, 0.4))
+                .Npc("ma_ren", "Ma Ren", n => n.Persona("a brisk ferrywoman who wants to cast off before dark").Disposition(0.5, 0.7))
+                .Npc("boss_wu", "Boss Wu", n => n.Persona("the boat owner, who talks only about money").Disposition(0.2, 0.95))
+                .Fact("fare_paid", FactType.Boolean, defaultValue: false)
+                .Fact("flood_rumour", FactType.String, defaultValue: "the upper weir cracked last spring")
+                .Fact("family_name", FactType.String, defaultValue: "the Chens of Willow Bend")
+                .Disclosable("flood_rumour", "family_name")
+                .Topic("cargo", "what the player is carrying across")
+                .Topic("fare", "the price of the crossing")
+                .Topic("flood", "the flood on the upper river", t => t.Discloses("flood_rumour"))
+                .Topic("family", "the family waiting on the far bank", t => t.OpenWhen("fare_paid").Discloses("family_name"));
+            return (edit?.Invoke(built) ?? built)
+                .Topic("smuggling", "the crates nobody asks about", t => t.Npcs("boss_wu"))
+                .Forbid("the ferryman's debts")
+                .Goal("fare_agreed", "a fare both sides accept", predicate: "fare_paid", when: "The player and the ferryman agree on a fare.")
+                .Atoms(AtomKind.Open, AtomKind.Elicit, AtomKind.Reveal, AtomKind.Practise, AtomKind.Close)
+                .Prefer(AtomKind.Reveal, 0.3).Prefer(AtomKind.Practise, 0.8)
+                .Horizon(2, 1, 10)
+                .Termination(40, 12, r => r.Success("fare_agreed", "crossed").Stall(6, "turned_back").OnLimit("turned_back"));
+        }
+
+        // 3.11.26j AC13
+        [Fact]
+        public void ProceduralBuilderWritesTheGoldenBytes()
+        {
+            Assert.Equal(DialogueVector("ferryman.procedural.canonical.json").TrimEnd(), Ferryman().Build().ToCanonicalJson());
+
+            // The same two mistakes as the Rust builder, at the crate's paths, refused structurally.
+            var silent = new ProceduralBuilder("p", "A premise").Npc("n", "N").Ending("done").Topic("t", "a topic")
+                .Atoms(AtomKind.Open, AtomKind.Reveal, AtomKind.Close).Termination(10, 4);
+            var reveal = Assert.Throws<ArgumentException>(() => silent.Build()).Message;
+            Assert.StartsWith("procedural.atoms[1]:", reveal, StringComparison.Ordinal);
+            Assert.EndsWith("(atom_set)", reveal, StringComparison.Ordinal);
+            var escaped = Assert.Throws<ArgumentException>(() => Ferryman(p => p.Topic("debts", "money owed", t => t.Discloses("fare_paid"))).Build()).Message;
+            Assert.StartsWith("procedural.topics[4].discloses[0]:", escaped, StringComparison.Ordinal);
+            Assert.EndsWith("(pool_escape)", escaped, StringComparison.Ordinal);
+        }
+
+        private static DialogueBuilder Guard(Action<NpcBuilder>? profile = null) => new DialogueBuilder("gate", "greet")
+            .Npc("guard", "Guard", profile)
+            .Checkpoint("greet", "Ask the player their business", c => c.Edge("pass", Outcome.Success, when: "the player gives a reason"));
+
+        // 3.11.26j AC31
+        [Fact]
+        public void DispositionMakesAStaticDocumentV2()
+        {
+            Assert.Equal(DialogueVector("guard.v1.canonical.json").TrimEnd(), Guard().Build().ToCanonicalJson());
+            Assert.Equal(DialogueVector("guard.v2.canonical.json").TrimEnd(), Guard(n => n.Disposition(0.2, 0.8)).Build().ToCanonicalJson());
+            var wild = Assert.Throws<ArgumentException>(() => Guard(n => n.Disposition(1.5, 0.8)).Build()).Message;
+            Assert.StartsWith("npcs[0].disposition.suggestibility:", wild, StringComparison.Ordinal);
+            Assert.EndsWith("(number_range)", wild, StringComparison.Ordinal);
+        }
+
         // 28.10.26g AC12
         [Fact]
         public void LoadSendsTheCanonicalText()

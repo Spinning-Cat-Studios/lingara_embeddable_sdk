@@ -182,6 +182,35 @@ fn dialogue_ended_carries_any_ending() {
     assert_eq!(ended.pointer("/properties/outcome/type").and_then(Value::as_str), Some("string"));
 }
 
+// 3.11.26j AC18
+#[test]
+fn procedural_variants_match_the_shape_vector() {
+    let v = vector();
+    let example = |tag: &str| v["tagged"]["EmbedEvent"].as_array().unwrap().iter().find(|e| e["type"] == tag).cloned().unwrap();
+    let kept: EmbedEvent = round_trip(&example("dialogue_planned"));
+    assert!(matches!(kept, EmbedEvent::DialoguePlanned { outcome: PlanOutcome::Kept, reason: Some(PlanKeptReason::Stale), .. }));
+    let accepted: EmbedEvent = round_trip(&v["structs"]["DialoguePlanned"][0]);
+    assert!(matches!(accepted, EmbedEvent::DialoguePlanned { outcome: PlanOutcome::Accepted, reason: None, ref checkpoints, .. } if checkpoints.len() == 3));
+    let plain: EmbedEvent = round_trip(&v["structs"]["DialogueEnded"][0]);
+    assert!(matches!(plain, EmbedEvent::DialogueEnded { trace: None, .. }));
+    let traced: EmbedEvent = round_trip(&v["structs"]["DialogueEnded"][1]);
+    assert!(matches!(&traced, EmbedEvent::DialogueEnded { trace: Some(t), .. } if t.len() == 2 && t[1].left_by_edge.as_deref() == Some("p1_1_end")));
+    let session: GraphSession = round_trip(&v["structs"]["GraphSession"][0]);
+    let progress = session.progress.expect("progress");
+    assert!(session.frontier.is_some() && progress.visited[0].atom == AtomKind::Open && progress.trace.len() == 2);
+    let snapshot: DialogueSnapshot = round_trip(&v["structs"]["DialogueSnapshot"][1]);
+    assert_eq!(snapshot.procedural.map(|p| p.progress.next_prefix), Some(3));
+    words::<PlanOutcome>("PlanOutcome", &v);
+    words::<PlanKeptReason>("PlanKeptReason", &v);
+    words::<AtomKind>("AtomKind", &v);
+
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../ffi/schema/messages.schema.json");
+    let committed = std::fs::read_to_string(path).expect("messages.schema.json");
+    for name in ["\"dialogue_planned\"", "\"TracedBeat\"", "\"ProceduralProgress\"", "\"ProceduralSnapshot\"", "\"VisitedBeat\""] {
+        assert!(committed.contains(name), "messages.schema.json lacks {name}: run make ffi-schema");
+    }
+}
+
 /// What a call answered: the outcome's tag, or the error's kind.
 fn shape(result: Result<CommandOutcome, EmbedError>) -> String {
     match result {

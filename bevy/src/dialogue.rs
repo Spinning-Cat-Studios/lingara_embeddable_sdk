@@ -9,6 +9,7 @@
 
 mod bounds;
 mod npc;
+mod story;
 mod transcript;
 
 use bevy::ecs::entity::Entity;
@@ -18,14 +19,15 @@ use bevy::ecs::observer::On;
 use bevy::ecs::query::Changed;
 use bevy::ecs::system::{Commands, Query, Res, ResMut};
 use bevy::ecs::world::World;
-use lingara_embed::{Command, CrossedVia, DialogueId, EmbedError, NpcTurnUpdate, RequestId};
+use lingara_embed::{Command, DialogueId, NpcTurnUpdate, RequestId};
 
 pub use npc::NpcDialogue;
+pub(crate) use story::{on_checkpoint, on_ended, on_load_failed, on_loaded, on_planned};
 pub use transcript::{NpcTranscript, Turn};
 
 use crate::core::{Lingara, id_of};
 use crate::frame::{Link, Routes};
-use crate::messages::{CheckpointReached, DialogueEnded, DialogueLoadFailed, DialogueLoaded, LingaraError, NpcCancel, NpcReplied, NpcSay, NpcSetFact};
+use crate::messages::{LingaraError, NpcCancel, NpcReplied, NpcSay, NpcSetFact};
 use crate::plugin::Settings;
 
 /// Opens `entity`'s dialogue on the live handle, or leaves it for the next
@@ -133,42 +135,6 @@ pub(crate) fn set_fact(mut facts: MessageReader<NpcSetFact>, transcripts: Query<
             }
         }
     }
-}
-
-/// K1's `CheckpointReached`, onto the transcript and out as a Message.
-pub(crate) fn on_checkpoint(world: &mut World, dialogue: DialogueId, checkpoint: String, edge: Option<String>, via: CrossedVia) {
-    let Some(&entity) = world.resource::<Routes>().dialogues.get(&dialogue) else { return };
-    if let Some(mut transcript) = world.get_mut::<NpcTranscript>(entity) {
-        transcript.checkpoint = Some(checkpoint.clone());
-    }
-    world.write_message(CheckpointReached { entity, checkpoint, edge, via });
-}
-
-/// K1's `DialogueEnded`: the story is over; the dialogue stays open until
-/// the component goes, as a free-form one does.
-pub(crate) fn on_ended(world: &mut World, dialogue: DialogueId, outcome: String, checkpoint: String) {
-    let Some(&entity) = world.resource::<Routes>().dialogues.get(&dialogue) else { return };
-    if let Some(mut transcript) = world.get_mut::<NpcTranscript>(entity) {
-        transcript.checkpoint = Some(checkpoint);
-    }
-    world.write_message(DialogueEnded { entity, outcome });
-}
-
-/// K1's `DialogueLoaded` for a stored dialogue, out as a Message.
-pub(crate) fn on_loaded(world: &mut World, dialogue: DialogueId, dialogue_id: String, rev: u64) {
-    let Some(&entity) = world.resource::<Routes>().dialogues.get(&dialogue) else { return };
-    world.write_message(DialogueLoaded { entity, dialogue_id, rev });
-}
-
-/// K1's `DialogueLoadFailed`: the core has dropped the id, so the route goes
-/// and the transcript detaches. A later `NpcSay` is then `unknown_id` on the
-/// entity, and the next Connect's `open_pending` loads it again.
-pub(crate) fn on_load_failed(world: &mut World, dialogue: DialogueId, error: EmbedError) {
-    let Some(entity) = world.resource_mut::<Routes>().dialogues.remove(&dialogue) else { return };
-    if let Some(mut transcript) = world.get_mut::<NpcTranscript>(entity) {
-        transcript.detach();
-    }
-    world.write_message(DialogueLoadFailed { entity, error });
 }
 
 /// One K1 `NpcTurn` update onto its transcript.

@@ -27,6 +27,9 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  # Runner DNS blips outlast cargo's default 3 retries (~2 min); 10 rides
+  # out ~5 min with cargo's own backoff and costs nothing when healthy.
+  CARGO_NET_RETRY: 10
   TAG: ${{ github.ref_name }}
 
 jobs:

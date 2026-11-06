@@ -142,6 +142,23 @@ is a `LingaraError` with kind `unknown_id`, and the next `LingaraConnect`
 tries the load again. Remove the component to stop retrying. Both events
 still reach `LingaraRawEvent`.
 
+### A procedural NPC
+
+A procedural dialogue has no checkpoints: you draw the box (premise, topics,
+atoms, termination) with `dialogue_ir::build::Procedural`, and the core asks
+Lingara's planner for the next few beats as the conversation moves:
+
+```rust,ignore
+let gossip = market_gossip()?; // Procedural::new(…).topic(…).atoms([…]).termination(…).build()
+commands.spawn(NpcDialogue::procedural(&gossip, "mei", "zh", 2)?);
+// each plan: DialoguePlanned { entity, outcome, checkpoints, reason }
+// the end: DialogueEnded { entity, outcome, trace: Some(path) }
+```
+
+`CheckpointReached` and `NpcSay` work as for a graph NPC. Each plan is one
+metered unit, at most `1 + beats` a run; see the core's *Procedural dialogues*.
+`DialogueEnded::trace` is the path the player took, as beat ids, never text.
+
 ## Practice
 
 ```rust,ignore

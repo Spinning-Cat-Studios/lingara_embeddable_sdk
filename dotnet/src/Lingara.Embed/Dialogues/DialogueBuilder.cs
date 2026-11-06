@@ -53,7 +53,7 @@ namespace Lingara.Embed.Dialogues
         {
             var npc = new NpcBuilder();
             profile?.Invoke(npc);
-            Npcs.Add(new DialogueNpc(id, name, npc.PersonaText, npc.Languages.Count == 0 ? null : npc.Languages.ToArray()));
+            Npcs.Add(npc.Build(id, name));
             return this;
         }
 
@@ -121,6 +121,21 @@ namespace Lingara.Embed.Dialogues
             Languages.Add(new NpcLanguage { Code = code, Speaking = speaking, Comprehension = comprehension });
             return this;
         }
+
+        /// <summary>
+        /// How the NPC steers (ADR 3.11.26j D8), each 0–1: how readily it follows the player off its goal, and how
+        /// hard it drives toward it. One call makes a static dialogue <c>dialogue.v2</c>, which a v1-only kit cannot read.
+        /// </summary>
+        public NpcBuilder Disposition(double suggestibility, double initiative)
+        {
+            DispositionValue = new NpcDisposition(suggestibility, initiative);
+            return this;
+        }
+
+        internal NpcDisposition? DispositionValue { get; private set; }
+
+        internal DialogueNpc Build(string id, string name) =>
+            new DialogueNpc(id, name, PersonaText, Languages.Count == 0 ? null : Languages.ToArray(), DispositionValue);
     }
 
     /// <summary>A checkpoint's disclosed facts and its edges, in order.</summary>

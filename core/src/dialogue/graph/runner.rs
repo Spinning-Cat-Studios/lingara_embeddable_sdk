@@ -14,8 +14,13 @@ use std::sync::Arc;
 
 use lingara_dialogue_ir::{Checkpoint, DialogueIr, Edge, FactValue, NpcProfile, limits, predicate};
 
-use crate::dialogue::graph::{Step, facts, log, stance_notice};
+use crate::dialogue::graph::{Step, facts, log};
 use crate::types::{ABANDONED, CrossedVia, GraphSnapshot, LogLevel};
+
+// What a procedural run adds to the runner (ADR 3.11.26j D2, D6): `rebase`
+// and `end_on`, in a child so they reach the same private state.
+#[path = "runner_frontier.rs"]
+mod frontier;
 
 pub(crate) struct GraphState {
     /// Validated.
@@ -70,7 +75,6 @@ impl GraphState {
     /// `CheckpointReached { via: start }` where the run begins, then any auto crossings.
     pub fn start(&mut self) -> Vec<Step> {
         let mut steps = vec![Step::Reached { checkpoint: self.current().id.clone(), edge: None, via: CrossedVia::Start }];
-        steps.extend(stance_notice(&self.ir));
         steps.extend(self.auto_run());
         steps
     }
@@ -101,7 +105,7 @@ impl GraphState {
         if ir.is_ending(&edge.to) {
             let outcome = edge.to.clone();
             self.outcome = Some(outcome.clone());
-            return Step::Ended { outcome, checkpoint: left.id.clone(), edge: Some(edge.id.clone()) };
+            return Step::Ended { outcome, checkpoint: left.id.clone(), edge: Some(edge.id.clone()), trace: None };
         }
         match ir.checkpoints.iter().position(|c| c.id == edge.to) {
             Some(to) => self.checkpoint = to,
@@ -128,11 +132,7 @@ impl GraphState {
 
     /// A close of an unfinished story: `DialogueEnded { abandoned }`, with no edge.
     pub fn abandon(&mut self) -> Option<Step> {
-        if self.ended() {
-            return None;
-        }
-        self.outcome = Some(ABANDONED.to_owned());
-        Some(Step::Ended { outcome: ABANDONED.to_owned(), checkpoint: self.current().id.clone(), edge: None })
+        self.end_on(ABANDONED)
     }
 
     /// Stores the game's value for `key`, or says why it is refused.

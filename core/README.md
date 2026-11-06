@@ -199,6 +199,7 @@ let ir_json = std::fs::read_to_string("missing_brother.json").expect("the dialog
 let session = GraphSession {
     npc: Some("elena".into()), source_lang: "en".into(), target_lang: "es".into(), level: 2,
     scene: None, facts: Default::default(), checkpoint: None, window: vec![],
+    frontier: None, progress: None,
 };
 let dialogue = embed.dialogue_load(DialogueSource::Ir { ir_json }, session)?;
 embed.dialogue_set_fact(dialogue, "alarm_raised", FactValue::Boolean(true))?;
@@ -278,6 +279,69 @@ an inline one.
 - **Offline means bundling.** Nothing is kept on disk. A game that must
   start a story offline, or needs exact bytes, bundles the IR and loads it
   inline.
+
+### The stance
+
+A `dialogue.v2` NPC may carry a `disposition` (how readily it follows the
+player off its goal, how hard it drives toward it), and a checkpoint a
+`steer_to` edge. Every v2 turn sends the NPC's `disposition` as written, and
+`steer` (that edge's `when`) only while the edge is open. A v1 turn sends
+neither, byte for byte as before.
+
+### Procedural dialogues
+
+A `kind: procedural` document has no checkpoints: it draws the box a planner
+fills (a premise, what may come up, what may be disclosed, the atoms, and
+`termination`). `dialogue_load` takes it like any other, inline or stored,
+and the core keeps its **frontier**, the last plan it accepted, which the
+same runner and judge walk as a static graph. Lingara keeps nothing between
+calls.
+
+- **The first plan.** The load answers its id in `loading` and asks the
+  planner (`reason: start`). `DialoguePlanned` then `CheckpointReached
+  { via: start }` follow. A `kept` answer, a refusal, a fragment the core's
+  own `within_spec` refuses, or no answer within 15 s (`PLAN_WAIT`) all start
+  the run on the crate's **seed**, an Open then a Close, so a load never fails
+  for the planner's sake. A game that saved a snapshot opens at once.
+- **When the core plans.** At start; after a beat crossing (`crossed`); and
+  on a beat that is a sketch or leads only to sketches (`exhausted`, which
+  wins). At most once per beat, one call at a time: a trigger while one is in
+  flight is dropped, and an answer that lands after the run moved is `kept`
+  `stale` and followed by one plan from where it is. A plan never moves a
+  streaming turn: an answer that lands mid-turn is applied after `done`.
+- **What it costs.** Each plan is one metered `embed:play` unit whatever the
+  answer. A run makes at most **`1 + beats`** plan calls, plus one per
+  restore, and `beats` never passes `termination.max_beats`, so a procedural
+  NPC's planning cost is a formula over its spec. A `400`, `403` or the dark
+  `enable_npc_dialogue_plans` flag's `404` turns planning off for the run
+  (`plans_off`), so a dark planner costs one unit a run; a `422`, `429`,
+  `5xx` or network error lets the next trigger ask again. Nothing is retried.
+- **No fact value leaves the device in a plan.** The core evaluates each
+  topic's `when` and each goal's `predicate` itself and sends only which
+  topics are open and which goals hold. A value still travels only on a turn,
+  at a checkpoint whose `may_disclose` names it.
+- **`DialoguePlanned { outcome, checkpoints, reason }`** says how each plan
+  landed: `accepted` with the new expansion's checkpoint ids, or `kept` with
+  `stale`, `rejected`, `unavailable`, `timeout` or `unparseable`. The run
+  never depends on a game reading it.
+- **Termination.** The core ends the run: an ending edge; the success goal's
+  predicate; `max_beats` and `max_turns` (on `on_limit`, default
+  `abandoned`); and `stall.turns` turns with no crossing or accepted replan.
+- **The trace.** `DialogueEnded.trace` (and, mid-run,
+  `dialogue_snapshot().procedural.progress.trace`) is the whole path the
+  player took: one entry per beat, with its beat, topic, goal and ending ids,
+  the edge that left it, how it was entered, the turns it was entered and
+  left at, and which accepted frontier it was entered under. It holds ids and
+  counters, never a line of the conversation or a fact value, so it is safe
+  to save or send to your own server. It is bounded by `max_beats + 1`
+  entries, about 10 KB at most, never leaves the device unless you send it,
+  and the planner never reads it. A static run's `trace` is `None`.
+- **Saving and restoring.** `dialogue_snapshot().procedural` holds the
+  `frontier` and `progress`. Load the same document with them, the graph's
+  `checkpoint` and `facts`, and the `window`: the run resumes there, asks no
+  plan unless its beat is exhausted, and keeps its counters, so it never
+  reuses a plan id prefix. A snapshot taken mid-plan saves the frontier it
+  walks; the lost call is already counted.
 
 ## Errors
 

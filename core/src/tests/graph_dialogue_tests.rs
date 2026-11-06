@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use crate::embed::Embed;
 use crate::error::ErrorKind;
 use crate::tests::fake_lingara::{After, FakeLingara, Reply, frame, graphs_dark, transition};
-use crate::tests::{SECS, collect, config, dialogue_vector, started, wait_for};
+use crate::tests::{SECS, config, started, wait_for};
 use crate::types::{
     Command, CrossedVia, DialogueId, DialoguePhase, DialogueSource, EmbedEvent, FactValue, GraphSession, LogLevel, NpcTurnUpdate,
 };
@@ -42,7 +42,7 @@ fn keepers() -> Value {
 }
 
 fn session(npc: Option<&str>) -> GraphSession {
-    GraphSession { npc: npc.map(Into::into), source_lang: "en".into(), target_lang: "es".into(), level: 2, scene: None, facts: BTreeMap::new(), checkpoint: None, window: vec![] }
+    GraphSession { npc: npc.map(Into::into), source_lang: "en".into(), target_lang: "es".into(), level: 2, scene: None, facts: BTreeMap::new(), checkpoint: None, window: vec![], frontier: None, progress: None }
 }
 
 fn ir() -> DialogueSource {
@@ -267,26 +267,85 @@ fn runaway() -> Value {
     })
 }
 
-// 3.11.26g AC11
+/// A static v2 graph whose keeper leads (`steer_to` on `intro`), and whose
+/// steered edge opens only once `trust` passes 0.4.
+fn steered() -> Value {
+    json!({
+        "schema": "dialogue.v2", "id": "steered", "pedagogy": "none",
+        "npcs": [{ "id": "elena", "name": "Elena", "disposition": { "suggestibility": 0.2, "initiative": 0.8 } }],
+        "facts": [{ "key": "trust", "type": "number", "default": 0 }],
+        "endings": [{ "id": "found" }],
+        "start": "intro",
+        "checkpoints": [
+            { "id": "intro", "goal": "Elena is wary", "steer_to": "explained", "edges": [
+                { "id": "explained", "to": "ask", "predicate": "trust >= 0.4", "when": "the player explains" },
+                { "id": "hello", "to": "ask", "when": "the player greets her" }] },
+            { "id": "ask", "goal": "Admit she saw soldiers", "edges": [{ "id": "gate", "to": "found", "when": "the player asks where" }] }
+        ]
+    })
+}
+
+fn turn_bodies(source: DialogueSource, session: GraphSession, facts: &[(&str, FactValue)]) -> Vec<Value> {
+    let fake = FakeLingara::start(|_, _| done_with(vec![]));
+    let embed = started(config(&fake.url));
+    let d = embed.dialogue_load(source, session).unwrap();
+    embed.dialogue_say(d, "hola").unwrap();
+    wait_for(&embed, 5 * SECS, finished);
+    for (key, value) in facts {
+        embed.dialogue_set_fact(d, key, value.clone()).unwrap();
+    }
+    embed.dialogue_say(d, "hola").unwrap();
+    wait_for(&embed, 5 * SECS, finished);
+    fake.seen().into_iter().filter(|s| s.path == TURNS).map(|s| s.body).collect()
+}
+
+// 3.11.26j AC10
 #[test]
-fn procedural_documents_wait_for_the_runtime() {
-    let (Some(ferryman), Some(brother)) = (dialogue_vector("ferryman.procedural.json"), dialogue_vector("missing-brother.v2.json")) else { return };
+fn v2_turns_carry_the_stance_and_v1_turns_do_not() {
+    let bodies = turn_bodies(DialogueSource::Ir { ir_json: steered().to_string() }, session(None), &[("trust", number(0.5))]);
+    let disposition = json!({ "suggestibility": 0.2, "initiative": 0.8 });
+    assert_eq!(bodies[0]["npc"]["disposition"], disposition, "the disposition, as written");
+    assert!(bodies[0]["checkpoint"].get("steer").is_none(), "the steered edge is closed: no steer");
+    assert_eq!(bodies[1]["checkpoint"]["steer"], "the player explains", "sent once the edge opens");
+
+    // A v1 turn sends neither; its body is exactly the K1 one.
+    let v1 = turn_bodies(ir(), session(Some("elena")), &[]);
+    assert!(v1[0]["npc"].get("disposition").is_none() && v1[0]["checkpoint"].get("steer").is_none());
+    let mut keys: Vec<_> = v1[0]["checkpoint"].as_object().unwrap().keys().cloned().collect();
+    keys.sort();
+    assert_eq!(keys, ["goal", "id", "may_disclose"]);
+
+    // A Procedural Railroad keeper's planned beat steers to its `_x0` edge's `when`.
+    let fake = FakeLingara::start(|seen, _| {
+        if seen.path == "/v1/embed/dialogue/plan" {
+            return Reply::Json(200, json!({ "status": "planned", "fragment": crate::tests::procedural_fixture::first_plan() }));
+        }
+        done_with(vec![])
+    });
+    let embed = started(config(&fake.url));
+    let tea = crate::tests::procedural_fixture::tea_stall();
+    let d = embed.dialogue_load(DialogueSource::Ir { ir_json: tea.to_string() }, crate::tests::procedural_fixture::session()).unwrap();
+    wait_for(&embed, 5 * SECS, |e| matches!(e, EmbedEvent::CheckpointReached { dialogue, .. } if *dialogue == d));
+    embed.dialogue_say(d, "你好").unwrap();
+    wait_for(&embed, 5 * SECS, finished);
+    let turn = fake.seen().into_iter().find(|s| s.path == TURNS).unwrap().body;
+    assert_eq!(turn["npc"]["disposition"], json!({ "suggestibility": 0.5, "initiative": 0.95 }));
+    let x0 = turn["edges"].as_array().unwrap().iter().find(|e| e["id"] == "p1_0_x0").unwrap();
+    assert_eq!(turn["checkpoint"]["steer"], x0["when"], "the Railroad keeper steers to its done exit");
+}
+
+// 3.11.26j AC24
+#[test]
+fn validate_reads_both_v2_kinds() {
     let fake = FakeLingara::start(|_, _| Reply::Json(500, json!({})));
-    let embed = started(crate::types::EmbedConfig { log_level: LogLevel::Info, ..config(&fake.url) });
-    let procedural = DialogueSource::Ir { ir_json: ferryman };
-    let err = embed.dialogue_load(procedural, session(Some("old_li"))).unwrap_err();
-    assert_eq!((err.kind, err.message.as_str()), (ErrorKind::InvalidInput, "this kit cannot run procedural dialogues yet: upgrade lingara-embed"));
-    let v2 = DialogueSource::Ir { ir_json: brother };
-    let d = embed.dialogue_load(v2, session(None)).unwrap();
-    let stance = |e: &EmbedEvent| matches!(e, EmbedEvent::Log { level: LogLevel::Info, message, .. } if message.contains("steering stance"));
-    // A `Log` event is queued by a spawned send (`push_later`), so it may land
-    // after `CheckpointReached`: wait for the line itself, then listen a while
-    // for a second one, rather than draining the queue once.
-    let (_, before) = wait_for(&embed, 5 * SECS, stance);
-    let later = collect(&embed, SECS / 2);
-    let reached = |e: &EmbedEvent| matches!(e, EmbedEvent::CheckpointReached { dialogue, .. } if *dialogue == d);
-    assert!(before.iter().chain(&later).any(reached), "the v2 story loads and runs");
-    assert_eq!(before.iter().chain(&later).filter(|e| stance(e)).count(), 0, "one info line: the stance loads and is not sent yet");
+    let embed = started(config(&fake.url));
+    embed.dialogue_validate(&steered().to_string()).expect("a static v2 document");
+    embed.dialogue_validate(&crate::tests::procedural_fixture::tea_stall().to_string()).expect("a procedural one");
+    let mut broken = crate::tests::procedural_fixture::tea_stall();
+    broken["procedural"]["topics"][1]["discloses"] = json!(["lanterns"]);
+    let err = embed.dialogue_validate(&broken.to_string()).unwrap_err();
+    assert_eq!(err.kind, ErrorKind::InvalidInput);
+    assert!(err.message.contains("disclosable"), "the crate's rule names the pool: {}", err.message);
 }
 
 // 3.11.26g AC17

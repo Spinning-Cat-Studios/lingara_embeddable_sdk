@@ -1,9 +1,11 @@
 //! The cast and the story's parts: an NPC, a checkpoint and its edges.
 
-use crate::ir::{Checkpoint as IrCheckpoint, Edge as IrEdge, NpcLanguage, NpcProfile};
+use serde_json::Number;
+
+use crate::ir::{Checkpoint as IrCheckpoint, Disposition, Edge as IrEdge, NpcLanguage, NpcProfile};
 use crate::levels::Level;
 
-use super::Target;
+use super::{Target, builder_number};
 
 /// A member of the cast.
 pub struct Npc(NpcProfile);
@@ -25,6 +27,17 @@ impl Npc {
         self
     }
 
+    /// How the NPC steers (ADR 3.11.26j D8): how readily it follows the
+    /// player off its goal, and how hard it drives toward it, each 0–1. One
+    /// call makes a static dialogue `dialogue.v2` (3.11.26g §2's write rule).
+    /// A number outside D2's builder range is held as 2, which
+    /// `number_range` refuses at build.
+    pub fn disposition(mut self, suggestibility: f64, initiative: f64) -> Self {
+        let held = |x| builder_number(x).unwrap_or_else(|| Number::from(2));
+        self.0.disposition = Some(Disposition { suggestibility: held(suggestibility), initiative: held(initiative) });
+        self
+    }
+
     pub(super) fn into_profile(self) -> NpcProfile {
         self.0
     }
@@ -35,7 +48,7 @@ pub struct Checkpoint(IrCheckpoint);
 
 impl Checkpoint {
     pub fn new(id: &str, goal: &str) -> Self {
-        Checkpoint(IrCheckpoint { id: id.into(), goal: goal.into(), may_disclose: Vec::new(), edges: Vec::new(), steer_to: None })
+        Checkpoint(IrCheckpoint { id: id.into(), goal: goal.into(), may_disclose: Vec::new(), edges: Vec::new(), steer_to: None, label: None })
     }
 
     /// A fact key the NPC may voice here.

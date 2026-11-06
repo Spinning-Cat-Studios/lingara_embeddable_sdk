@@ -82,10 +82,19 @@ pub(crate) enum Exported {
     NotModified { rev: u64, etag: String },
 }
 
+/// `planDialogue`'s `200` (ADR 3.11.26j D4): a fragment the core re-reads
+/// with the crate before it trusts it, or the server's keep and its reason
+/// word. Not the practice lesson plan (`Plan`).
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum PlanAnswer {
+    Planned { fragment: Value },
+    Kept { reason: String },
+}
+
 pub(crate) type PlanStream = Box<dyn Frames<PlanFrame>>;
 pub(crate) type TurnStream = Box<dyn Frames<TurnFrame>>;
 
-/// The seven operations a player kit calls. Request bodies are JSON in the
+/// The eight operations a player kit calls. Request bodies are JSON in the
 /// published schema's shape, validated locally before they get here.
 pub(crate) trait Api: Send + Sync + 'static {
     fn tail(&self, cursor: Option<String>, types: Vec<String>) -> Box<dyn Tail>;
@@ -98,4 +107,7 @@ pub(crate) trait Api: Send + Sync + 'static {
     /// The active revision of a stored dialogue, by its lowercased id, with
     /// `If-None-Match` when the cache holds an `etag`.
     fn export_dialogue(&self, dialogue_id: String, if_none_match: Option<String>) -> BoxFuture<'_, Result<Exported, EmbedError>>;
+    /// The next beats of a procedural run (`planDialogue`). One metered unit
+    /// whatever the answer, so it is never retried.
+    fn plan_dialogue(&self, body: Value) -> BoxFuture<'_, Result<PlanAnswer, EmbedError>>;
 }

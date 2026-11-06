@@ -1,7 +1,7 @@
 [package]
 name = "lingara-embed"
 # The trio's one VERSION (roadmap D10); the release tooling writes both.
-version = "0.3.0-alpha.2"
+version = "0.3.0-alpha.3"
 edition = "2024"
 # The `lingara` library's floor, which a dependent cannot go below.
 rust-version = "1.87"
@@ -31,7 +31,7 @@ server = []
 [dependencies]
 # The dialogue.v1 IR and its predicate language (ADR 28.10.26f D11), packaged
 # with this crate and pinned exactly, as bevy pins this one.
-lingara-dialogue-ir = { path = "../dialogue-ir", version = "=0.3.0-alpha.2" }
+lingara-dialogue-ir = { path = "../dialogue-ir", version = "=0.3.0-alpha.3" }
 log = "0.4"
 schemars = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"] }
@@ -44,10 +44,9 @@ tokio = { version = "1", features = ["rt", "sync", "time", "macros"] }
 # here, wasm32 meets that refusal and nothing else.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 getrandom = "0.4"
-# LIBRARY_FLOOR: the first release carrying the mint's `embed_version` and
-# `MintedToken.update_available` (ADR 31.10.26f D3). tools/library-floor/check.sh
-# holds the two equal.
-lingara = { version = "0.2.0-alpha.7", default-features = false }
+# LIBRARY_FLOOR: the first release carrying `plan_dialogue` (ADR 3.11.26j D12,
+# clients 3.11.26n). tools/library-floor/check.sh holds the two equal.
+lingara = { version = "0.3.0-alpha.1", default-features = false }
 # The Http token source only, at the library's major.
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 

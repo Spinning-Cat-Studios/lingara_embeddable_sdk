@@ -137,6 +137,33 @@ public partial class LingaraEmbedNode : Node
     public void RaiseTheAlarm(long elena) => Client.DialogueSetFact(new DialogueId(elena), "alarm_raised", FactValue.Of(true));
     // lingara:end
 
+    // lingara:begin proceduralDialogue
+    // A procedural dialogue: nobody writes the checkpoints. You draw the box (the premise, what may
+    // come up, what the NPC may disclose, and when the run stops) and Lingara's planner proposes the
+    // next few beats inside it. The core checks every plan against this box, and ends the run on
+    // Termination whatever the planner does.
+    public static ProceduralDialogue MarketGossip() => new ProceduralBuilder("market_gossip", "The player is buying tea and hears the market's news")
+        .Title("Market gossip").Pedagogy(Pedagogy.Subtle)
+        .Npc("mei", "Mei", n => n.Persona("a tea seller who hears every rumour").Disposition(0.6, 0.5))
+        .Fact("tea_bought", FactType.Boolean, defaultValue: false)
+        .Fact("rumour", FactType.String, defaultValue: "the night market moves to the river next week")
+        .Ending("bought", "Bought the tea").Ending("left")
+        .Disclosable("rumour")
+        .Topic("tea", "the teas on the stall")
+        .Topic("price", "what a cup costs")
+        .Topic("news", "what people are saying in the market", t => t.Discloses("rumour"))
+        .Forbid("the seller's family")
+        .Goal("tea_paid", "a cup of tea, paid for", predicate: "tea_bought", when: "The player agrees a price and pays.")
+        .Atoms(AtomKind.Open, AtomKind.Elicit, AtomKind.Reveal, AtomKind.Practise, AtomKind.Close)
+        .Termination(30, 10, r => r.Success("tea_paid", "bought").Stall(6, "left").OnLimit("left"))
+        .Build(); // structural checks; DialogueLoad runs the core's full ones
+
+    // The core plans Mei's first beats before her first CheckpointReached; each plan arrives as
+    // DialoguePlanned, and DialogueEnded carries the path the player took, as beat ids.
+    public long LoadMei(string sourceLang) =>
+        Client.DialogueLoad(MarketGossip().ToCanonicalJson(), new GraphSession { Npc = "mei", SourceLang = sourceLang, TargetLang = "zh", Level = 2 }).Value;
+    // lingara:end
+
     // lingara:begin practice
     // A demo plan reports nothing: start it with report = false.
     public long StartPractice(string planId, bool report) =>

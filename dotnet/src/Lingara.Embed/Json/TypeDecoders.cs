@@ -123,6 +123,7 @@ namespace Lingara.Embed.Json
             Level = Byte(v, "level"),
             Window = List(v["window"], e => new WindowEntry { Speaker = Words.Speakers.Parse(e.Str("speaker")), Text = e.Str("text") }),
             Graph = v["graph"].IsNull ? null : Graph(v["graph"]),
+            Procedural = v["procedural"].IsNull ? null : ProceduralDecoders.Snapshot(v["procedural"]),
         };
 
         /// <summary>A graph dialogue's story (ADR 28.10.26f D6).</summary>

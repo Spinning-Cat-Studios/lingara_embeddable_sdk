@@ -215,6 +215,30 @@ pub fn not_modified(rev: u64, etag: &str) -> Reply {
     Reply::Empty(304, vec![("lingara-dialogue-revision", rev.to_string()), ("etag", etag.to_owned())])
 }
 
+/// The plan route (ADR 3.11.26j; 3.11.26i §2), scripted per test as turns are.
+pub const PLAN: &str = "/v1/embed/dialogue/plan";
+
+/// 3.11.26i's `200 planned`: the whole new frontier.
+pub fn planned(fragment: &Value) -> Reply {
+    Reply::Json(200, serde_json::json!({ "status": "planned", "fragment": fragment }))
+}
+
+/// 3.11.26i's `200 kept` and its reason word.
+pub fn kept(reason: &str) -> Reply {
+    Reply::Json(200, serde_json::json!({ "status": "kept", "reason": reason }))
+}
+
+/// A refusal with a `/v1` body: `400`, `403`, the dark flag's `404`, `422`,
+/// `429`, `503`.
+pub fn refused(status: u16, code: &str) -> Reply {
+    Reply::Json(status, serde_json::json!({ "code": code, "error": format!("refused: {code}") }))
+}
+
+/// A connection that drops before an answer.
+pub fn dropped() -> Reply {
+    Reply::Sse(Vec::new(), After::Drop)
+}
+
 /// N2 §3's answer to a checkpointed turn while `enable_npc_dialogue_graphs`
 /// is dark for the integrator.
 pub fn graphs_dark() -> Reply {

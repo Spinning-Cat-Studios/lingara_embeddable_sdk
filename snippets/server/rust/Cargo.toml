@@ -11,6 +11,6 @@ path = "src/lib.rs"
 
 [dependencies]
 axum = "0.8"
-lingara = { version = "0.2.0-alpha.1", default-features = false, features = ["rustls"] }
+lingara = { version = "0.3.0-alpha.1", default-features = false, features = ["rustls"] }
 lingara-embed = { path = "../../../core", features = ["server"] }
 tokio = { version = "1", features = ["sync"] }

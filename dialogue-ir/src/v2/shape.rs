@@ -104,12 +104,14 @@ fn npcs(value: &Value, path: &str) -> Result<(), IrError> {
     })
 }
 
-/// v1's checkpoint members plus `steer_to`.
+/// v1's checkpoint members plus `steer_to` and `label`.
 fn checkpoints(value: &Value, path: &str) -> Result<(), IrError> {
     array(value, path, |checkpoint, path| {
         let mut probe = checkpoint.clone();
         let steer = probe.as_object_mut().and_then(|map| map.remove("steer_to"));
+        let label = probe.as_object_mut().and_then(|map| map.remove("label"));
         object(&probe, path, CHECKPOINT, false)?;
-        steer.map_or(Ok(()), |s| string(&s, &crate::path::member(path, "steer_to")))
+        steer.map_or(Ok(()), |s| string(&s, &crate::path::member(path, "steer_to")))?;
+        label.map_or(Ok(()), |l| string(&l, &crate::path::member(path, "label")))
     })
 }

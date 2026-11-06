@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f5f8d04f45cdf3c3073b495874b2bbd6",
+    "content-hash": "6785b256bfcf16fb9ec8363795e5c0ff",
     "packages": [
         {
             "name": "psr/clock",
@@ -317,16 +317,16 @@
         },
         {
             "name": "spinningcatstudios/lingara",
-            "version": "v0.2.0-alpha.7",
+            "version": "v0.3.0-alpha.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Spinning-Cat-Studios/lingara-php.git",
-                "reference": "895f5ec0af40c164784ce31f6b77ce64b2be2e26"
+                "reference": "9a6bb5d4f6f15eadba504de1b4b1a24d91fc2f5d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Spinning-Cat-Studios/lingara-php/zipball/895f5ec0af40c164784ce31f6b77ce64b2be2e26",
-                "reference": "895f5ec0af40c164784ce31f6b77ce64b2be2e26",
+                "url": "https://api.github.com/repos/Spinning-Cat-Studios/lingara-php/zipball/9a6bb5d4f6f15eadba504de1b4b1a24d91fc2f5d",
+                "reference": "9a6bb5d4f6f15eadba504de1b4b1a24d91fc2f5d",
                 "shasum": ""
             },
             "require": {
@@ -377,9 +377,9 @@
                 "server-sent-events"
             ],
             "support": {
-                "source": "https://github.com/Spinning-Cat-Studios/lingara-php/tree/v0.2.0-alpha.7"
+                "source": "https://github.com/Spinning-Cat-Studios/lingara-php/tree/v0.3.0-alpha.1"
             },
-            "time": "2026-10-31T09:38:34+00:00"
+            "time": "2026-11-05T19:12:42+00:00"
         }
     ],
     "packages-dev": [

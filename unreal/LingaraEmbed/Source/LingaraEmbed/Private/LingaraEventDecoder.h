@@ -10,7 +10,23 @@
 
 enum class ELingaraDecodedType : uint8
 {
-	TokenNeeded, Stream, Lingara, WorldSent, Practice, NpcTurn, CheckpointReached, DialogueEnded, DialogueLoaded, DialogueLoadFailed, Error, Log, UpdateAvailable, Closed, Unknown
+	TokenNeeded, Stream, Lingara, WorldSent, Practice, NpcTurn, CheckpointReached, DialogueEnded, DialoguePlanned, DialogueLoaded, DialogueLoadFailed, Error, Log, UpdateAvailable, Closed, Unknown
+};
+
+// One beat of a procedural run's path (ADR 3.11.26j D13): ids and counters,
+// never text. An absent member is empty; an open beat's LeftTurn is -1.
+struct FLingaraTracedBeat
+{
+	FString Id;
+	FString Atom;
+	FString Topic;
+	FString Goal;
+	FString Ending;
+	FString LeftByEdge;
+	FString Via;
+	int64 EnteredTurn = 0;
+	int64 LeftTurn = -1;
+	int64 PlanSeq = 0;
 };
 
 // A graph dialogue's story step (ADR 28.10.26f): `checkpoint_reached` sets
@@ -18,7 +34,9 @@ enum class ELingaraDecodedType : uint8
 // declares it or "abandoned" (ADR 3.11.26g §11.3); an absent edge is empty. A stored
 // dialogue's `dialogue_loaded` sets StoreId and Rev, and its
 // `dialogue_load_failed` sets Dialogue and the event's Error (ADR 28.10.26i).
-// No delegate carries it until K2 types it.
+// A procedural run's `dialogue_ended` also sets Trace, and its
+// `dialogue_planned` sets Outcome (`accepted` or `kept`), Checkpoints and
+// Reason (ADR 3.11.26j). No delegate carries it until K2 types it.
 struct FLingaraGraphStep
 {
 	int64 Dialogue = 0;
@@ -28,6 +46,9 @@ struct FLingaraGraphStep
 	FString Outcome;
 	FString StoreId;
 	int64 Rev = 0;
+	FString Reason;
+	TArray<FString> Checkpoints;
+	TArray<FLingaraTracedBeat> Trace;
 };
 
 // One polled event. Only the member its Type names is filled.

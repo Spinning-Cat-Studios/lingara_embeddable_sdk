@@ -14,11 +14,11 @@ use std::time::Duration;
 use lingara::Client;
 use lingara::dialogues::{ExportDialogueOptions, ExportedDialogue};
 use lingara::events::{EventStart, EventsOptions, InboundEvent, SendEventOptions};
-use lingara::models::{DialogueTurnRequest, LessonPlanCreateRequest};
+use lingara::models::{DialoguePlanRequest, DialoguePlanResponse, DialogueTurnRequest, LessonPlanCreateRequest};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::api::{Accepted, Api, Exported, Plan, PlanStream, Tail, TurnStream};
+use crate::api::{Accepted, Api, Exported, Plan, PlanAnswer, PlanStream, Tail, TurnStream};
 use crate::config::EmbedConfig;
 use crate::error::{EmbedError, ErrorKind};
 use crate::handoff::BoxFuture;
@@ -104,6 +104,20 @@ impl Api for LibraryApi {
             Ok(match exported {
                 ExportedDialogue::Body { revision, etag, ir_json } => Exported::Body { rev: revision, etag, ir_json },
                 ExportedDialogue::NotModified { revision, etag } => Exported::NotModified { rev: revision, etag },
+            })
+        })
+    }
+
+    fn plan_dialogue(&self, body: Value) -> BoxFuture<'_, Result<PlanAnswer, EmbedError>> {
+        Box::pin(async move {
+            let request: DialoguePlanRequest = decode(body)?;
+            // The library validates neither the fragment nor its reason
+            // (clients 3.11.26n D4); the core re-reads both (ADR 3.11.26j D4).
+            let answer = tracked(self.client.plan_dialogue(&request)).await?.into_inner();
+            let word = |reason| serde_json::to_value(reason).ok().and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_default();
+            Ok(match answer {
+                DialoguePlanResponse::Planned { fragment } => PlanAnswer::Planned { fragment: serde_json::to_value(fragment).unwrap_or(Value::Null) },
+                DialoguePlanResponse::Kept { reason } => PlanAnswer::Kept { reason: word(reason) },
             })
         })
     }

@@ -74,7 +74,7 @@ impl Words<'_> {
             (AtomKind::Reveal, Some(topic)) => topic.discloses.clone(),
             _ => Vec::new(),
         };
-        let mut first = Checkpoint { id: beat.id.clone(), goal, may_disclose, edges: Vec::new(), steer_to: None };
+        let mut first = Checkpoint { id: beat.id.clone(), goal, may_disclose, edges: Vec::new(), steer_to: None, label: None };
         if beat.sketch {
             return vec![first];
         }
@@ -122,7 +122,7 @@ impl Words<'_> {
         let filled = |t: Option<&str>| fill(t.unwrap_or_default(), about, describe, None);
         first.edges = self.exits(beat, when.clone(), predicate.clone());
         first.edges.push(edge(format!("{}{TRY}", beat.id), again_id.clone(), None, Some(filled(text.try_when))));
-        let mut again = Checkpoint { id: again_id.clone(), goal: filled(text.again_goal), may_disclose: Vec::new(), edges: Vec::new(), steer_to: None };
+        let mut again = Checkpoint { id: again_id.clone(), goal: filled(text.again_goal), may_disclose: Vec::new(), edges: Vec::new(), steer_to: None, label: None };
         let done_only = Beat { exits: beat.done_exit().cloned().into_iter().collect(), id: again_id, ..beat.clone() };
         again.edges = self.exits(&done_only, when.clone(), predicate);
         again.edges.push(edge(format!("{}{RETRY}", beat.id), beat.id.clone(), None, Some(filled(text.retry_when))));

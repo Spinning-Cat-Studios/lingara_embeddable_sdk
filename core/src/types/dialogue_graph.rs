@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "schema")]
 use schemars::JsonSchema;
 
+pub use lingara_dialogue_ir::procedural::AtomKind;
 pub use lingara_dialogue_ir::{FactValue, NpcLanguage, Pedagogy};
 
 use super::{DialoguePhase, Npc, WindowEntry};
@@ -44,6 +45,9 @@ data! {
         /// Where a graph dialogue's story is; omitted for a free-form one.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub graph: Option<GraphSnapshot>,
+        /// A procedural run's frontier and counters; omitted otherwise (ADR 3.11.26j D9).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub procedural: Option<ProceduralSnapshot>,
     }
 
     /// Where a graph dialogue comes from.
@@ -77,6 +81,80 @@ data! {
         pub checkpoint: Option<String>,
         #[serde(default)]
         pub window: Vec<WindowEntry>,
+        /// A procedural run's saved frontier, a `PlanFragment` as JSON text
+        /// (ADR 3.11.26j D9): with it `checkpoint` is required, and the run
+        /// resumes on that frontier instead of asking its first plan.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub frontier: Option<String>,
+        /// The saved run's counters and trace; only with `frontier`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub progress: Option<ProceduralProgress>,
+    }
+
+    /// A beat a procedural run crossed, as the planner reads it: the last 16,
+    /// oldest first (ADR 3.11.26j D2).
+    pub struct VisitedBeat {
+        pub atom: AtomKind,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub topic: Option<String>,
+    }
+
+    /// One beat of a procedural run's whole path (ADR 3.11.26j D13): ids,
+    /// one enum word and three counters, never text.
+    pub struct TracedBeat {
+        /// The beat id, never `‹beat›_again`.
+        pub id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub atom: Option<AtomKind>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub topic: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub goal: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub ending: Option<String>,
+        /// The edge that left the beat; `None` while it is current, or when
+        /// the run ended by a rule with no edge.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub left_by_edge: Option<String>,
+        /// How the beat was entered.
+        pub via: CrossedVia,
+        /// `turns` when the beat was entered.
+        pub entered_turn: u16,
+        /// `turns` when it was left; `None` while it is current.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub left_turn: Option<u16>,
+        /// The accepted frontier it was entered under, 1 for the first.
+        pub plan_seq: u16,
+    }
+
+    /// A procedural run's counters (ADR 3.11.26j D9), saved beside its
+    /// frontier so a restore keeps its plan bound and its fresh prefixes.
+    #[derive(Default)]
+    pub struct ProceduralProgress {
+        #[serde(default)]
+        pub visited: Vec<VisitedBeat>,
+        #[serde(default)]
+        pub trace: Vec<TracedBeat>,
+        #[serde(default)]
+        pub plans: u16,
+        #[serde(default)]
+        pub next_prefix: u16,
+        #[serde(default)]
+        pub frontier_seq: u16,
+        #[serde(default)]
+        pub beats: u16,
+        #[serde(default)]
+        pub turns: u16,
+        #[serde(default)]
+        pub since_crossing: u16,
+    }
+
+    /// A procedural run's half of a snapshot: fed back as `GraphSession`'s
+    /// `frontier` and `progress`, it restores the run.
+    pub struct ProceduralSnapshot {
+        /// The frontier the run walks, a `PlanFragment` as JSON text.
+        pub frontier: String,
+        pub progress: ProceduralProgress,
     }
 
     /// A graph dialogue's story, for the game to save. `facts` holds only
@@ -97,6 +175,13 @@ data! {
 word! {
     /// How a checkpoint was reached: the load, an edge with no `when`, or the judge.
     pub enum CrossedVia { Start, Auto, Judge }
+
+    /// What became of a plan (ADR 3.11.26j D9): its fragment is the frontier, or the run kept its own.
+    pub enum PlanOutcome { Accepted, Kept }
+
+    /// Why a run kept its frontier (D5): the answer was stale or refused here,
+    /// or the server's own reason, or the call failed or timed out.
+    pub enum PlanKeptReason { Stale, Rejected, Unavailable, Timeout, Unparseable }
 }
 
 /// The ending a story reaches when the game closes it unfinished. Every other

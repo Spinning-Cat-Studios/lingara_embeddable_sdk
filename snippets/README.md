@@ -7,7 +7,7 @@ tests. Two tiers, by role rather than by package:
 snippets/
 ├── player/<surface>/   bevy · unity · godot-csharp · gdscript · unreal · kotlin · java · web
 ├── server/<lang>/      typescript · rust · go · java · kotlin · ruby · php · csharp
-└── dialogue/           missing-brother.json, the worked dialogue's IR
+└── dialogue/           missing-brother.json and market-gossip.json, the worked dialogues
 ```
 
 - **A surface is a product a developer recognises,** not a package directory:
@@ -55,5 +55,13 @@ D8). `unreal`, `kotlin`, `java` and `web` have no builder and no such key.
 `conformance/vectors/dialogue/missing-brother.comparison.json`
 (`make check-dialogue-snippet`), and the Bevy region's bytes are tested
 against it.
+
+The four surfaces with a procedural builder (`bevy`, `unity`, `godot-csharp`,
+`kotlin`) also carry `proceduralDialogue`: a worked market-gossip seller,
+built with that kit's procedural builder and loaded with `DialogueLoad` (ADR
+3.11.26j D8). `dialogue/market-gossip.json` is its canonical text, shown
+whole; the Bevy region's bytes are tested against it
+(`the_procedural_region_writes_the_snippet_document`). `gdscript` has no
+procedural builder yet, so no such key.
 
 Each kit writes its own surfaces' snippets in the change that lands it.

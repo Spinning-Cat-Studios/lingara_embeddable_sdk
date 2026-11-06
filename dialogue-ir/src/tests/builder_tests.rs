@@ -2,7 +2,8 @@
 
 use serde_json::Value;
 
-use crate::build::{Checkpoint, Dialogue, Edge, Fact, Npc, Outcome, Target};
+use crate::build::{AtomKind, Checkpoint, Dialogue, Edge, Fact, Forbid, Goal, Npc, Outcome, Procedural, Target, Termination, Topic};
+use crate::procedural::ProceduralDialogue;
 use crate::{DialogueIr, IrError, Level, Pedagogy, from_json, validate};
 
 /// A file of `conformance/vectors/dialogue/`, read at run time so the
@@ -180,4 +181,84 @@ fn endings_write_v2_and_shorthands_stay_v1() {
         .checkpoint(Checkpoint::new("a", "A").edge(Edge::new("e", Outcome::Success).when("w")))
         .build();
     assert_eq!(refused(undeclared), "checkpoints[0].edges[0].to");
+}
+
+/// 3.11.26g's ferryman, written with the procedural builder; `edit` changes
+/// one part so a refusal can be shown at its own path.
+pub(super) fn ferryman(edit: impl FnOnce(Procedural) -> Procedural) -> Result<ProceduralDialogue, IrError> {
+    use AtomKind::{Close, Elicit, Open, Practise, Reveal};
+    let built = Procedural::new("the_ferryman", "The player needs to cross the river before dark")
+        .title("The ferryman")
+        .pedagogy(Pedagogy::Subtle)
+        .ending("crossed", "Got across")
+        .ending("turned_back", "")
+        .npc(Npc::new("old_li", "Old Li").persona("a talkative ferryman who knows every family on the river").disposition(0.7, 0.4))
+        .npc(Npc::new("ma_ren", "Ma Ren").persona("a brisk ferrywoman who wants to cast off before dark").disposition(0.5, 0.7))
+        .npc(Npc::new("boss_wu", "Boss Wu").persona("the boat owner, who talks only about money").disposition(0.2, 0.95))
+        .fact(Fact::boolean("fare_paid").default(false))
+        .fact(Fact::string("flood_rumour").default("the upper weir cracked last spring"))
+        .fact(Fact::string("family_name").default("the Chens of Willow Bend"))
+        .disclosable(["flood_rumour", "family_name"])
+        .topic(Topic::new("cargo", "what the player is carrying across"))
+        .topic(Topic::new("fare", "the price of the crossing"))
+        .topic(Topic::new("flood", "the flood on the upper river").discloses(["flood_rumour"]))
+        .topic(Topic::new("family", "the family waiting on the far bank").when("fare_paid").discloses(["family_name"]));
+    edit(built)
+        .topic(Topic::new("smuggling", "the crates nobody asks about").npcs(["boss_wu"]))
+        .forbid(Forbid::new("the ferryman's debts"))
+        .goal(Goal::new("fare_agreed", "a fare both sides accept").predicate("fare_paid").when("The player and the ferryman agree on a fare."))
+        .atoms([Open, Elicit, Reveal, Practise, Close])
+        .prefer(Reveal, 0.3)
+        .prefer(Practise, 0.8)
+        .horizon(2, 1, 10)
+        .termination(Termination::new(40, 12).success("fare_agreed", "crossed").stall(6, "turned_back").on_limit("turned_back"))
+        .build()
+}
+
+fn canonical(doc: ProceduralDialogue) -> String {
+    crate::Document::Procedural(doc).to_canonical_json()
+}
+
+// 3.11.26j AC12
+#[test]
+fn procedural_builder_writes_the_golden_bytes() {
+    let golden = vector("ferryman.procedural.canonical.json");
+    assert_eq!(canonical(ferryman(|p| p).unwrap()), golden.trim_end());
+    // The golden bytes are the vector's own canonical form.
+    assert_eq!(crate::load_document(&vector("ferryman.procedural.json")).unwrap().0.to_canonical_json(), golden.trim_end());
+
+    // A Reveal with no topic that discloses anything, and a `discloses` outside the pool.
+    let silent = Procedural::new("p", "A premise")
+        .npc(Npc::new("n", "N"))
+        .ending("done", "")
+        .topic(Topic::new("t", "a topic"))
+        .atoms([AtomKind::Open, AtomKind::Reveal, AtomKind::Close])
+        .termination(Termination::new(10, 4))
+        .build()
+        .unwrap_err();
+    assert_eq!((silent.rule.as_str(), silent.path.as_str()), ("atom_set", "procedural.atoms[1]"), "{silent}");
+    let escaped = ferryman(|p| p.topic(Topic::new("debts", "money owed").discloses(["fare_paid"]))).unwrap_err();
+    assert_eq!((escaped.rule.as_str(), escaped.path.as_str()), ("pool_escape", "procedural.topics[4].discloses[0]"), "{escaped}");
+}
+
+/// A one-checkpoint static dialogue whose NPC is `npc`.
+fn steered(npc: Npc) -> Result<DialogueIr, IrError> {
+    Dialogue::new("gate", "greet")
+        .npc(npc)
+        .checkpoint(Checkpoint::new("greet", "Ask the player their business").edge(Edge::new("pass", Outcome::Success).when("the player gives a reason")))
+        .build()
+}
+
+// 3.11.26j AC30
+#[test]
+fn a_disposition_makes_a_static_document_v2() {
+    // The two documents are vectors, so the C# builder is held to the same bytes (AC31).
+    let plain = steered(Npc::new("guard", "Guard")).unwrap();
+    assert_eq!(plain.schema, crate::SCHEMA_V1, "no disposition: byte-identical v1");
+    assert_eq!(plain.to_canonical_json(), vector("guard.v1.canonical.json").trim_end());
+    let led = steered(Npc::new("guard", "Guard").disposition(0.2, 0.8)).unwrap();
+    assert_eq!(led.schema, crate::SCHEMA_V2, "one disposition makes it v2");
+    assert_eq!(led.to_canonical_json(), vector("guard.v2.canonical.json").trim_end());
+    let wild = steered(Npc::new("guard", "Guard").disposition(1.5, 0.8)).unwrap_err();
+    assert_eq!((wild.rule.as_str(), wild.path.as_str()), ("number_range", "npcs[0].disposition.suggestibility"), "{wild}");
 }

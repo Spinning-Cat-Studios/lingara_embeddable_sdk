@@ -14,7 +14,10 @@
 use serde::{Deserialize, Serialize};
 
 pub use crate::config::{EmbedConfig, Header, SecretString, TokenSourceConfig};
-pub use crate::graph::{FactValue, GraphSession, GraphSnapshot, NpcLanguage};
+pub use crate::graph::{
+    AtomKind, FactValue, GraphSession, GraphSnapshot, NpcLanguage, PlanKeptReason, PlanOutcome, ProceduralProgress, ProceduralSnapshot, TracedBeat,
+    VisitedBeat,
+};
 pub use crate::records::*;
 
 macro_rules! tagged {
@@ -81,7 +84,24 @@ tagged! {
         Practice { session: i64, snapshot: PracticeSnapshot },
         NpcTurn { dialogue: i64, request: i64, update: NpcTurnUpdate },
         CheckpointReached { dialogue: i64, checkpoint: String, edge: Option<String>, via: CrossedVia },
-        DialogueEnded { dialogue: i64, outcome: String, checkpoint: String, edge: Option<String> },
+        /// A procedural run's carries its `trace`, the whole path it took (ADR 3.11.26j D13).
+        DialogueEnded {
+            dialogue: i64,
+            outcome: String,
+            checkpoint: String,
+            edge: Option<String>,
+            #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[uniffi(default = None)]
+            trace: Option<Vec<TracedBeat>>,
+        },
+        /// A procedural run's plan landed (ADR 3.11.26j D9).
+        DialoguePlanned {
+            dialogue: i64,
+            outcome: PlanOutcome,
+            checkpoints: Vec<String>,
+            #[serde(default, skip_serializing_if = "Option::is_none")]
+            reason: Option<PlanKeptReason>,
+        },
         /// A stored dialogue's revision `rev` is loaded (ADR 28.10.26i); `CheckpointReached` follows.
         DialogueLoaded { dialogue: i64, dialogue_id: String, rev: i64 },
         /// A stored dialogue could not load; its id is gone.

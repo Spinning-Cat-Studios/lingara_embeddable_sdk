@@ -3,7 +3,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::{DialoguePhase, EmbedError, GraphSnapshot, NpcLanguage, Pedagogy, PracticeOutcome, PracticePhase, Speaker, StreamState};
+use crate::types::{
+    DialoguePhase, EmbedError, GraphSnapshot, NpcLanguage, Pedagogy, PracticeOutcome, PracticePhase, ProceduralSnapshot, Speaker, StreamState,
+};
 
 macro_rules! record {
     ($($item:item)*) => { $(
@@ -143,6 +145,10 @@ record! {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[uniffi(default)]
         pub graph: Option<GraphSnapshot>,
+        /// A procedural run's frontier and counters (ADR 3.11.26j D9).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[uniffi(default)]
+        pub procedural: Option<ProceduralSnapshot>,
     }
 
     pub struct EmbedStatus {

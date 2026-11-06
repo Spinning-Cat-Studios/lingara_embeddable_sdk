@@ -10,6 +10,10 @@ use bevy_lingara::lingara_embed::dialogue_ir::build::{Checkpoint, Dialogue, Edge
 use bevy_lingara::lingara_embed::dialogue_ir::{DialogueIr, IrError, Level, Pedagogy};
 use bevy_lingara::lingara_embed::FactValue;
 // lingara:end
+// lingara:begin proceduralDialogue
+use bevy_lingara::lingara_embed::dialogue_ir::build::{AtomKind, Forbid, Goal, Procedural, Termination, Topic};
+use bevy_lingara::lingara_embed::dialogue_ir::procedural::ProceduralDialogue;
+// lingara:end
 
 // lingara:begin tokenSource
 /// The common case: the plugin POSTs to your own server's token route, with
@@ -56,9 +60,9 @@ fn main() {
         .add_plugins(LingaraPlugin::new(lingara_config(header)))
         .add_systems(Update, on_lingara_event)
     // lingara:end
-        .add_systems(Startup, (spawn_seller, spawn_elena))
+        .add_systems(Startup, (spawn_seller, spawn_elena, spawn_mei))
         .add_systems(Update, (answer_token_requests, on_update_available, talk, show_reply, practise, on_practice_finished))
-        .add_systems(Update, (raise_the_alarm, follow_the_story))
+        .add_systems(Update, (raise_the_alarm, follow_the_story, watch_the_plan))
         .run();
 }
 
@@ -203,6 +207,53 @@ fn follow_the_story(mut reached: MessageReader<CheckpointReached>, mut ended: Me
         if end.outcome == "success" {
             info!("the player learned where the soldiers went");
         }
+    }
+}
+// lingara:end
+
+// lingara:begin proceduralDialogue
+/// A procedural dialogue: nobody writes the checkpoints. You draw the box (the
+/// premise, what may come up, what the NPC may disclose, and when the run
+/// stops) and Lingara's planner proposes the next few beats inside it. The
+/// core checks every plan against this box before it walks it, and ends the
+/// run on `termination` whatever the planner does.
+pub fn market_gossip() -> Result<ProceduralDialogue, IrError> {
+    use AtomKind::{Close, Elicit, Open, Practise, Reveal};
+    Procedural::new("market_gossip", "The player is buying tea and hears the market's news")
+        .title("Market gossip")
+        .pedagogy(Pedagogy::Subtle)
+        .npc(Npc::new("mei", "Mei").persona("a tea seller who hears every rumour").disposition(0.6, 0.5))
+        .fact(Fact::boolean("tea_bought").default(false))
+        .fact(Fact::string("rumour").default("the night market moves to the river next week"))
+        .ending("bought", "Bought the tea")
+        .ending("left", "")
+        .disclosable(["rumour"])
+        .topic(Topic::new("tea", "the teas on the stall"))
+        .topic(Topic::new("price", "what a cup costs"))
+        .topic(Topic::new("news", "what people are saying in the market").discloses(["rumour"]))
+        .forbid(Forbid::new("the seller's family"))
+        .goal(Goal::new("tea_paid", "a cup of tea, paid for").predicate("tea_bought").when("The player agrees a price and pays."))
+        .atoms([Open, Elicit, Reveal, Practise, Close])
+        .termination(Termination::new(30, 10).success("tea_paid", "bought").stall(6, "left").on_limit("left"))
+        .build() // the crate's own checks, so the load never refuses it
+}
+
+/// Mei on an entity: the plugin loads the document, the core asks the
+/// planner for her first beats, and `NpcSay` talks to her as to any NPC.
+fn spawn_mei(mut commands: Commands) {
+    let gossip = market_gossip().expect("a valid dialogue");
+    commands.spawn(NpcDialogue::procedural(&gossip, "mei", "zh", 2).expect("Mei is in the cast"));
+}
+
+/// Each plan, and at the end the path the player took: beat ids and atoms,
+/// never what anyone said.
+fn watch_the_plan(mut planned: MessageReader<DialoguePlanned>, mut ended: MessageReader<DialogueEnded>) {
+    for plan in planned.read() {
+        info!("Mei's plan was {:?}: {} checkpoints ahead", plan.outcome, plan.checkpoints.len());
+    }
+    for end in ended.read() {
+        let beats = end.trace.as_ref().map_or(0, Vec::len);
+        info!("the conversation ended on {} after {beats} beats", end.outcome);
     }
 }
 // lingara:end

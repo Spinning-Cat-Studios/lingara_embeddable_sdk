@@ -6,7 +6,7 @@
 //! `may_disclose` keys that have a sendable value, never a `predicate`, and
 //! the offered edges in IR order.
 
-use lingara_dialogue_ir::{DialogueIr, FactValue, limits, predicate, text};
+use lingara_dialogue_ir::{DialogueIr, Edge, FactValue, limits, predicate, text};
 use serde_json::{Map, Value, json};
 
 use crate::dialogue::graph::runner::GraphState;
@@ -44,12 +44,14 @@ fn sendable<'a>(state: &'a GraphState, key: &str) -> Option<&'a FactValue> {
 }
 
 /// Adds the graph's fields to a turn's `body` (N1's `pedagogy`, N2 §2's
-/// `checkpoint`, `edges` and `facts`) and answers the edge ids it sent.
+/// `checkpoint`, `edges` and `facts`, and for a v2 graph 3.11.26h's stance)
+/// and answers the edge ids it sent.
 pub(crate) fn turn_fields(state: &GraphState, body: &mut Value) -> Vec<String> {
     let checkpoint = state.current();
     body["pedagogy"] = json!(state.ir().pedagogy);
     body["checkpoint"] = json!({ "id": checkpoint.id, "goal": checkpoint.goal, "may_disclose": checkpoint.may_disclose });
     let offered = state.offered();
+    stance(state, &offered, body);
     if !offered.is_empty() {
         body["edges"] = offered.iter().map(|edge| json!({ "id": edge.id, "to": edge.to, "when": edge.when })).collect();
     }
@@ -58,4 +60,17 @@ pub(crate) fn turn_fields(state: &GraphState, body: &mut Value) -> Vec<String> {
         body["facts"] = Value::Object(facts);
     }
     offered.iter().map(|edge| edge.id.clone()).collect()
+}
+
+/// ADR 3.11.26j D7: the NPC's `disposition` as written, and `steer` (the
+/// `when` of the checkpoint's `steer_to` edge) only while that edge is open.
+/// A v1 graph has neither, so its body is unchanged.
+fn stance(state: &GraphState, offered: &[&Edge], body: &mut Value) {
+    if let Some(disposition) = &state.npc().disposition {
+        body["npc"]["disposition"] = json!(disposition);
+    }
+    let steer = state.current().steer_to.as_ref().and_then(|id| offered.iter().find(|edge| &edge.id == id));
+    if let Some(when) = steer.and_then(|edge| edge.when.as_ref()) {
+        body["checkpoint"]["steer"] = json!(when);
+    }
 }

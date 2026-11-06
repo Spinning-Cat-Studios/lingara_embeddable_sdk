@@ -13,7 +13,7 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
-use crate::types::WindowEntry;
+use crate::types::{EmbedException, WindowEntry};
 
 /// A fact's value: what the game sets, and what a snapshot holds.
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
@@ -43,6 +43,35 @@ impl<'de> Deserialize<'de> for FactValue {
             other => Err(D::Error::custom(format!("a fact is a boolean, a number or a string, not {other}"))),
         }
     }
+}
+
+macro_rules! word {
+    ($($item:item)*) => { $(
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, uniffi::Enum)]
+        #[serde(rename_all = "snake_case")]
+        $item
+    )* };
+}
+
+word! {
+    /// What became of a procedural run's plan (ADR 3.11.26j D9).
+    pub enum PlanOutcome { Accepted, Kept }
+
+    /// Why a run kept its frontier.
+    pub enum PlanKeptReason { Stale, Rejected, Unavailable, Timeout, Unparseable }
+
+    /// The five beat templates a procedural dialogue composes.
+    pub enum AtomKind { Open, Elicit, Reveal, Practise, Close }
+}
+
+/// A dialogue document of either kind in the crate's canonical form (ADR
+/// 3.11.26j D8): the bytes `DialogueLoad` sends. The Kotlin DSL writes plain
+/// JSON and canonicalises it here, so the JVM has no canonical writer of its own.
+#[uniffi::export]
+pub fn canonical_dialogue(ir_json: String) -> Result<String, EmbedException> {
+    let value: Value = serde_json::from_str(&ir_json).map_err(|e| crate::convert::invalid("ir_json", e))?;
+    let doc = lingara_embed::dialogue_ir::document_from_value(&value).map_err(|e| crate::convert::invalid("ir_json", e))?;
+    Ok(doc.to_canonical_json())
 }
 
 macro_rules! record {
@@ -76,6 +105,70 @@ record! {
         pub checkpoint: Option<String>,
         #[serde(default)]
         pub window: Vec<WindowEntry>,
+        /// A procedural run's saved frontier, a `PlanFragment` as JSON text
+        /// (ADR 3.11.26j D9); `checkpoint` is required with it.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[uniffi(default)]
+        pub frontier: Option<String>,
+        /// The saved run's counters and trace; only with `frontier`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[uniffi(default)]
+        pub progress: Option<ProceduralProgress>,
+    }
+
+    /// A beat a procedural run crossed, as the planner reads it.
+    pub struct VisitedBeat {
+        pub atom: AtomKind,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub topic: Option<String>,
+    }
+
+    /// One beat of a procedural run's whole path (ADR 3.11.26j D13): ids and
+    /// counters, never text.
+    pub struct TracedBeat {
+        pub id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub atom: Option<AtomKind>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub topic: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub goal: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub ending: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub left_by_edge: Option<String>,
+        pub via: crate::types::CrossedVia,
+        pub entered_turn: i32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub left_turn: Option<i32>,
+        pub plan_seq: i32,
+    }
+
+    /// A procedural run's counters and trace, saved beside its frontier.
+    pub struct ProceduralProgress {
+        #[serde(default)]
+        pub visited: Vec<VisitedBeat>,
+        #[serde(default)]
+        pub trace: Vec<TracedBeat>,
+        #[serde(default)]
+        pub plans: i32,
+        #[serde(default)]
+        pub next_prefix: i32,
+        #[serde(default)]
+        pub frontier_seq: i32,
+        #[serde(default)]
+        pub beats: i32,
+        #[serde(default)]
+        pub turns: i32,
+        #[serde(default)]
+        pub since_crossing: i32,
+    }
+
+    /// A procedural run's half of a snapshot: `GraphSession`'s `frontier` and
+    /// `progress`, to restore it.
+    pub struct ProceduralSnapshot {
+        pub frontier: String,
+        pub progress: ProceduralProgress,
     }
 
     /// A graph dialogue's story: only the facts the game set.

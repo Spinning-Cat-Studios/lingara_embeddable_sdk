@@ -24,7 +24,11 @@ public interface EmbedEventVisitor<R> {
 
   R checkpointReached(EmbedEvent.CheckpointReached event);
 
+  /** The story ended; a procedural run's {@code getTrace()} is the path it took (ADR 3.11.26j). */
   R dialogueEnded(EmbedEvent.DialogueEnded event);
+
+  /** A procedural run's plan landed: accepted, or kept with why (ADR 3.11.26j D9). */
+  R dialoguePlanned(EmbedEvent.DialoguePlanned event);
 
   /** A stored dialogue's revision is loaded (ADR 28.10.26i); {@code checkpointReached} follows. */
   R dialogueLoaded(EmbedEvent.DialogueLoaded event);

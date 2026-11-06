@@ -26,6 +26,17 @@
       ],
       "type": "object"
     },
+    "AtomKind": {
+      "description": "The five beat templates (§5).",
+      "enum": [
+        "open",
+        "elicit",
+        "reveal",
+        "practise",
+        "close"
+      ],
+      "type": "string"
+    },
     "CloseReason": {
       "enum": [
         "requested",
@@ -723,6 +734,17 @@
         "phase": {
           "$ref": "#/$defs/DialoguePhase"
         },
+        "procedural": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProceduralSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A procedural run's frontier and counters; omitted otherwise (ADR 3.11.26j D9)."
+        },
         "scene": {
           "type": [
             "string",
@@ -1100,7 +1122,7 @@
           "type": "object"
         },
         {
-          "description": "The story ended: `outcome` is the ending's id, or `abandoned` (ADR 3.11.26g §11.3).",
+          "description": "The story ended: `outcome` is the ending's id, or `abandoned` (ADR 3.11.26g §11.3).\nA procedural run also carries its `trace`, the whole path it took (ADR 3.11.26j D13).",
           "properties": {
             "checkpoint": {
               "type": "string"
@@ -1119,6 +1141,15 @@
             "outcome": {
               "type": "string"
             },
+            "trace": {
+              "items": {
+                "$ref": "#/$defs/TracedBeat"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "type": {
               "const": "dialogue_ended",
               "type": "string"
@@ -1129,6 +1160,46 @@
             "dialogue",
             "outcome",
             "checkpoint"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A procedural run's plan landed (ADR 3.11.26j D9): `checkpoints` are the new expansion's when `accepted`, empty when `kept`.",
+          "properties": {
+            "checkpoints": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "dialogue": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "outcome": {
+              "$ref": "#/$defs/PlanOutcome"
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PlanKeptReason"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "const": "dialogue_planned",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "dialogue",
+            "outcome",
+            "checkpoints"
           ],
           "type": "object"
         },
@@ -1350,6 +1421,13 @@
           "description": "Values set before the first auto-crossing, each checked as `DialogueSetFact` checks it.",
           "type": "object"
         },
+        "frontier": {
+          "description": "A procedural run's saved frontier, a `PlanFragment` as JSON text\n(ADR 3.11.26j D9): with it `checkpoint` is required, and the run\nresumes on that frontier instead of asking its first plan.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "level": {
           "format": "uint8",
           "maximum": 255,
@@ -1363,6 +1441,17 @@
             "string",
             "null"
           ]
+        },
+        "progress": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProceduralProgress"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The saved run's counters and trace; only with `frontier`."
         },
         "scene": {
           "default": null,
@@ -1700,6 +1789,25 @@
         }
       ]
     },
+    "PlanKeptReason": {
+      "description": "Why a run kept its frontier (D5): the answer was stale or refused here,\nor the server's own reason, or the call failed or timed out.",
+      "enum": [
+        "stale",
+        "rejected",
+        "unavailable",
+        "timeout",
+        "unparseable"
+      ],
+      "type": "string"
+    },
+    "PlanOutcome": {
+      "description": "What became of a plan (ADR 3.11.26j D9): its fragment is the frontier, or the run kept its own.",
+      "enum": [
+        "accepted",
+        "kept"
+      ],
+      "type": "string"
+    },
     "PlanSummary": {
       "properties": {
         "id": {
@@ -1998,6 +2106,85 @@
         }
       ]
     },
+    "ProceduralProgress": {
+      "description": "A procedural run's counters (ADR 3.11.26j D9), saved beside its\nfrontier so a restore keeps its plan bound and its fresh prefixes.",
+      "properties": {
+        "beats": {
+          "default": 0,
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "frontier_seq": {
+          "default": 0,
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "next_prefix": {
+          "default": 0,
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "plans": {
+          "default": 0,
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "since_crossing": {
+          "default": 0,
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "trace": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/TracedBeat"
+          },
+          "type": "array"
+        },
+        "turns": {
+          "default": 0,
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "visited": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/VisitedBeat"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "ProceduralSnapshot": {
+      "description": "A procedural run's half of a snapshot: fed back as `GraphSession`'s\n`frontier` and `progress`, it restores the run.",
+      "properties": {
+        "frontier": {
+          "description": "The frontier the run walks, a `PlanFragment` as JSON text.",
+          "type": "string"
+        },
+        "progress": {
+          "$ref": "#/$defs/ProceduralProgress"
+        }
+      },
+      "required": [
+        "frontier",
+        "progress"
+      ],
+      "type": "object"
+    },
     "Reaction": {
       "description": "The `202`'s `reaction` (D6).",
       "properties": {
@@ -2156,6 +2343,85 @@
         }
       ]
     },
+    "TracedBeat": {
+      "description": "One beat of a procedural run's whole path (ADR 3.11.26j D13): ids,\none enum word and three counters, never text.",
+      "properties": {
+        "atom": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AtomKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ending": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entered_turn": {
+          "description": "`turns` when the beat was entered.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "goal": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "The beat id, never `‹beat›_again`.",
+          "type": "string"
+        },
+        "left_by_edge": {
+          "description": "The edge that left the beat; `None` while it is current, or when\nthe run ended by a rule with no edge.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "left_turn": {
+          "description": "`turns` when it was left; `None` while it is current.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "plan_seq": {
+          "description": "The accepted frontier it was entered under, 1 for the first.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "via": {
+          "$ref": "#/$defs/CrossedVia",
+          "description": "How the beat was entered."
+        }
+      },
+      "required": [
+        "id",
+        "via",
+        "entered_turn",
+        "plan_seq"
+      ],
+      "type": "object"
+    },
     "UpdateAvailable": {
       "description": "The platform's answer to a declared `embed_version`: a newer\nversion serves, or the declared one is deprecated or withdrawn.",
       "properties": {
@@ -2179,6 +2445,24 @@
       },
       "required": [
         "deprecated"
+      ],
+      "type": "object"
+    },
+    "VisitedBeat": {
+      "description": "A beat a procedural run crossed, as the planner reads it: the last 16,\noldest first (ADR 3.11.26j D2).",
+      "properties": {
+        "atom": {
+          "$ref": "#/$defs/AtomKind"
+        },
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "atom"
       ],
       "type": "object"
     },

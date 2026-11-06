@@ -9,8 +9,9 @@ use crate::limits::V1_ENDINGS;
 
 /// The schema a writer emits for `doc`: `dialogue.v1` if and only if it is
 /// static, every ending is `success` or `failure` with no label, no NPC has a
-/// `disposition` and no checkpoint a `steer_to`. A procedural document is
-/// always `dialogue.v2`. `DialogueIr.schema` is not consulted.
+/// `disposition` and no checkpoint a `steer_to` or a `label` (ADR 6.11.26b). A
+/// procedural document is always `dialogue.v2`. `DialogueIr.schema` is not
+/// consulted.
 pub fn write_schema(doc: &Document) -> &'static str {
     match doc {
         Document::Static(ir) => static_schema(ir),
@@ -23,7 +24,8 @@ pub fn static_schema(ir: &DialogueIr) -> &'static str {
     let v1_endings = ir.endings.iter().all(|e| V1_ENDINGS.contains(&e.id.as_str()) && e.label.is_none());
     let stance = ir.npcs.iter().any(|npc| npc.disposition.is_some());
     let steer = ir.checkpoints.iter().any(|checkpoint| checkpoint.steer_to.is_some());
-    if v1_endings && !stance && !steer { SCHEMA_V1 } else { SCHEMA_V2 }
+    let named = ir.checkpoints.iter().any(|checkpoint| checkpoint.label.is_some());
+    if v1_endings && !stance && !steer && !named { SCHEMA_V1 } else { SCHEMA_V2 }
 }
 
 /// The endings every reader gives a v1 document.

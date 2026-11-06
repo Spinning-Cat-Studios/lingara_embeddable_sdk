@@ -102,6 +102,15 @@ namespace Lingara.Embed
         public string? Checkpoint { get; init; }
 
         public IReadOnlyList<WindowEntry> Window { get; init; } = Array.Empty<WindowEntry>();
+
+        /// <summary>
+        /// A procedural run's saved frontier, a <c>PlanFragment</c> as JSON text (ADR 3.11.26j D9): with it
+        /// <see cref="Checkpoint"/> is required, and the run resumes on it instead of asking its first plan.
+        /// </summary>
+        public string? Frontier { get; init; }
+
+        /// <summary>The saved run's counters and trace; only with <see cref="Frontier"/>.</summary>
+        public ProceduralProgress? Progress { get; init; }
     }
 
     /// <summary>Where a graph dialogue comes from: its IR as text, or a dialogue saved on Lingara (ADR 28.10.26i).</summary>
@@ -153,6 +162,17 @@ namespace Lingara.Embed
 
         public static readonly WordTable<CrossedVia> CrossedVias = new WordTable<CrossedVia>(
             CrossedVia.Unknown, W("start", CrossedVia.Start), W("auto", CrossedVia.Auto), W("judge", CrossedVia.Judge));
+
+        public static readonly WordTable<PlanOutcome> PlanOutcomes = new WordTable<PlanOutcome>(
+            PlanOutcome.Unknown, W("accepted", PlanOutcome.Accepted), W("kept", PlanOutcome.Kept));
+
+        public static readonly WordTable<PlanKeptReason> PlanKeptReasons = new WordTable<PlanKeptReason>(
+            PlanKeptReason.Unknown, W("stale", PlanKeptReason.Stale), W("rejected", PlanKeptReason.Rejected),
+            W("unavailable", PlanKeptReason.Unavailable), W("timeout", PlanKeptReason.Timeout), W("unparseable", PlanKeptReason.Unparseable));
+
+        public static readonly WordTable<AtomKind> AtomKinds = new WordTable<AtomKind>(
+            AtomKind.Unknown, W("open", AtomKind.Open), W("elicit", AtomKind.Elicit), W("reveal", AtomKind.Reveal),
+            W("practise", AtomKind.Practise), W("close", AtomKind.Close));
 
         private static KeyValuePair<string, T> W<T>(string word, T value) => new KeyValuePair<string, T>(word, value);
     }

@@ -45,6 +45,9 @@ namespace Lingara.Embed
 
         /// <summary>A graph dialogue's story; null for a free-form one.</summary>
         public GraphSnapshot? Graph { get; init; }
+
+        /// <summary>A procedural run's frontier and counters (ADR 3.11.26j D9); null otherwise.</summary>
+        public ProceduralSnapshot? Procedural { get; init; }
     }
 
     /// <summary>One step of an NPC's reply (K1 D8).</summary>

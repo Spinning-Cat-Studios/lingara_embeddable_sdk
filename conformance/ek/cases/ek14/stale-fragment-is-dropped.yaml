@@ -1,0 +1,58 @@
+id: ek14.stale-fragment-is-dropped
+behaviours: [EK14]
+tier: ek
+# A crossing while a plan is in flight sends nothing (ADR 3.11.26j D3): the
+# slow answer, asked from `p1_1`, lands on `p1_2` and is stale, and exactly
+# one plan follows from the beat the run is on, `exhausted` because `p1_2`'s
+# one exit leads to a sketch. The host's pause lets the slow plan reach the
+# server before the second turn does.
+serve:
+  - route: { operation: planDialogue }
+    expect_request:
+      body: { reason: start }
+    respond:
+      json: { status: planned, fragment: { anchor: p1_0, beats: [{ id: p1_0, atom: open, depth: 0, exits: [{ to: p1_1 }] }, { id: p1_1, atom: elicit, depth: 1, topic: tea, exits: [{ to: p1_2 }] }, { id: p1_2, atom: practise, depth: 2, topic: tea, goal: paid_up, exits: [{ to: p1_3 }] }, { id: p1_3, atom: close, depth: 3, sketch: true, ending: sold }] } }
+  - route: { operation: sendDialogueTurn }
+    respond:
+      sse:
+        - { event: delta, data: { text: 你好 } }
+        - { event: transition, data: { edge: p1_0_x0, to: p1_1 } }
+        - { event: done, data: {} }
+  - route: { operation: planDialogue }
+    expect_request:
+      body: { reason: crossed, current: p1_1, id_prefix: p2 }
+    respond:
+      fault: { delay_ms: 800 }
+      json: { status: planned, fragment: { anchor: p1_1, beats: [{ id: p1_1, atom: elicit, depth: 0, topic: tea, exits: [{ to: p2_1 }] }, { id: p2_1, atom: close, depth: 1, ending: sold }] } }
+  - route: { operation: sendDialogueTurn }
+    expect_request:
+      body: { checkpoint: { id: p1_1 } }
+    respond:
+      sse:
+        - { event: delta, data: { text: 茶 } }
+        - { event: transition, data: { edge: p1_1_x0, to: p1_2 } }
+        - { event: done, data: {} }
+  - route: { operation: planDialogue }
+    expect_request:
+      body: { reason: exhausted, current: p1_2, id_prefix: p3 }
+    respond:
+      json: { status: kept, reason: unavailable }
+host:
+  - start: { initial_token: lgr_et_conformance0001, config: { stream_on_start: false } }
+  - command:
+      type: dialogue_load
+      source:
+        type: ir
+        ir_json: '{"schema":"dialogue.v2","kind":"procedural","id":"ek14_tea","pedagogy":"none","endings":[{"id":"sold"},{"id":"walked_off"}],"npcs":[{"id":"keeper","name":"Mei","persona":"a tea seller","disposition":{"suggestibility":0.5,"initiative":0.95}},{"id":"boy","name":"Bo"}],"facts":[{"key":"paid","type":"boolean","default":false},{"key":"warm","type":"boolean","default":false},{"key":"lanterns","type":"number","default":3}],"procedural":{"premise":"The player wants a cup of tea","topics":[{"id":"tea","about":"the tea on offer"},{"id":"night","about":"the night market","when":"warm"},{"id":"errands","about":"the errands of the boy","npcs":["boy"]}],"goals":[{"id":"paid_up","describe":"the tea is paid for","predicate":"paid","when":"The player pays."}],"atoms":[{"atom":"open"},{"atom":"elicit"},{"atom":"practise"},{"atom":"close"}],"horizon":{"plan_depth":2,"sketch_depth":1,"max_nodes":8},"termination":{"max_turns":20,"max_beats":6,"success":{"goal":"paid_up","ending":"sold"},"stall":{"turns":2,"ending":"walked_off"},"on_limit":"walked_off"}}}'
+      session: { npc: keeper, source_lang: en, target_lang: zh, level: 2 }
+  - poll_until: { event: checkpoint_reached, match: { checkpoint: p1_0, via: start }, within_ms: 3000 }
+  - command: { type: dialogue_say, dialogue: $last, line: 你好 }
+  - poll_until: { event: checkpoint_reached, match: { checkpoint: p1_1, via: judge }, within_ms: 2000 }
+  - stop_polling: { for_ms: 200 }
+  - command: { type: dialogue_say, dialogue: $last, line: 茶 }
+  - poll_until: { event: checkpoint_reached, match: { checkpoint: p1_2, via: judge }, within_ms: 2000 }
+  - poll_until: { event: dialogue_planned, match: { outcome: kept, reason: stale }, within_ms: 3000 }
+  - poll_until: { event: dialogue_planned, match: { outcome: kept, reason: unavailable }, within_ms: 3000 }
+  - close: {}
+expect:
+  requests: { count: 5 }

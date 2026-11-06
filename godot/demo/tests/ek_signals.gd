@@ -18,6 +18,8 @@ const TYPES := {
 	"npc_turn_cancelled": [TYPE_INT],
 	"checkpoint_reached": [TYPE_INT, TYPE_STRING, TYPE_STRING, TYPE_STRING],
 	"dialogue_ended": [TYPE_INT, TYPE_STRING, TYPE_STRING, TYPE_STRING],
+	"dialogue_traced": [TYPE_INT, TYPE_ARRAY],
+	"dialogue_planned": [TYPE_INT, TYPE_STRING, TYPE_ARRAY, TYPE_STRING],
 	"dialogue_loaded": [TYPE_INT, TYPE_STRING, TYPE_INT],
 	"dialogue_load_failed": [TYPE_INT, TYPE_DICTIONARY],
 	"error_raised": [TYPE_DICTIONARY],

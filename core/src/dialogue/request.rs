@@ -50,8 +50,9 @@ pub(super) fn check_line(line: &str) -> Result<String, EmbedError> {
 }
 
 /// B3's request: the config, the line, and the window as `history`; N1's
-/// profile when set; a graph's fields when there is one. Answers the body
-/// and the edge ids it offered.
+/// profile when set; a graph's fields when there is one, a v2 graph's
+/// `npc.disposition` and `checkpoint.steer` among them (ADR 3.11.26j D7).
+/// Answers the body and the edge ids it offered.
 pub(super) fn body(d: &Dialogue, line: &str) -> (Value, Vec<String>) {
     let mut npc = world::npc_json(&d.config.npc);
     if !d.config.languages.is_empty() {

@@ -139,6 +139,28 @@ Every binding over the core replays every case through its own surface.
   without it yields neither; and the token is accepted either way. A
   malformed `update_available` is dropped, never refused. Nothing in it is
   sent to Lingara.
+- **EK14 — a procedural run plans only at start, on a crossing or on
+  exhaustion, sends no fact values, re-checks every fragment, and never lets
+  a plan fail a turn** (ADR 3.11.26j). A `dialogue_load` of a `kind:
+  procedural` document waits in `loading` and sends one `planDialogue` with
+  `reason: start` and `id_prefix: p1`; a valid `planned` answer starts the run
+  on its anchor and a `kept` one on the crate's seed, `dialogue_planned`
+  before `checkpoint_reached` (`via: start`) either way. A beat crossing sends
+  `crossed` (or `exhausted`, when the beat entered leads only to sketches)
+  with `current` and the frontier unpruned, at most once per beat and one call
+  at a time; a fragment the core's own `within_spec` refuses is `kept`
+  `rejected`, and one that lands after the run moved is `kept` `stale` and
+  followed by exactly one plan from the beat it is on. A body carries which
+  topics and goals hold, never a fact's value. A turn is the static turn plus
+  `npc.disposition` and, while its edge is open, `checkpoint.steer`. A plan
+  that lands mid-turn is applied after `done`. The spec's `termination` ends
+  a run whose planner never gives it road, `dialogue_ended` carrying the
+  `trace`.
+
+  The plan route is scripted as the turn is: a `planDialogue` serve step
+  answers `json` (`{status: planned, fragment}` or `{status: kept, reason}`),
+  and `fault.delay_ms` holds the answer back so it can land while a turn
+  streams.
 
 ## The host script
 

@@ -183,6 +183,10 @@ pub struct Checkpoint {
     /// NPC drives the conversation (§3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub steer_to: Option<String>,
+    /// `dialogue.v2`: a name a person reads (ADR 6.11.26b). Display text only:
+    /// nothing references it, and the runner never reads it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
 }
 
 /// A static graph, `dialogue.v1` or `dialogue.v2`.

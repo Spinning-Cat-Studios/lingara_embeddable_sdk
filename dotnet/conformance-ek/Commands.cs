@@ -196,6 +196,8 @@ namespace Lingara.Embed.Conformance
             Facts = (o["facts"] as JsonObject)?.ToDictionary(f => f.Key, f => Fact(f.Value)) ?? new Dictionary<string, FactValue>(),
             Checkpoint = OptStr(o, "checkpoint"),
             Window = Window(o["window"] as JsonArray),
+            // A procedural run's saved frontier (ADR 3.11.26j, EK14); no case restores `progress`.
+            Frontier = OptStr(o, "frontier"),
         };
 
         private static FactValue Fact(JsonNode? n) => n?.GetValueKind() switch

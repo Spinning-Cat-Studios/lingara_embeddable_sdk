@@ -126,6 +126,17 @@ namespace Lingara.Embed.Commands
 
             w.EndObject().Prop("checkpoint", session.Checkpoint).Name("window");
             Window(w, session.Window);
+            // Omitted when unset, so a static load reads and writes back byte-equal (ADR 3.11.26j D9).
+            if (session.Frontier != null)
+            {
+                w.Prop("frontier", session.Frontier);
+            }
+
+            if (session.Progress != null)
+            {
+                ProceduralEncoder.Progress(w.Name("progress"), session.Progress);
+            }
+
             return w.EndObject().EndObject().ToUtf8();
         }
 

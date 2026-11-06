@@ -75,7 +75,7 @@ fn auto_edges_cross_in_order_and_wait_for_a_turn() {
     let hold = |_: &_, _| Reply::Sse(vec![frame("delta", json!({ "text": "..." }))], After::Hold);
     let fake = FakeLingara::start(hold);
     let embed = started(config(&fake.url));
-    let session = GraphSession { npc: None, source_lang: "en".into(), target_lang: "es".into(), level: 2, scene: None, facts: Default::default(), checkpoint: None, window: vec![] };
+    let session = GraphSession { npc: None, source_lang: "en".into(), target_lang: "es".into(), level: 2, scene: None, facts: Default::default(), checkpoint: None, window: vec![], frontier: None, progress: None };
     let d = embed.dialogue_load(DialogueSource::Ir { ir_json: story().to_string() }, session).unwrap();
     embed.dialogue_say(d, "hola").unwrap();
     wait_for(&embed, 5 * SECS, |e| matches!(e, EmbedEvent::NpcTurn { .. }));
@@ -99,14 +99,14 @@ fn unsent_edges_are_ignored_and_outcomes_end() {
     assert_eq!(steps[1], reached("ask", Some("any"), CrossedVia::Judge), "and the IR's `to` is used");
 
     let steps = s.apply_judged(&["gate".into()], "gate", "success");
-    assert_eq!(steps, [Step::Ended { outcome: "success".into(), checkpoint: "ask".into(), edge: Some("gate".into()) }]);
+    assert_eq!(steps, [Step::Ended { outcome: "success".into(), checkpoint: "ask".into(), edge: Some("gate".into()), trace: None }]);
     assert!(s.ended() && s.abandon().is_none());
 
     // A live dialogue whose story ends on load refuses a line.
     let fake = FakeLingara::start(|_, _| Reply::Json(500, json!({})));
     let embed = started(config(&fake.url));
     let facts = [("alarm".to_owned(), FactValue::Boolean(true))].into();
-    let session = GraphSession { npc: None, source_lang: "en".into(), target_lang: "es".into(), level: 2, scene: None, facts, checkpoint: None, window: vec![] };
+    let session = GraphSession { npc: None, source_lang: "en".into(), target_lang: "es".into(), level: 2, scene: None, facts, checkpoint: None, window: vec![], frontier: None, progress: None };
     let d = embed.dialogue_load(DialogueSource::Ir { ir_json: story().to_string() }, session).unwrap();
     let ended = |e: &EmbedEvent| matches!(e, EmbedEvent::DialogueEnded { outcome, checkpoint, edge: Some(edge), .. } if outcome == "failure" && checkpoint == "intro" && edge == "alarm");
     wait_for(&embed, 5 * SECS, ended);
@@ -160,6 +160,6 @@ fn the_runner_walks_an_expansion_unchanged() {
     assert_eq!(s.auto_run(), [reached("w1_3", Some("w1_2_ok"), CrossedVia::Auto)]);
     let sent = offered(&s);
     let ended = s.apply_judged(&sent, "w1_3_end", "crossed");
-    assert_eq!(ended, [Step::Ended { outcome: "crossed".into(), checkpoint: "w1_3".into(), edge: Some("w1_3_end".into()) }]);
+    assert_eq!(ended, [Step::Ended { outcome: "crossed".into(), checkpoint: "w1_3".into(), edge: Some("w1_3_end".into()), trace: None }]);
     assert_eq!(s.snapshot().outcome.as_deref(), Some("crossed"));
 }

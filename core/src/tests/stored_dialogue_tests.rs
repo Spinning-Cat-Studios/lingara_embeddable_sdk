@@ -38,7 +38,7 @@ fn graph(tag: &str) -> Value {
 }
 
 fn session(npc: &str) -> GraphSession {
-    GraphSession { npc: Some(npc.into()), source_lang: "en".into(), target_lang: "es".into(), level: 2, scene: None, facts: BTreeMap::new(), checkpoint: None, window: vec![] }
+    GraphSession { npc: Some(npc.into()), source_lang: "en".into(), target_lang: "es".into(), level: 2, scene: None, facts: BTreeMap::new(), checkpoint: None, window: vec![], frontier: None, progress: None }
 }
 
 fn stored(id: &str) -> DialogueSource {

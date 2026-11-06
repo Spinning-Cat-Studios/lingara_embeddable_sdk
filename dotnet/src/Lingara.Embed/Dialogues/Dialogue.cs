@@ -79,12 +79,13 @@ namespace Lingara.Embed.Dialogues
     /// <summary>A member of the cast; <see cref="Languages"/> null is N1's native speaker.</summary>
     public sealed class DialogueNpc
     {
-        internal DialogueNpc(string id, string name, string? persona, IReadOnlyList<NpcLanguage>? languages)
+        internal DialogueNpc(string id, string name, string? persona, IReadOnlyList<NpcLanguage>? languages, NpcDisposition? disposition)
         {
             Id = id;
             Name = name;
             Persona = persona;
             Languages = languages;
+            Disposition = disposition;
         }
 
         public string Id { get; }
@@ -94,6 +95,23 @@ namespace Lingara.Embed.Dialogues
         public string? Persona { get; }
 
         public IReadOnlyList<NpcLanguage>? Languages { get; }
+
+        /// <summary>How the NPC steers (ADR 3.11.26j D8); one makes a static dialogue <c>dialogue.v2</c>.</summary>
+        public NpcDisposition? Disposition { get; }
+    }
+
+    /// <summary>How readily an NPC follows the player off its goal, and how hard it drives toward it: each 0–1.</summary>
+    public sealed class NpcDisposition
+    {
+        internal NpcDisposition(double suggestibility, double initiative)
+        {
+            Suggestibility = suggestibility;
+            Initiative = initiative;
+        }
+
+        public double Suggestibility { get; }
+
+        public double Initiative { get; }
     }
 
     /// <summary>A fact the game tracks; <see cref="Default"/> is a bool, a double or a string.</summary>

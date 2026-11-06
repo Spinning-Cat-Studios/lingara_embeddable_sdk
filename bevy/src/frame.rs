@@ -74,7 +74,9 @@ fn route(world: &mut World, event: EmbedEvent) {
         EmbedEvent::NpcTurn { dialogue, request, update } => dialogue::on_turn(world, dialogue, request, update),
         // A graph dialogue's story (ADR 28.10.26g D6).
         EmbedEvent::CheckpointReached { dialogue, checkpoint, edge, via } => dialogue::on_checkpoint(world, dialogue, checkpoint, edge, via),
-        EmbedEvent::DialogueEnded { dialogue, outcome, checkpoint, .. } => dialogue::on_ended(world, dialogue, outcome, checkpoint),
+        EmbedEvent::DialogueEnded { dialogue, outcome, checkpoint, trace, .. } => dialogue::on_ended(world, dialogue, outcome, checkpoint, trace),
+        // A procedural NPC's plan (ADR 3.11.26j D10).
+        EmbedEvent::DialoguePlanned { dialogue, outcome, checkpoints, reason } => dialogue::on_planned(world, dialogue, outcome, checkpoints, reason),
         // A stored dialogue's load (ADR 28.10.26i D5), typed by H1 (ADR 3.11.26f §5).
         EmbedEvent::DialogueLoaded { dialogue, dialogue_id, rev } => dialogue::on_loaded(world, dialogue, dialogue_id, rev),
         EmbedEvent::DialogueLoadFailed { dialogue, error } => dialogue::on_load_failed(world, dialogue, error),

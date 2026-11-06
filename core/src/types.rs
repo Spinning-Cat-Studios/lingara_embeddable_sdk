@@ -104,7 +104,10 @@ data! {
         NpcTurn { dialogue: DialogueId, request: RequestId, update: NpcTurnUpdate },
         CheckpointReached { dialogue: DialogueId, checkpoint: String, edge: Option<String>, via: CrossedVia },
         /// The story ended: `outcome` is the ending's id, or `abandoned` (ADR 3.11.26g §11.3).
-        DialogueEnded { dialogue: DialogueId, outcome: String, checkpoint: String, edge: Option<String> },
+        /// A procedural run also carries its `trace`, the whole path it took (ADR 3.11.26j D13).
+        DialogueEnded { dialogue: DialogueId, outcome: String, checkpoint: String, edge: Option<String>, #[serde(default, skip_serializing_if = "Option::is_none")] trace: Option<Vec<TracedBeat>> },
+        /// A procedural run's plan landed (ADR 3.11.26j D9): `checkpoints` are the new expansion's when `accepted`, empty when `kept`.
+        DialoguePlanned { dialogue: DialogueId, outcome: PlanOutcome, checkpoints: Vec<String>, #[serde(default, skip_serializing_if = "Option::is_none")] reason: Option<PlanKeptReason> },
         /// A stored dialogue's revision `rev` is loaded; `CheckpointReached { via: start }` follows.
         DialogueLoaded { dialogue: DialogueId, dialogue_id: String, rev: u64 },
         /// A stored dialogue could not load; its id is gone.

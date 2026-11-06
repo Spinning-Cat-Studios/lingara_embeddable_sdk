@@ -52,3 +52,7 @@ title = "A stored dialogue is fetched with the embed token, at most once per id 
 [[behaviour]]
 id = "EK13"
 title = "An update notice is said once per handle: the first token carrying update_available yields one Log at warn and one UpdateAvailable, in that order; a later token yields neither; a token without it yields neither; and the token is accepted either way"
+
+[[behaviour]]
+id = "EK14"
+title = "A procedural run plans only at start, on a crossing or on exhaustion, sends no fact values, re-checks every fragment, and never lets a plan fail a turn: a kept start walks the seed, a refused or stale fragment keeps the frontier, a turn carries the expansion's checkpoint and the stance, a plan landing mid-turn waits for done, and the stall rule ends a run with no road"
